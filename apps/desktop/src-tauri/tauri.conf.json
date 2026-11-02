@@ -58,7 +58,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEMzQUE5OUJFNTc3MTU3RDIKUldUU1YzRlh2cG1xdzE4SGg2cXM0UUdtd1BUTUU1UmYwZ1JHeWFsMjNVZUtTZytSNVM4MXdKNkkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVEN0JDRUQ5MEE4QThFQjMKUldTempvb0syYzU3N1dzTUJZWmlMdnIyN0tHWHAxQ09hL002YWw3S3hCR3FUVjd3clB6OU9ZRWQK",
       "endpoints": [
         "https://github.com/OWNER/REPO/releases/latest/download/latest.json"
       ],
