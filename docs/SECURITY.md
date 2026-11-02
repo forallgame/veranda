@@ -1,0 +1,62 @@
+# Security model
+
+Padu runs third-party servers on a developer machine. The goals are: nothing reachable from the
+network, nothing tampered with in transit, no silent privilege escalation, and sane defaults even
+if the user never opens the settings.
+
+## Network exposure
+- Every service listens on `127.0.0.1` / `::1` only (web, PHP FastCGI, database, cache, SMTP,
+  Mailpit UI). Nginx/Apache/Caddy templates bind the loopback address explicitly.
+- Caddy runs with the admin API **disabled** (`admin off`); reloads are restarts.
+- Valkey/Redis: `protected-mode yes`, loopback bind.
+- MariaDB/MySQL: `bind-address = 127.0.0.1`, `local-infile = 0`, `secure-file-priv` restricted to
+  the tmp dir, `mysqlx` off, random 24-character root password generated on first start and stored
+  with mode 0600 (Windows: ACL restricted to the user). Passwords are passed via `MYSQL_PWD`, never
+  on the command line.
+
+## Supply chain
+- Downloads are HTTPS only (`https_only(true)` in the HTTP client, rustls, certificate validation).
+- Each package carries a checksum: SHA-256/SHA-512 where upstream publishes one, remote checksum
+  files (Caddy, Node.js, Composer, phpMyAdmin, Apache Lounge, Valkey), MD5 where that is all the
+  vendor offers (MySQL). Sources with no checksum at all (static-php builds, nginx.org zips) fall
+  back to **trust-on-first-use**: the SHA-256 is recorded in `etc/checksums.json`, and any later
+  download of the same URL with different content is refused.
+- Archives are extracted with `enclosed_name()` / component validation (no `..`, no absolute paths),
+  symlinks that escape the destination are skipped. Downloads are capped at 2 GiB.
+- Nothing downloaded is ever executed during installation except the vendor binaries the user
+  explicitly chose to run as a service.
+
+## Privilege boundaries
+- The app never runs as root/administrator. Only two operations need elevation and both go
+  through a minimal helper:
+  1. **Hosts file** - the GUI/CLI writes a payload (`tld=` + validated hostnames) and runs
+     `padu hosts apply --from <payload>` elevated (pkexec / osascript / UAC). The helper
+     re-validates every hostname against a strict grammar, only touches the lines between the Padu
+     markers, keeps a backup and writes in place.
+  2. **Ports < 1024 on Linux** - `padu doctor --fix-ports` applies `cap_net_bind_service` to the web
+     server binary with `setcap` (optional; ports 8080/8443 work without it).
+- CA trust is installed into the **current user's** store (NSS db on Linux, login keychain on
+  macOS, `certutil -user` on Windows). System-wide installation on Linux is a separate, explicit
+  elevated step.
+
+## TLS
+- Local CA: ECDSA P-256, 10 years, path length 0, key 0600, never leaves the machine.
+- Site certificate: one leaf covering `localhost`, `127.0.0.1`, every `<site>` and `*.<site>`,
+  validity 820 days (under the 825-day browser limit), re-issued when the site set changes.
+- Servers: TLS 1.2 and 1.3 only, modern AEAD cipher suites, HTTP/2.
+
+## Web server hardening
+- Dot-files (`.git`, `.env`, `.htaccess`) and dependency manifests return 404.
+- `X-Content-Type-Options: nosniff`, `Server` header removed, directory listing is a setting.
+- PHP: `expose_php=Off`, `allow_url_include=Off`, `cgi.fix_pathinfo=0`, strict sessions with
+  HttpOnly/SameSite cookies, `open_basedir` left open on purpose for development.
+- Tool apps (Adminer, phpMyAdmin) are only mounted on the `localhost` site, never on project hosts.
+
+## Desktop app
+- Tauri 2 with a strict CSP, no remote content, IPC limited by a capability file to the commands
+  the UI needs. No bundled browser engine (system WebView), no telemetry, no auto-executed
+  downloads.
+
+## Dependencies
+- Rust 2024 edition; every crate pinned to the newest stable release at the time of writing
+  (see `Cargo.toml`). `cargo audit` runs in CI. Prefer updating dependencies with every release.

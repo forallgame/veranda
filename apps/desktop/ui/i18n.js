@@ -1,0 +1,47 @@
+// UI strings - short labels only.
+window.PADU_I18N = {
+  en: {
+    "nav.dashboard": "Dashboard", "nav.packages": "Packages", "nav.sites": "Sites", "nav.database": "Database", "nav.settings": "Settings", "nav.logs": "Logs", "logs.activity": "Activity", "logs.empty": "No log output yet", "btn.clear": "Clear",
+    "pkg.version": "Version", "pkg.versions": "versions", "update.install": "Update now", "update.auto": "Updating automatically…", "settings.autoInstall": "Install updates automatically", "update.page": "Release page", "update.available": "Padu {version} is available", "update.manual": "This install cannot update itself (use the release page)", "update.restarting": "Installed. Restarting…", "settings.closeToTray": "Close button hides to tray", "pkg.group.web": "Web server", "pkg.group.php": "PHP", "pkg.group.db": "Database", "pkg.group.cache": "Cache", "pkg.group.mail": "Mail", "pkg.group.tools": "Tools",
+    "msg.startFailed": "Some services could not start", "msg.installFirst": "Install the packages first (Packages tab)",
+    "status.stopped": "Stopped", "status.running": "Running", "status.partial": "Partial",
+    "btn.startAll": "Start All", "btn.stopAll": "Stop All", "btn.update": "Update", "btn.checkLatest": "Check updates", "btn.checking": "Checking…", "btn.sync": "Sync",
+    "btn.newProject": "New project", "btn.add": "Add", "btn.save": "Save", "btn.checkUpdate": "Check for updates", "btn.cancel": "Cancel",
+    "btn.create": "Create", "btn.install": "Install", "pkg.installing": "Installing…", "pkg.removing": "Removing…", "pkg.remove": "Remove version {version}", "confirm.title": "Are you sure?", "msg.removed": "Removed {name} {version}", "pkg.downloading": "Downloading", "pkg.extracting": "Extracting…", "pkg.done": "Done", "btn.start": "Start", "btn.stop": "Stop", "btn.restart": "Restart", "btn.reload": "Reload", "btn.remove": "Remove",
+    "notice.hosts": "Hosts file needs an update", "quick.web": "Web", "quick.database": "Database", "quick.mail": "Mail", "quick.terminal": "Terminal", "quick.root": "Folder", "quick.logs": "Logs",
+    "sites.manual": "Add external folder", "sites.hint": "Folders in {root} become https://name.{tld}",
+    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "New password", "db.create": "Create", "db.unknownPassword": "start the database first",
+    "settings.editFile": "Config file", "settings.general": "General", "settings.root": "Root", "settings.language": "Language", "settings.docroot": "Document root", "settings.editor": "Editor",
+    "settings.autoVhosts": "Auto virtual hosts", "settings.smartPublic": "Serve public/ when present", "settings.autoStart": "Start services on launch", "settings.startMinimized": "Start minimized",
+    "settings.web": "Web", "settings.server": "Server", "settings.enabled": "Enabled", "settings.autoindex": "Directory listing", "settings.trustCa": "Trust local CA", "settings.version": "Version",
+    "settings.workers": "Workers", "settings.timezone": "Timezone", "settings.database": "Database", "settings.engine": "Engine", "settings.other": "Cache, mail, backups, updates",
+    "settings.backupEvery": "Backup every (h)", "settings.backupKeep": "Keep", "settings.backup": "Auto backup", "settings.checkOnStart": "Check updates on start",
+    "project.title": "New project", "project.name": "Name", "project.template": "Template", "project.createDb": "Create database",
+    "pkg.newest": "newest", "pkg.installed": "installed", "pkg.notInstalled": "not installed", "pkg.upToDate": "up to date", "pkg.system": "system",
+    "msg.saved": "Saved. Restart services to apply.", "msg.installed": "Installed {name} {version}", "msg.synced": "Sites synced", "msg.created": "Created {name}",
+    "msg.copied": "Copied", "msg.upToDate": "Padu {version} is up to date", "msg.newVersion": "Version {version} is available", "msg.noRepo": "Set the GitHub repo in Settings first.",
+    "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
+  },
+  id: {
+    "nav.dashboard": "Dasbor", "nav.packages": "Paket", "nav.sites": "Situs", "nav.database": "Database", "nav.settings": "Pengaturan", "nav.logs": "Log", "logs.activity": "Aktivitas", "logs.empty": "Belum ada isi log", "btn.clear": "Bersihkan",
+    "pkg.version": "Versi", "pkg.versions": "versi", "update.install": "Perbarui sekarang", "update.auto": "Memperbarui otomatis…", "settings.autoInstall": "Pasang pembaruan otomatis", "update.page": "Halaman rilis", "update.available": "Padu {version} tersedia", "update.manual": "Instalasi ini tidak bisa memperbarui dirinya (gunakan halaman rilis)", "update.restarting": "Terpasang. Memulai ulang…", "settings.closeToTray": "Tombol close menyembunyikan ke tray", "pkg.group.web": "Web server", "pkg.group.php": "PHP", "pkg.group.db": "Database", "pkg.group.cache": "Cache", "pkg.group.mail": "Mail", "pkg.group.tools": "Alat",
+    "msg.startFailed": "Beberapa layanan gagal dimulai", "msg.installFirst": "Pasang paketnya dulu (tab Paket)",
+    "status.stopped": "Berhenti", "status.running": "Berjalan", "status.partial": "Sebagian",
+    "btn.startAll": "Mulai Semua", "btn.stopAll": "Hentikan Semua", "btn.update": "Perbarui", "btn.checkLatest": "Cek pembaruan", "btn.checking": "Memeriksa…", "btn.sync": "Sinkron",
+    "btn.newProject": "Proyek baru", "btn.add": "Tambah", "btn.save": "Simpan", "btn.checkUpdate": "Cek pembaruan", "btn.cancel": "Batal",
+    "btn.create": "Buat", "btn.install": "Pasang", "pkg.installing": "Memasang…", "pkg.removing": "Menghapus…", "pkg.remove": "Hapus versi {version}", "confirm.title": "Yakin?", "msg.removed": "Dihapus {name} {version}", "pkg.downloading": "Mengunduh", "pkg.extracting": "Mengekstrak…", "pkg.done": "Selesai", "btn.start": "Mulai", "btn.stop": "Stop", "btn.restart": "Mulai ulang", "btn.reload": "Muat ulang", "btn.remove": "Hapus",
+    "notice.hosts": "File hosts perlu diperbarui", "quick.web": "Web", "quick.database": "Database", "quick.mail": "Mail", "quick.terminal": "Terminal", "quick.root": "Folder", "quick.logs": "Log",
+    "sites.manual": "Tambah folder eksternal", "sites.hint": "Folder di {root} menjadi https://nama.{tld}",
+    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "Password baru", "db.create": "Buat", "db.unknownPassword": "jalankan database dulu",
+    "settings.editFile": "File config", "settings.general": "Umum", "settings.root": "Root", "settings.language": "Bahasa", "settings.docroot": "Document root", "settings.editor": "Editor",
+    "settings.autoVhosts": "Virtual host otomatis", "settings.smartPublic": "Layani public/ jika ada", "settings.autoStart": "Jalankan layanan saat dibuka", "settings.startMinimized": "Mulai diminimalkan",
+    "settings.web": "Web", "settings.server": "Server", "settings.enabled": "Aktif", "settings.autoindex": "Daftar isi folder", "settings.trustCa": "Percayai CA lokal", "settings.version": "Versi",
+    "settings.workers": "Worker", "settings.timezone": "Zona waktu", "settings.database": "Database", "settings.engine": "Engine", "settings.other": "Cache, mail, backup, pembaruan",
+    "settings.backupEvery": "Backup tiap (jam)", "settings.backupKeep": "Simpan", "settings.backup": "Backup otomatis", "settings.checkOnStart": "Cek pembaruan saat mulai",
+    "project.title": "Proyek baru", "project.name": "Nama", "project.template": "Template", "project.createDb": "Buat database",
+    "pkg.newest": "terbaru", "pkg.installed": "terpasang", "pkg.notInstalled": "belum dipasang", "pkg.upToDate": "sudah terbaru", "pkg.system": "sistem",
+    "msg.saved": "Tersimpan. Mulai ulang layanan untuk menerapkan.", "msg.installed": "Terpasang {name} {version}", "msg.synced": "Situs disinkronkan", "msg.created": "Dibuat {name}",
+    "msg.copied": "Disalin", "msg.upToDate": "Padu {version} sudah terbaru", "msg.newVersion": "Versi {version} tersedia", "msg.noRepo": "Isi repo GitHub di Pengaturan dulu.",
+    "msg.confirmDelete": "Hapus folder proyek {name}?", "msg.confirmRemove": "Hapus {name} {version}? File-nya akan dihapus; layanan yang memakainya harus dihentikan dulu.", "msg.backup": "Backup tersimpan: {path}", "msg.trust": "{ok}/{total} langkah trust selesai. Mulai ulang browser."
+  }
+};
