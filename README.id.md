@@ -5,12 +5,12 @@
 <h1 align="center">Padu</h1>
 
 <p align="center">
-  Server web lokal yang ringan dan bersahabat untuk proyek PHP.<br>
-  Satu jendela, beberapa klik, dan <code>https://aplikasi-saya.test</code> sudah berjalan di komputer Anda.
+  Tumpukan pengembangan lokal yang ringan dan bersahabat: server web, PHP, database, cache, dan penangkap email dalam satu jendela.<br>
+  Beberapa klik, dan <code>https://aplikasi-saya.test</code> berjalan di komputer Anda sendiri.
 </p>
 
 <p align="center">
-  <a href="#unduh">Unduh</a> ·
+  <a href="#pemasangan">Pemasangan</a> ·
   <a href="#apa-yang-anda-dapat">Apa yang Anda dapat</a> ·
   <a href="#lima-menit-pertama">Lima menit pertama</a> ·
   <a href="README.md">English</a>
@@ -18,81 +18,128 @@
 
 ---
 
-Padu dibuat untuk Anda yang membangun situs dengan PHP dan ingin tumpukan server lokal yang
-biasa dipakai langsung jalan, tanpa menghabiskan akhir pekan untuk menyiapkannya. Anggap saja
-ini alternatif yang tenang dari paket "serba ada" yang besar: cepat dibuka, tidak mengganggu,
-dan hanya mengunduh bagian yang memang Anda pakai.
+Padu untuk siapa saja yang membangun untuk web dan ingin perlengkapan lokalnya langsung jalan.
+Ia melayani situs HTML dan JavaScript biasa, aplikasi PHP (WordPress, Laravel, Symfony, dan
+kawan-kawan), serta memberi proyek apa pun database lokal, cache, penangkap email, dan Node.js.
+Anda hanya memilih bagian yang dibutuhkan; tidak ada yang dipaksakan, dan tidak ada yang
+berjalan tanpa Anda nyalakan.
 
-![Padu dalam mode gelap dan terang](docs/screenshot-dark.png)
+![Dasbor Padu](docs/screenshot-dark.png)
 
 ## Apa yang Anda dapat
 
-- **Seluruh tumpukan, Anda yang memilih.** PHP (8.1 sampai 8.5 terbaru), server web (bawaan
-  Caddy; Nginx atau Apache jika lebih suka), MariaDB atau MySQL, Valkey/Redis, Mailpit untuk
-  menangkap email, serta Node.js, Composer, Adminer, dan phpMyAdmin. Pilih versinya dari daftar,
-  ganti kapan saja, pasang beberapa versi berdampingan.
-- **Folder proyek otomatis menjadi situs.** Taruh folder di `www/`, maka ia dilayani di
-  `https://nama-folder.test` dengan sertifikat yang dipercaya browser. Folder `public/` milik
-  Laravel dan Symfony dikenali sendiri.
-- **Jujur tentang apa yang sedang terjadi.** Setiap layanan menampilkan status, port, dan versi.
-  Unduhan punya bilah kemajuan sungguhan. Ada tab Log kalau ada yang tidak beres, jadi Anda tidak
-  perlu menebak.
-- **Ringan di komputer.** Aplikasinya sendiri sekitar 9 MB. Tidak ada yang dibundel; runtime
-  diambil dari server unduhan resminya, diverifikasi dengan checksum, hanya saat Anda meminta.
-- **Aman sejak awal.** Semua layanan hanya mendengarkan di localhost. Database mendapat kata sandi
-  root acak saat pertama dijalankan, bukan kosong. HTTPS memakai otoritas sertifikat lokal yang
-  tidak pernah keluar dari mesin Anda. Tanpa akun, tanpa pelacakan, tanpa lalu lintas jaringan
-  diam-diam.
-- **Selalu segar.** Padu memberi tahu saat versi baru terbit dan memasangnya dengan satu klik
-  (atau otomatis, kalau Anda menyalakannya). Daftar paket selalu tahu PHP, MariaDB, dan kawan-
-  kawannya yang terbaru.
-- **Sama di Linux, Windows, dan macOS.** Mode gelap dan terang tersedia.
+- **Semua yang biasa dibutuhkan, tanpa yang tidak perlu.** PHP (8.1 sampai 8.5 terbaru), server
+  web (bawaan Caddy, atau Nginx/Apache), MariaDB atau MySQL, Valkey/Redis, Mailpit untuk
+  menangkap email keluar, Node.js, Composer, Adminer, dan phpMyAdmin. Semuanya opsional dan
+  versinya Anda pilih dari daftar. Beberapa versi bisa terpasang berdampingan.
+- **Folder menjadi situs.** Taruh folder proyek di `www/`, maka ia dilayani di
+  `https://nama-folder.test` dengan sertifikat yang dipercaya browser. Berlaku untuk situs
+  statis, aplikasi PHP, dan apa pun yang punya `index.html` atau `index.php`; folder `public/`
+  Laravel dan Symfony dikenali otomatis.
+- **Tidak perlu menebak.** Setiap layanan menampilkan status, port, dan versi. Unduhan punya
+  bilah kemajuan. Tab Log menunjukkan apa yang salah, dengan warna.
+- **Ringan.** Aplikasinya sekitar 9 MB. Runtime diunduh dari server resminya hanya saat Anda
+  minta, diverifikasi dengan checksum, dan bisa dihapus per versi.
+- **Aman sejak awal.** Semua layanan hanya mendengarkan di localhost. Database mendapat kata
+  sandi root acak saat pertama dijalankan. HTTPS memakai otoritas sertifikat lokal yang tidak
+  pernah keluar dari komputer Anda. Tanpa akun, tanpa telemetri.
+- **Selalu mutakhir.** Padu memberi tahu saat rilis baru terbit dan memperbarui dirinya dengan
+  satu klik (atau otomatis, kalau Anda mau). Daftar paket selalu tahu PHP, MariaDB, dan lainnya
+  yang terbaru.
+- **Linux, Windows, dan macOS**, mode gelap dan terang.
 
-## Unduh
+## Pemasangan
 
-Ambil pemasang untuk sistem Anda dari halaman **[Releases](../../releases/latest)**:
+Unduh berkas untuk sistem Anda dari **[rilis terbaru](../../releases/latest)**.
 
-| Sistem | Berkas | Catatan |
-|---|---|---|
-| Linux (Debian, Ubuntu, Kubuntu, Mint) | `padu_x.y.z_amd64.deb` | `sudo apt install ./padu_x.y.z_amd64.deb` |
-| Linux (semua) | `padu_x.y.z_amd64.AppImage` | beri izin eksekusi lalu jalankan; yang ini bisa memperbarui dirinya |
-| Linux (Fedora, openSUSE) | `padu-x.y.z-1.x86_64.rpm` | `sudo dnf install ./padu-*.rpm` |
-| Windows 10/11 | `Padu_x.y.z_x64-setup.exe` | pemasang biasa; WebView2 diunduh bila belum ada |
-| macOS | `Padu_x.y.z_universal.dmg` | Apple Silicon dan Intel dalam satu berkas |
+### Linux
 
-Peluncuran pertama membuat folder `padu` di direktori home Anda untuk proyek, pengaturan, dan
-database. Tidak ada bagian lain dari sistem yang disentuh.
+**Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
+```sh
+sudo apt install ./padu_0.1.0_amd64.deb
+```
+Padu muncul di menu aplikasi. Pembaruan: Padu menampilkan pemberitahuan dan membuka halaman
+rilis; unduh `.deb` baru lalu jalankan perintah yang sama.
 
-Lebih suka terminal? Ada alat baris perintah `padu` di rilis yang sama dengan semua fitur
-aplikasinya (`padu install php`, `padu start`, `padu project create blog --template wordpress`).
+**Fedora, openSUSE, RHEL** (`.rpm`):
+```sh
+sudo dnf install ./padu-0.1.0-1.x86_64.rpm     # atau: sudo zypper install ./padu-*.rpm
+```
+
+**Distribusi apa pun** (`.AppImage`, tanpa pemasangan):
+```sh
+chmod +x padu_0.1.0_amd64.AppImage
+./padu_0.1.0_amd64.AppImage
+```
+AppImage bisa memperbarui dirinya dari dalam aplikasi. Pindahkan ke folder seperti
+`~/Applications` agar rapi.
+
+Port 80 dan 443 di Linux butuh izin satu kali: tekan **Start All** di Padu lalu ikuti
+petunjuknya, atau jalankan `padu doctor --fix-ports` dari CLI. Bisa juga memakai 8080/8443 di
+Settings.
+
+### Windows 10 / 11
+
+1. Unduh `Padu_0.1.0_x64-setup.exe` lalu jalankan. Jika SmartScreen berkata "Windows protected
+   your PC", klik **More info → Run anyway** (pemasangnya masih baru dan belum banyak diunduh;
+   hanya itu arti peringatannya).
+2. Ikuti pemasangnya. Padu ditambahkan ke menu Start. Runtime Microsoft WebView2 dipasang
+   otomatis jika komputer Anda belum punya.
+3. Perlu MSI untuk pemasangan di perusahaan? `Padu_0.1.0_x64_en-US.msi` ada di rilis yang sama.
+
+Pembaruan dipasang langsung dari dalam aplikasi.
+
+### macOS (Apple Silicon dan Intel)
+
+1. Unduh `Padu_0.1.0_universal.dmg`, buka, lalu seret **Padu** ke **Applications**.
+2. Peluncuran pertama: klik kanan (atau Control-klik) Padu → **Open** → **Open**. macOS bertanya
+   sekali karena aplikasi belum ditandatangani sertifikat Apple Developer.
+3. Pembaruan dipasang langsung dari dalam aplikasi.
+
+### Baris perintah (opsional)
+
+Setiap rilis juga menyertakan alat baris perintah `padu` dengan fitur yang sama:
+
+```sh
+# Linux / macOS
+chmod +x padu-cli-linux-x86_64 && sudo mv padu-cli-linux-x86_64 /usr/local/bin/padu
+# Windows (PowerShell): pindahkan padu-cli-windows-x86_64.exe ke folder yang ada di PATH, ganti nama menjadi padu.exe
+
+padu init && padu install php && padu install caddy && padu start
+```
+
+### Di mana semuanya disimpan
+
+Peluncuran pertama membuat folder `padu` di direktori home Anda (`~/padu`, atau
+`C:\Users\anda\padu`) untuk proyek (`www/`), pengaturan, runtime yang diunduh, database, dan log.
+Tidak ada bagian lain dari sistem yang disentuh. Mencopot aplikasi tetap menyisakan folder itu
+untuk Anda.
 
 ## Lima menit pertama
 
-1. Buka Padu, masuk ke **Packages**, pasang PHP, Caddy, dan MariaDB (Mailpit juga berguna).
-2. Di **Settings** tekan **Trust local CA** supaya `https://*.test` menampilkan gembok di browser.
-3. Kembali ke **Dashboard**, tekan **Start All**. Saat Padu meminta memperbarui berkas hosts,
-   setujui; itulah yang membuat `aplikasi-saya.test` dikenali.
-4. **Sites → New project**: pilih WordPress, Laravel, Symfony, templat Composer, atau URL git.
-   Database dengan nama yang sama dibuatkan untuk Anda.
-5. Buka `https://aplikasi-saya.test`. Selesai.
+1. Buka Padu → **Packages** → pasang PHP, Caddy, dan MariaDB (serta Mailpit jika mengirim email).
+2. **Settings → Trust local CA** supaya `https://*.test` menampilkan gembok di browser.
+3. **Dashboard → Start All**. Saat Padu meminta memperbarui berkas hosts, izinkan; itu yang
+   membuat `aplikasi-saya.test` mengarah ke komputer Anda.
+4. **Sites → New project**: WordPress, Laravel, Symfony, templat Composer apa pun, URL git, atau
+   folder kosong. Database dengan nama yang sama dibuatkan untuk Anda.
+5. Buka `https://aplikasi-saya.test`. Untuk situs HTML atau JavaScript biasa, cukup taruh
+   foldernya di `www/` lalu tekan **Sync** di Sites.
 
-Masuk ke database: host `127.0.0.1`, pengguna `root`, kata sandi ada di **Database → Show**.
+Masuk ke database: host `127.0.0.1`, pengguna `root`, kata sandi di **Database → Show**.
 
-## Perlu diketahui
+## Cara kerjanya
 
-- Linux: port 80 dan 443 butuh izin satu kali (`padu doctor --fix-ports`), atau pakai 8080/8443
-  di Settings.
-- Pemasangan `.deb`/`.rpm` di Linux tidak memperbarui dirinya; aplikasi akan membuka halaman
-  rilis. AppImage bisa memperbarui sendiri.
-- macOS belum ditandatangani sertifikat Apple Developer, jadi peluncuran pertama memunculkan
-  peringatan "pengembang tidak dikenal" (klik kanan → Open).
+Padu ditulis dengan Rust dan antarmuka web kecil (Tauri 2) yang memakai web view bawaan sistem
+operasi, jadi tidak ada browser yang dibundel. Ia menulis konfigurasi yang diperketat untuk
+server yang dikelolanya, mengawasi prosesnya, dan menyunting berkas hosts lewat pembantu kecil
+yang hanya menyentuh baris miliknya. Rincian: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/SECURITY.md](docs/SECURITY.md). Membangun dari sumber: [docs/BUILD.md](docs/BUILD.md).
 
-## Legal
+## Lisensi
 
-Padu adalah implementasi orisinal yang dibuat dari nol. Tidak ada kode, templat, aset, atau teks
-dari produk serupa lain; nama produk lain dalam dokumen ini milik pemiliknya masing-masing dan
-hanya disebut untuk identifikasi. Semua dependensi Rust berlisensi permisif (lihat
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). Runtime diunduh dari server resminya atas
+Padu gratis dan sumber terbuka di bawah [Lisensi MIT](LICENSE). Ini implementasi orisinal tanpa
+kode, templat, atau aset dari produk serupa lain; nama produk lain dalam dokumen ini milik
+pemiliknya masing-masing. Dependensi Rust dan lisensinya tercantum di
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Runtime diunduh dari server resminya atas
 permintaan Anda dan tidak didistribusikan ulang di sini.
-
-Proyek pribadi. Lihat [LICENSE](LICENSE).

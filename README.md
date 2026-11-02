@@ -5,103 +5,138 @@
 <h1 align="center">Padu</h1>
 
 <p align="center">
-  A small, friendly local web server for PHP projects.<br>
-  One window, a few clicks, and <code>https://my-app.test</code> is running on your own machine.
+  A small, friendly local development stack: web server, PHP, database, cache and mail catcher in one window.<br>
+  A few clicks, and <code>https://my-app.test</code> is running on your own machine.
 </p>
 
 <p align="center">
-  <a href="#download">Download</a> ·
+  <a href="#install">Install</a> ·
   <a href="#what-you-get">What you get</a> ·
-  <a href="#how-it-works">How it works</a> ·
+  <a href="#first-five-minutes">First five minutes</a> ·
   <a href="README.id.md">Bahasa Indonesia</a>
 </p>
 
 ---
 
-Padu is for people who build websites with PHP and just want the usual stack running locally
-without a weekend of setup. Think of it as the quiet alternative to the big "all-in-one" bundles:
-it starts fast, stays out of your way, and only downloads the pieces you actually use.
+Padu is for anyone who builds for the web and wants the usual local setup to just work. It
+serves plain HTML and JavaScript sites, PHP applications (WordPress, Laravel, Symfony and
+friends), and gives any project a local database, cache, mail catcher and Node.js. You pick
+only the parts you need; nothing is forced on you and nothing runs that you did not start.
 
-![Padu in dark and light mode](docs/screenshot-dark.png)
+![Padu dashboard](docs/screenshot-dark.png)
 
 ## What you get
 
-- **The whole stack, picked by you.** PHP (8.1 up to the newest 8.5), a web server (Caddy by
-  default, Nginx or Apache if you prefer), MariaDB or MySQL, Valkey/Redis, Mailpit for catching
-  emails, plus Node.js, Composer, Adminer and phpMyAdmin. Choose the version you want from a list,
-  switch later, keep several side by side.
-- **Projects become websites by themselves.** Drop a folder into `www/` and it is served at
-  `https://folder-name.test` with a certificate your browser trusts. Laravel and Symfony's
-  `public/` folders are picked up automatically.
-- **Honest about what it is doing.** Every service shows its state, port and version. Downloads
-  have a real progress bar. There is a Logs tab when something goes wrong, so you never have to
-  guess.
-- **Light on your computer.** The app itself is about 9 MB. Nothing is bundled; runtimes come
-  from their official download servers, verified with checksums, only when you ask for them.
-- **Safe defaults.** Everything listens on localhost only. The database gets a random root
-  password on first start instead of an empty one. HTTPS uses a local certificate authority that
-  never leaves your machine. No accounts, no tracking, no background network traffic.
-- **Keeps itself fresh.** Padu tells you when a new version is out and installs it with one click
-  (or on its own, if you turn that on). The package list always knows the newest PHP, MariaDB and
-  friends.
-- **Works the same on Linux, Windows and macOS.** Dark and light mode included.
+- **Everything you usually need, nothing you don't.** PHP (8.1 to the newest 8.5), a web server
+  (Caddy by default, or Nginx/Apache), MariaDB or MySQL, Valkey/Redis, Mailpit for catching
+  outgoing email, Node.js, Composer, Adminer and phpMyAdmin. Each one is optional and you choose
+  the version from a list. Several versions can live side by side.
+- **Folders become websites.** Put a project folder in `www/` and it is served at
+  `https://folder-name.test` with a certificate your browser trusts. Works for static sites,
+  PHP apps and anything with an `index.html` or `index.php`; Laravel and Symfony's `public/` is
+  detected automatically.
+- **No guessing.** Every service shows its state, port and version. Downloads have a progress
+  bar. A Logs tab shows what went wrong, in colour.
+- **Light.** The app is about 9 MB. Runtimes are downloaded from their official servers only
+  when you ask, verified with checksums, and can be removed per version.
+- **Safe by default.** Everything listens on localhost only. The database gets a random root
+  password on first start. HTTPS uses a local certificate authority that never leaves your
+  computer. No accounts, no telemetry.
+- **Stays current.** Padu tells you when a new release is out and updates itself on click (or
+  automatically, if you prefer). The package list always knows the newest PHP, MariaDB and the
+  rest.
+- **Linux, Windows and macOS**, dark and light mode.
 
-## Download
+## Install
 
-Grab the installer for your system from the **[Releases](../../releases/latest)** page:
+Download the file for your system from the **[latest release](../../releases/latest)**.
 
-| System | File | Notes |
-|---|---|---|
-| Linux (Debian, Ubuntu, Kubuntu, Mint) | `padu_x.y.z_amd64.deb` | `sudo apt install ./padu_x.y.z_amd64.deb` |
-| Linux (any) | `padu_x.y.z_amd64.AppImage` | make it executable and run; this one updates itself |
-| Linux (Fedora, openSUSE) | `padu-x.y.z-1.x86_64.rpm` | `sudo dnf install ./padu-*.rpm` |
-| Windows 10/11 | `Padu_x.y.z_x64-setup.exe` | normal installer; WebView2 is fetched if missing |
-| macOS | `Padu_x.y.z_universal.dmg` | Apple Silicon and Intel in one file |
+### Linux
 
-The first launch creates a `padu` folder in your home directory for projects, settings and
-databases. Nothing else on your system is touched.
+**Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
+```sh
+sudo apt install ./padu_0.1.0_amd64.deb
+```
+Padu appears in your application menu. Updates: Padu shows a banner and opens the release page;
+download the new `.deb` and run the same command.
 
-Prefer a terminal? There is a `padu` command-line tool in the same release with every feature of
-the app (`padu install php`, `padu start`, `padu project create blog --template wordpress`).
+**Fedora, openSUSE, RHEL** (`.rpm`):
+```sh
+sudo dnf install ./padu-0.1.0-1.x86_64.rpm     # or: sudo zypper install ./padu-*.rpm
+```
+
+**Any distribution** (`.AppImage`, no installation):
+```sh
+chmod +x padu_0.1.0_amd64.AppImage
+./padu_0.1.0_amd64.AppImage
+```
+The AppImage can update itself from inside the app. Move it to a folder like `~/Applications`
+if you want to keep it around.
+
+Ports 80 and 443 need a one-time permission on Linux: in Padu press **Start All** and follow the
+hint, or run `padu doctor --fix-ports` from the CLI. You can also use 8080/8443 in Settings.
+
+### Windows 10 / 11
+
+1. Download `Padu_0.1.0_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
+   PC", click **More info → Run anyway** (the installer is new and not yet widely downloaded;
+   that is all the warning means).
+2. Follow the installer. Padu is added to the Start menu. The Microsoft WebView2 runtime is
+   installed automatically if your PC does not have it.
+3. Prefer MSI for company deployment? `Padu_0.1.0_x64_en-US.msi` is in the same release.
+
+Updates install in place from the app.
+
+### macOS (Apple Silicon and Intel)
+
+1. Download `Padu_0.1.0_universal.dmg`, open it and drag **Padu** into **Applications**.
+2. First launch: right-click (or Control-click) Padu → **Open** → **Open**. macOS asks this once
+   because the app is not signed with an Apple Developer certificate.
+3. Updates install in place from the app.
+
+### Command line (optional)
+
+Every release also includes a `padu` command-line tool with the same features as the app:
+
+```sh
+# Linux / macOS
+chmod +x padu-cli-linux-x86_64 && sudo mv padu-cli-linux-x86_64 /usr/local/bin/padu
+# Windows (PowerShell): move padu-cli-windows-x86_64.exe to a folder on your PATH and rename it padu.exe
+
+padu init && padu install php && padu install caddy && padu start
+```
+
+### Where things live
+
+The first launch creates a `padu` folder in your home directory (`~/padu`, or
+`C:\Users\you\padu`) for projects (`www/`), settings, downloaded runtimes, databases and logs.
+Nothing else on your system is touched. Uninstalling the app leaves that folder for you.
 
 ## First five minutes
 
-1. Open Padu, go to **Packages**, install PHP, Caddy and MariaDB (Mailpit is handy too).
-2. In **Settings** press **Trust local CA** so `https://*.test` shows a padlock in your browser.
-3. Back on the **Dashboard** press **Start All**. When Padu asks to update your hosts file, say yes;
-   that is what makes `my-app.test` resolve.
-4. **Sites → New project**: pick WordPress, Laravel, Symfony, a Composer template or a git URL. A
-   database with the same name is created for you.
-5. Open `https://my-app.test`. Done.
+1. Open Padu → **Packages** → install PHP, Caddy and MariaDB (and Mailpit if you send email).
+2. **Settings → Trust local CA** so `https://*.test` shows a padlock in your browser.
+3. **Dashboard → Start All**. When Padu asks to update your hosts file, allow it; that is what
+   makes `my-app.test` point to your computer.
+4. **Sites → New project**: WordPress, Laravel, Symfony, any Composer template, a git URL, or an
+   empty folder. A database with the same name is created for you.
+5. Open `https://my-app.test`. For a plain HTML or JavaScript site, just drop the folder into
+   `www/` and press **Sync** in Sites.
 
-Database login: host `127.0.0.1`, user `root`, password in **Database → Show**.
+Database login: host `127.0.0.1`, user `root`, password under **Database → Show**.
 
 ## How it works
 
-Padu is written in Rust with a tiny web-based interface (Tauri 2, using the web view your system
-already has, so there is no bundled browser). It generates hardened configuration for the servers
-it runs, supervises their processes, and manages the hosts file through a small helper that only
-touches the lines it owns. The details live in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) and
-the security notes in [docs/SECURITY.md](docs/SECURITY.md).
+Padu is written in Rust with a small web-based interface (Tauri 2) that uses the web view your
+operating system already ships, so there is no bundled browser. It writes hardened configuration
+for the servers it manages, supervises their processes, and edits the hosts file through a tiny
+helper that only touches the lines it owns. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
+[docs/SECURITY.md](docs/SECURITY.md). Building from source: [docs/BUILD.md](docs/BUILD.md).
 
-Building from source, releasing and the auto-update setup are described in
-[docs/BUILD.md](docs/BUILD.md).
+## License
 
-## Good to know
-
-- Linux: ports 80 and 443 need a one-time permission (`padu doctor --fix-ports`) or you can use
-  8080/8443 in Settings.
-- Linux `.deb`/`.rpm` installs do not update in place; the app opens the release page instead.
-  The AppImage does update itself.
-- macOS is not signed with an Apple Developer certificate yet, so the first launch shows the usual
-  "unidentified developer" prompt (right-click → Open).
-
-## Legal
-
-Padu is an original, clean-room implementation. It contains no code, templates, assets or text
-from other local-stack products; other product names in these docs belong to their owners and
-are only used to identify them. All Rust dependencies are permissively licensed (see
-[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)). Runtimes are downloaded from their official
+Padu is free and open source under the [MIT License](LICENSE). It is an original implementation
+and contains no code, templates or assets from other local-stack products; other product names
+in these docs belong to their owners. Rust dependencies and their licenses are listed in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Runtimes are downloaded from their official
 servers at your request and are not redistributed here.
-
-Private project. See [LICENSE](LICENSE).

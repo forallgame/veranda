@@ -36,6 +36,7 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
   inline download/extract progress per package; compact animated notifications.
 - In-app auto-update (Tauri signed updater; GitHub Releases `latest.json`; Windows, macOS and
   Linux AppImage), with GitHub-API fallback for installs that cannot self-update.
+- Released under the MIT License; README in English and Indonesian with per-OS install guides.
 - Legal hygiene: clean-room implementation, permissive-only dependency audit, `THIRD_PARTY_NOTICES.md`
   generated from `cargo metadata`, runtime licenses documented, no bundled third-party assets or fonts.
 - CI workflow (fmt, clippy, tests on Linux/Windows/macOS) and release workflow (installers on tag).

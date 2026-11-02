@@ -1,27 +1,30 @@
-Padu - Copyright (c) 2026 the Padu author. All rights reserved.
+MIT License
 
-This is a private project. No permission is granted to copy, modify, distribute, publish,
-sublicense or sell this software or its source code without the explicit written consent of
-the copyright holder. Replace this file with a license of your choice (for example MIT or
-Apache-2.0) before making the repository public.
+Copyright (c) 2026 forallgame
 
-DISCLAIMER OF WARRANTY AND LIABILITY
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING
-BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
-NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
-DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
 
-THIRD-PARTY SOFTWARE
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
-Padu is an original work. It does not contain code, assets, configuration templates or
-translations from any other local development environment product. Names of other products
-mentioned in the documentation are trademarks of their respective owners and are used only to
-identify those products; no affiliation or endorsement is implied.
+---
 
-Padu downloads runtimes (PHP, Caddy, MariaDB, MySQL, Valkey, Redis, Mailpit, Node.js, Composer,
-Adminer, phpMyAdmin, the Mozilla CA bundle) from their official distribution servers at the
-user's request. Those programs are not part of Padu, are not redistributed by Padu and remain
-subject to their own licenses, which the user accepts by installing them. Rust library
-dependencies and their licenses are listed in THIRD_PARTY_NOTICES.md.
+Third-party software: Padu downloads runtimes (PHP, Caddy, Nginx, Apache HTTP Server,
+MariaDB, MySQL, Valkey, Redis, Mailpit, Node.js, Composer, Adminer, phpMyAdmin, the Mozilla
+CA bundle) from their official distribution servers at the user's request. They are not part
+of this software, are not redistributed with it, and remain under their own licenses. Rust
+library dependencies and their licenses are listed in THIRD_PARTY_NOTICES.md. Names of other
+products mentioned in the documentation belong to their respective owners.
