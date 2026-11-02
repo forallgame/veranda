@@ -62,14 +62,14 @@ pub fn make_private_file(path: &Path) -> Result<()> {
         .args(["/inheritance:r", "/grant:r"])
         .arg(format!("{}:(R,W)", whoami_user()))
         .output();
-    if let Ok(o) = out {
-        if !o.status.success() {
-            tracing::warn!(
-                "icacls failed on {}: {}",
-                path.display(),
-                String::from_utf8_lossy(&o.stderr)
-            );
-        }
+    if let Ok(o) = out
+        && !o.status.success()
+    {
+        tracing::warn!(
+            "icacls failed on {}: {}",
+            path.display(),
+            String::from_utf8_lossy(&o.stderr)
+        );
     }
     Ok(())
 }
@@ -81,14 +81,14 @@ pub fn make_private_dir(path: &Path) -> Result<()> {
         .args(["/inheritance:r", "/grant:r"])
         .arg(format!("{}:(OI)(CI)F", whoami_user()))
         .output();
-    if let Ok(o) = out {
-        if !o.status.success() {
-            tracing::warn!(
-                "icacls failed on {}: {}",
-                path.display(),
-                String::from_utf8_lossy(&o.stderr)
-            );
-        }
+    if let Ok(o) = out
+        && !o.status.success()
+    {
+        tracing::warn!(
+            "icacls failed on {}: {}",
+            path.display(),
+            String::from_utf8_lossy(&o.stderr)
+        );
     }
     Ok(())
 }
