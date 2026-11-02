@@ -238,7 +238,9 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
         match id {
             ServiceId::Web => matches!(
                 (app.config.web.server, kind),
-                (WebServer::Caddy, Kind::Caddy) | (WebServer::Nginx, Kind::Nginx) | (WebServer::Apache, Kind::Apache)
+                (WebServer::Caddy, Kind::Caddy)
+                    | (WebServer::Nginx, Kind::Nginx)
+                    | (WebServer::Apache, Kind::Apache)
             ),
             ServiceId::Php => kind == Kind::Php,
             ServiceId::Db => matches!(
@@ -249,8 +251,14 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
             ServiceId::Mail => kind == Kind::Mailpit,
         }
     };
-    if let Some(st) = statuses.iter().find(|st| st.running && st.version == version && uses_kind(st.id)) {
-        return Err(format!("{} {} is running. Stop it first.", st.name, version));
+    if let Some(st) = statuses
+        .iter()
+        .find(|st| st.running && st.version == version && uses_kind(st.id))
+    {
+        return Err(format!(
+            "{} {} is running. Stop it first.",
+            st.name, version
+        ));
     }
     padu_core::packages::remove(&app.layout, kind, &version).map_err(err)
 }
