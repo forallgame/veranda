@@ -11,8 +11,8 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 ## [Unreleased]
 
 ### Changed
-- The official repository (`forallgame/padu`) is the default update source; the GitHub repo
-  setting is now optional and only needed for forks.
+- Updates always come from the official repository (`forallgame/padu`); the GitHub repo field was
+  removed from Settings (forks can still set `update.repo` in `padu.toml`).
 
 ## [0.1.1] - 2026-11-03
 

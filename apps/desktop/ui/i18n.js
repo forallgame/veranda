@@ -19,7 +19,7 @@ window.PADU_I18N = {
     "project.title": "New project", "project.name": "Name", "project.template": "Template", "project.createDb": "Create database",
     "pkg.newest": "newest", "pkg.installed": "installed", "pkg.notInstalled": "not installed", "pkg.upToDate": "up to date", "pkg.system": "system",
     "msg.saved": "Saved. Restart services to apply.", "msg.installed": "Installed {name} {version}", "msg.synced": "Sites synced", "msg.created": "Created {name}",
-    "msg.copied": "Copied", "msg.upToDate": "Padu {version} is up to date", "msg.newVersion": "Version {version} is available", "msg.noRepo": "Set the GitHub repo in Settings first.",
+    "msg.copied": "Copied", "msg.upToDate": "Padu {version} is up to date", "msg.newVersion": "Version {version} is available",
     "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
@@ -41,7 +41,7 @@ window.PADU_I18N = {
     "project.title": "Proyek baru", "project.name": "Nama", "project.template": "Template", "project.createDb": "Buat database",
     "pkg.newest": "terbaru", "pkg.installed": "terpasang", "pkg.notInstalled": "belum dipasang", "pkg.upToDate": "sudah terbaru", "pkg.system": "sistem",
     "msg.saved": "Tersimpan. Mulai ulang layanan untuk menerapkan.", "msg.installed": "Terpasang {name} {version}", "msg.synced": "Situs disinkronkan", "msg.created": "Dibuat {name}",
-    "msg.copied": "Disalin", "msg.upToDate": "Padu {version} sudah terbaru", "msg.newVersion": "Versi {version} tersedia", "msg.noRepo": "Isi repo GitHub di Pengaturan dulu.",
+    "msg.copied": "Disalin", "msg.upToDate": "Padu {version} sudah terbaru", "msg.newVersion": "Versi {version} tersedia",
     "msg.confirmDelete": "Hapus folder proyek {name}?", "msg.confirmRemove": "Hapus {name} {version}? File-nya akan dihapus; layanan yang memakainya harus dihentikan dulu.", "msg.backup": "Backup tersimpan: {path}", "msg.trust": "{ok}/{total} langkah trust selesai. Mulai ulang browser."
   }
 };

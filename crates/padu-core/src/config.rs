@@ -152,8 +152,8 @@ pub struct Backup {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
 pub struct Update {
-    /// Check GitHub releases of this repository (`owner/repo`) for new app versions.
-    /// Empty = the official Padu repository.
+    /// Advanced, not shown in the app: GitHub repository (`owner/repo`) to check for new app
+    /// versions. Empty = the official Padu repository. Only useful for forks.
     pub repo: String,
     pub check_on_start: bool,
     /// Also look for newer PHP / server versions on start (network access).

@@ -57,8 +57,8 @@ Padu updates itself through Tauri's signed updater. One-time setup:
    `apps/desktop/src-tauri/tauri.conf.json` -> `plugins.updater.pubkey`.
 3. In the GitHub repository add the secrets `TAURI_SIGNING_PRIVATE_KEY` (contents of
    `~/.tauri/padu.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password you chose, or empty).
-4. Users set `update.repo = "owner/repo"` (Settings > GitHub repo). On start, and from
-   *Check for updates*, Padu reads `https://github.com/owner/repo/releases/latest/download/latest.json`,
+4. Padu checks `https://github.com/forallgame/padu/releases/latest/download/latest.json` on start
+   and from *Check for updates* (forks can point `update.repo` in `padu.toml` elsewhere); it
    verifies the signature, downloads, installs and restarts.
 
 Platform notes: Windows (NSIS/MSI) and macOS (.app) update in place. On Linux only the
@@ -76,7 +76,7 @@ If the private key is ever lost, existing installs can no longer receive updates
    release. Open it on GitHub, check the assets, and press *Publish release*.
 4. Install once by hand: Linux `sudo apt install ./padu_0.1.0_amd64.deb` (or run the AppImage),
    Windows run the `.exe`, macOS open the `.dmg`. Padu then appears in the app menu.
-5. In Padu > Settings set *GitHub repo* to `owner/repo`. From the next release on, Padu shows an
+5. From the next release on, Padu shows an
    update banner (or installs automatically if *Install updates automatically* is on). On Linux the
    AppImage self-updates; `.deb`/`.rpm` installs show the release page instead.
 
