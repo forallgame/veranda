@@ -1,14 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
-  <defs>
-    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#06b6d4"/></linearGradient>
-    <radialGradient id="hl" cx="0.22" cy="0.18" r="0.6"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></radialGradient>
-  </defs>
-  <rect x="15" y="15" width="482" height="482" rx="77" fill="url(#bg)"/>
-  <rect x="15" y="15" width="482" height="482" rx="77" fill="url(#hl)"/>
-  <!-- soft shadow -->
-  <path d="M198 148v244M198 148h61a75 75 0 0 1 0 150h-61" fill="none" stroke="#14183c" stroke-opacity=".3" stroke-width="44" stroke-linecap="round" stroke-linejoin="round" transform="translate(9 13)"/>
-  <!-- monoline P -->
-  <path d="M190 138v246M190 138h61a75 75 0 0 1 0 150h-61" fill="none" stroke="#fff" stroke-width="44" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- core dot -->
-  <circle cx="256" cy="214" r="22" fill="#fb7185"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+  <rect width="64" height="64" rx="14.5" fill="url(#g)"/>
+  <path d="M16.4 29.2 L32.0 18.8 L47.6 29.2 M20.6 29.4 V44.0 M43.4 29.4 V44.0 M15.8 45.2 H48.2" fill="none" stroke="#fff" stroke-width="5.75" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="32.0" cy="37.0" r="4.0" fill="#fbbf24"/>
 </svg>

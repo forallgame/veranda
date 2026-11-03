@@ -1,4 +1,4 @@
-//! User configuration (`etc/padu.toml`). Every field has a safe default so a missing
+//! User configuration (`etc/veranda.toml`). Every field has a safe default so a missing
 //! or partial file still loads.
 
 use crate::paths::Layout;
@@ -51,6 +51,9 @@ pub struct General {
     pub browser: String,
     /// UI language code (`en`, `id`, ...).
     pub language: String,
+    /// Linux only: let WebKitGTK render with the GPU (DMA-BUF). Turn off if the window
+    /// flickers or stays black on an unusual driver. Needs a restart.
+    pub hardware_acceleration: bool,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -153,7 +156,7 @@ pub struct Backup {
 #[serde(default, deny_unknown_fields)]
 pub struct Update {
     /// Advanced, not shown in the app: GitHub repository (`owner/repo`) to check for new app
-    /// versions. Empty = the official Padu repository. Only useful for forks.
+    /// versions. Empty = the official Veranda repository. Only useful for forks.
     pub repo: String,
     pub check_on_start: bool,
     /// Also look for newer PHP / server versions on start (network access).
@@ -178,6 +181,7 @@ impl Default for General {
             editor: String::new(),
             browser: String::new(),
             language: "en".into(),
+            hardware_acceleration: true,
         }
     }
 }
@@ -255,8 +259,8 @@ impl Default for Backup {
     }
 }
 
-/// Where official Padu releases are published.
-pub const DEFAULT_UPDATE_REPO: &str = "forallgame/padu";
+/// Where official Veranda releases are published.
+pub const DEFAULT_UPDATE_REPO: &str = "forallgame/veranda";
 
 impl Update {
     /// Configured repository, or the official one when the field is empty.
@@ -303,7 +307,7 @@ impl Config {
     pub fn save(&self, layout: &Layout) -> Result<()> {
         self.validate()?;
         let text = toml::to_string_pretty(self)?;
-        let header = "# Padu configuration. Edit and reload; unknown keys are rejected.\n\n";
+        let header = "# Veranda configuration. Edit and reload; unknown keys are rejected.\n\n";
         crate::fsutil::write_atomic(&layout.config_file(), format!("{header}{text}").as_bytes())
     }
 

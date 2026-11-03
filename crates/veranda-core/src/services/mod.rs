@@ -6,7 +6,7 @@ pub mod mail;
 pub mod php;
 pub mod web;
 
-use crate::Padu;
+use crate::Veranda;
 use crate::packages::Registry;
 use crate::sites::Site;
 use anyhow::{Result, bail};
@@ -81,7 +81,7 @@ pub struct ServiceStatus {
 
 /// Everything a service needs to prepare and start.
 pub struct Ctx<'a> {
-    pub app: &'a Padu,
+    pub app: &'a Veranda,
     pub reg: &'a Registry,
     pub sites: &'a [Site],
 }
@@ -103,7 +103,7 @@ pub fn render(tpl: &str, vars: &[(&str, String)]) -> String {
 
 pub const STOP_GRACE: Duration = Duration::from_secs(5);
 
-fn enabled(app: &Padu, id: ServiceId) -> bool {
+fn enabled(app: &Veranda, id: ServiceId) -> bool {
     let c = &app.config;
     if c.general.hidden_services.iter().any(|h| h == id.id()) {
         return false;
@@ -129,7 +129,7 @@ pub fn status(ctx: &Ctx, id: ServiceId) -> ServiceStatus {
     st
 }
 
-pub fn status_all(app: &Padu) -> Result<Vec<ServiceStatus>> {
+pub fn status_all(app: &Veranda) -> Result<Vec<ServiceStatus>> {
     let reg = Registry::load(&app.layout)?;
     let sites = crate::sites::discover(&app.layout, &app.config)?;
     let ctx = Ctx {
@@ -142,7 +142,7 @@ pub fn status_all(app: &Padu) -> Result<Vec<ServiceStatus>> {
 
 /// Regenerate every config file, the site certificate and (if possible) the hosts file.
 /// Returns the list of hostnames that are missing from the hosts file.
-pub fn prepare_all(app: &Padu) -> Result<Vec<String>> {
+pub fn prepare_all(app: &Veranda) -> Result<Vec<String>> {
     let reg = Registry::load(&app.layout)?;
     let sites = crate::sites::discover(&app.layout, &app.config)?;
     let ctx = Ctx {
@@ -166,7 +166,7 @@ pub fn prepare_all(app: &Padu) -> Result<Vec<String>> {
     }
 }
 
-pub fn start(app: &Padu, id: ServiceId) -> Result<()> {
+pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
     let reg = Registry::load(&app.layout)?;
     let sites = crate::sites::discover(&app.layout, &app.config)?;
     let ctx = Ctx {
@@ -186,7 +186,7 @@ pub fn start(app: &Padu, id: ServiceId) -> Result<()> {
     }
 }
 
-pub fn stop(app: &Padu, id: ServiceId) -> Result<()> {
+pub fn stop(app: &Veranda, id: ServiceId) -> Result<()> {
     let reg = Registry::load(&app.layout)?;
     let ctx = Ctx {
         app,
@@ -202,13 +202,13 @@ pub fn stop(app: &Padu, id: ServiceId) -> Result<()> {
     }
 }
 
-pub fn restart(app: &Padu, id: ServiceId) -> Result<()> {
+pub fn restart(app: &Veranda, id: ServiceId) -> Result<()> {
     stop(app, id)?;
     start(app, id)
 }
 
 /// Reload configuration (web server picks up new sites). Falls back to restart.
-pub fn reload(app: &Padu, id: ServiceId) -> Result<()> {
+pub fn reload(app: &Veranda, id: ServiceId) -> Result<()> {
     match id {
         ServiceId::Web => {
             let reg = Registry::load(&app.layout)?;
@@ -229,7 +229,7 @@ pub fn reload(app: &Padu, id: ServiceId) -> Result<()> {
 
 /// Start every enabled service in dependency order (db, cache, mail, php, web).
 /// Collects errors instead of stopping at the first one.
-pub fn start_all(app: &Padu) -> Vec<(ServiceId, Result<()>)> {
+pub fn start_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
     let order = [
         ServiceId::Db,
         ServiceId::Cache,
@@ -244,7 +244,7 @@ pub fn start_all(app: &Padu) -> Vec<(ServiceId, Result<()>)> {
         .collect()
 }
 
-pub fn stop_all(app: &Padu) -> Vec<(ServiceId, Result<()>)> {
+pub fn stop_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
     let order = [
         ServiceId::Web,
         ServiceId::Php,
@@ -258,7 +258,7 @@ pub fn stop_all(app: &Padu) -> Vec<(ServiceId, Result<()>)> {
 /// Error for a missing runtime with the exact command that fixes it.
 pub fn not_installed(kind: crate::manifest::Kind) -> anyhow::Error {
     anyhow::anyhow!(
-        "{} is not installed. Run: padu install {}",
+        "{} is not installed. Run: veranda install {}",
         kind.display(),
         kind.id()
     )
@@ -277,7 +277,7 @@ impl fmt::Display for PortPermission {
         write!(
             f,
             "port {} needs permission: on Linux, ports below 1024 require a one-time grant \
-             (padu doctor --fix-ports) or use ports 8080/8443 in Settings",
+             (veranda doctor --fix-ports) or use ports 8080/8443 in Settings",
             self.port
         )
     }

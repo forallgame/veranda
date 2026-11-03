@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light dark">
-  <title>Padu</title>
+  <title>Veranda</title>
   <link rel="stylesheet" href="app.css">
 </head>
 <body>
@@ -12,27 +12,29 @@
   <aside class="side">
     <div class="brand">
       <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
-        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#4f46e5"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
-        <rect x="2" y="2" width="60" height="60" rx="15" fill="url(#bg)"/>
-        <path d="M24 18v30M24 18h7.5a9.3 9.3 0 0 1 0 18.6H24" fill="none" stroke="#fff" stroke-width="5.4" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="32" cy="27.3" r="2.7" fill="#fb7185"/>
+        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
+        <rect width="64" height="64" rx="14.5" fill="url(#bg)"/>
+        <path d="M16.4 29.3 32 18.8l15.6 10.5M20.6 29.4V44M43.4 29.4V44M15.8 45.3h32.5" fill="none" stroke="#fff" stroke-width="5.75" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="32" cy="37" r="4" fill="#fbbf24"/>
       </svg>
-      <span>Padu</span>
+      <span>Veranda</span>
     </div>
-    <nav class="nav">
-      <button class="nav-item active" data-tab="dashboard"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/></svg><span data-i18n="nav.dashboard">Dashboard</span></button>
-      <button class="nav-item" data-tab="packages"><svg viewBox="0 0 24 24"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2zm0 2.2 6.6 3.3L12 10.8 5.4 7.5 12 4.2zM5 9.2l6 3v7.3l-6-3V9.2zm8 10.3v-7.3l6-3v7.3l-6 3z"/></svg><span data-i18n="nav.packages">Packages</span></button>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-tab="dashboard"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/></svg><span data-i18n="nav.overview">Overview</span></button>
       <button class="nav-item" data-tab="sites"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-3a15 15 0 0 0-1.3-5.6A8 8 0 0 1 18.9 11zM12 4c.9 1 2.1 3.3 2.4 7H9.6C9.9 7.3 11.1 5 12 4zM5.1 13h3c.2 2.1.6 4 1.3 5.6A8 8 0 0 1 5.1 13zm3-2h-3a8 8 0 0 1 4.3-5.6A15 15 0 0 0 8.1 11zM12 20c-.9-1-2.1-3.3-2.4-7h4.8c-.3 3.7-1.5 6-2.4 7zm2.6-1.4c.7-1.6 1.1-3.5 1.3-5.6h3a8 8 0 0 1-4.3 5.6z"/></svg><span data-i18n="nav.sites">Sites</span></button>
       <button class="nav-item" data-tab="database"><svg viewBox="0 0 24 24"><path d="M12 2C7 2 4 3.8 4 6v12c0 2.2 3 4 8 4s8-1.8 8-4V6c0-2.2-3-4-8-4zm0 2c3.9 0 6 1.3 6 2s-2.1 2-6 2-6-1.3-6-2 2.1-2 6-2zM6 9.1c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V12c0 .7-2.1 2-6 2s-6-1.3-6-2V9.1zm0 6c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V18c0 .7-2.1 2-6 2s-6-1.3-6-2v-2.9z"/></svg><span data-i18n="nav.database">Database</span></button>
       <button class="nav-item" data-tab="logs"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2zm0-8h4v2H8V8z"/></svg><span data-i18n="nav.logs">Logs</span></button>
-      <button class="nav-item" data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.2H9l-.4 2.7c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h6l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <div id="svc-nav"></div>
     </nav>
     <div class="side-foot">
-      <button class="icon-btn" id="theme-toggle" title="Theme">
-        <svg class="ic-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5h0a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1zM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1zm17 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1zM4.9 4.9a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4L4.9 6.3a1 1 0 0 1 0-1.4zm11.4 11.4a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4l-1.4-1.4a1 1 0 0 1 0-1.4zm1.4-11.4a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 1 1-1.4-1.4l1.4-1.4zM6.3 16.3a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 0 1-1.4-1.4l1.4-1.4z"/></svg>
-        <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-      </button>
-      <span class="version" id="version"></span>
+      <button class="nav-item" data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.2H9l-.4 2.7c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h6l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <div class="foot-row">
+        <button class="icon-btn small" id="theme-toggle" title="Theme">
+          <svg class="ic-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5h0a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1zM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1zm17 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1zM4.9 4.9a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4L4.9 6.3a1 1 0 0 1 0-1.4zm11.4 11.4a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4l-1.4-1.4a1 1 0 0 1 0-1.4zm1.4-11.4a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 1 1-1.4-1.4l1.4-1.4zM6.3 16.3a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 0 1-1.4-1.4l1.4-1.4z"/></svg>
+          <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+        </button>
+        <span class="version" id="version"></span>
+      </div>
     </div>
   </aside>
 
@@ -46,14 +48,14 @@
         <button class="icon-btn small" id="btn-update-dismiss" title="Dismiss"><svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4L10.6 12 4.3 5.7l1.4-1.4L12 10.6l6.3-6.3z"/></svg></button>
       </div>
     </div>
-    <!-- Dashboard -->
+
+    <!-- Overview -->
     <section id="tab-dashboard" class="tab active">
       <header class="top">
         <div class="status" id="global-status"><span class="dot"></span><span class="txt" data-i18n="status.stopped">Stopped</span></div>
         <div class="spacer"></div>
         <button class="btn primary" id="btn-start-all"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span data-i18n="btn.startAll">Start All</span></button>
         <button class="btn" id="btn-stop-all"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg><span data-i18n="btn.stopAll">Stop All</span></button>
-        <button class="icon-btn" id="btn-customize" title="Customize"><svg viewBox="0 0 24 24"><path d="M3 6h10v2H3V6zm14 0h4v2h-4V6zm-6 5h10v2H11v-2zM3 11h4v2H3v-2zm0 5h10v2H3v-2zm14 0h4v2h-4v-2zM13 4h2v6h-2V4zM7 9h2v6H7V9zm6 5h2v6h-2v-6z"/></svg></button>
       </header>
       <div class="banner hidden" id="hosts-notice">
         <span data-i18n="notice.hosts">Hosts file needs an update</span>
@@ -70,15 +72,8 @@
       </div>
     </section>
 
-    <!-- Packages -->
-    <section id="tab-packages" class="tab">
-      <header class="top">
-        <h1 data-i18n="nav.packages">Packages</h1>
-        <div class="spacer"></div>
-        <button class="btn" id="btn-check-upstream"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg><span data-i18n="btn.checkLatest" id="btn-check-upstream-label">Check updates</span></button>
-      </header>
-      <div class="list" id="packages"></div>
-    </section>
+    <!-- One page per service / tool, rendered by app.js -->
+    <section id="tab-service" class="tab"><div id="service-page"></div></section>
 
     <!-- Sites -->
     <section id="tab-sites" class="tab">
@@ -147,7 +142,7 @@
       <header class="top">
         <h1 data-i18n="nav.settings">Settings</h1>
         <div class="spacer"></div>
-        <button class="btn" data-open="config" title="padu.toml" data-i18n="settings.editFile">Config file</button>
+        <button class="btn" data-open="config" title="veranda.toml" data-i18n="settings.editFile">Config file</button>
         <button class="btn" data-open="phpini">php.ini</button>
       </header>
       <form id="form-settings" class="settings">
@@ -163,16 +158,15 @@
             <label class="check"><input type="checkbox" name="general.smart_public_dir"><span data-i18n="settings.smartPublic">Serve public/ when present</span></label>
             <label class="check"><input type="checkbox" name="general.auto_start"><span data-i18n="settings.autoStart">Start services on launch</span></label>
             <label class="check"><input type="checkbox" name="general.start_minimized"><span data-i18n="settings.startMinimized">Start minimized</span></label>
+            <label class="check" data-os="linux"><input type="checkbox" name="general.hardware_acceleration"><span data-i18n="settings.gpu">GPU rendering (restart to apply)</span></label>
             <label><span data-i18n="settings.closeAction">Close button</span><select name="general.close_action"><option value="ask" data-i18n="close.ask">Ask every time</option><option value="tray" data-i18n="close.tray">Hide to tray</option><option value="quit" data-i18n="close.quit">Quit</option></select></label>
           </div>
         </section>
         <section class="card">
           <h2 data-i18n="settings.web">Web</h2>
           <div class="grid">
-            <label><span data-i18n="settings.server">Server</span><select name="web.server"><option value="caddy">Caddy</option><option value="nginx">Nginx</option><option value="apache">Apache</option></select></label>
             <label><span>HTTP</span><input type="number" name="web.http_port" min="1" max="65535"></label>
             <label><span>HTTPS</span><input type="number" name="web.https_port" min="1" max="65535"></label>
-            <label class="check"><input type="checkbox" name="web.enabled"><span data-i18n="settings.enabled">Enabled</span></label>
             <label class="check"><input type="checkbox" name="web.ssl"><span>HTTPS</span></label>
             <label class="check"><input type="checkbox" name="web.autoindex"><span data-i18n="settings.autoindex">Directory listing</span></label>
           </div>
@@ -181,32 +175,21 @@
         <section class="card">
           <h2>PHP</h2>
           <div class="grid">
-            <label><span data-i18n="settings.version">Version</span><select name="php.version" id="php-version"></select></label>
             <label><span>FastCGI</span><input type="number" name="php.fcgi_port"></label>
             <label><span data-i18n="settings.workers">Workers</span><input type="number" name="php.workers" min="1" max="64"></label>
             <label><span>memory_limit</span><input name="php.memory_limit"></label>
             <label><span>upload_max</span><input name="php.upload_max_filesize"></label>
             <label><span>max_execution</span><input type="number" name="php.max_execution_time"></label>
             <label><span data-i18n="settings.timezone">Timezone</span><input name="php.timezone"></label>
-            <label class="check"><input type="checkbox" name="php.enabled"><span data-i18n="settings.enabled">Enabled</span></label>
           </div>
         </section>
         <section class="card">
-          <h2 data-i18n="settings.database">Database</h2>
+          <h2 data-i18n="settings.other">Database, cache, mail, backups, updates</h2>
           <div class="grid">
-            <label><span data-i18n="settings.engine">Engine</span><select name="db.engine"><option value="mariadb">MariaDB</option><option value="mysql">MySQL</option></select></label>
-            <label><span>Port</span><input type="number" name="db.port"></label>
-            <label class="check"><input type="checkbox" name="db.enabled"><span data-i18n="settings.enabled">Enabled</span></label>
-          </div>
-        </section>
-        <section class="card">
-          <h2 data-i18n="settings.other">Cache, mail, backups, updates</h2>
-          <div class="grid">
-            <label><span>Cache port</span><input type="number" name="cache.port"></label>
-            <label class="check"><input type="checkbox" name="cache.enabled"><span>Valkey / Redis</span></label>
+            <label><span data-i18n="settings.dbPort">Database port</span><input type="number" name="db.port"></label>
+            <label><span data-i18n="settings.cachePort">Cache port</span><input type="number" name="cache.port"></label>
             <label><span>SMTP</span><input type="number" name="mail.smtp_port"></label>
-            <label><span>Mail UI</span><input type="number" name="mail.http_port"></label>
-            <label class="check"><input type="checkbox" name="mail.enabled"><span>Mailpit</span></label>
+            <label><span data-i18n="settings.mailUi">Mail UI</span><input type="number" name="mail.http_port"></label>
             <label><span data-i18n="settings.backupEvery">Backup every (h)</span><input type="number" name="backup.interval_hours" min="1"></label>
             <label><span data-i18n="settings.backupKeep">Keep</span><input type="number" name="backup.keep" min="1"></label>
             <label class="check"><input type="checkbox" name="backup.enabled"><span data-i18n="settings.backup">Auto backup</span></label>
@@ -238,29 +221,9 @@
   </form>
 </dialog>
 
-<dialog id="dlg-customize">
-  <form method="dialog" id="form-customize">
-    <h2 data-i18n="custom.title">Customize dashboard</h2>
-    <p class="sub" data-i18n="custom.hint">Pick what you use. Hidden services are not started.</p>
-    <div class="custom-list">
-      <label class="custom-row"><input type="checkbox" name="show_web" checked><span data-i18n="custom.web">Web server</span>
-        <select name="web_server"><option value="caddy">Caddy</option><option value="nginx">Nginx</option><option value="apache">Apache</option></select></label>
-      <label class="custom-row"><input type="checkbox" name="show_php" checked><span>PHP</span></label>
-      <label class="custom-row"><input type="checkbox" name="show_db" checked><span data-i18n="custom.db">Database</span>
-        <select name="db_engine"><option value="mariadb">MariaDB</option><option value="mysql">MySQL</option></select></label>
-      <label class="custom-row"><input type="checkbox" name="show_cache"><span>Valkey / Redis</span></label>
-      <label class="custom-row"><input type="checkbox" name="show_mail"><span>Mailpit</span></label>
-    </div>
-    <div class="actions-row">
-      <button type="button" class="btn" id="btn-customize-cancel" data-i18n="btn.cancel">Cancel</button>
-      <button type="submit" class="btn primary" data-i18n="btn.save">Save</button>
-    </div>
-  </form>
-</dialog>
-
 <dialog id="dlg-close">
   <form method="dialog" id="form-close">
-    <h2 data-i18n="close.title">Close Padu?</h2>
+    <h2 data-i18n="close.title">Close Veranda?</h2>
     <p class="sub" data-i18n="close.text">Hide to the tray and keep your sites running, or stop everything and quit.</p>
     <label class="check"><input type="checkbox" name="remember"><span data-i18n="close.remember">Remember my choice (changeable in Settings)</span></label>
     <div class="actions-row">

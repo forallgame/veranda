@@ -2,7 +2,7 @@
 //! Passwords are passed through the `MYSQL_PWD` environment variable, never on the
 //! command line (visible in process lists), and stored in `etc/secrets/db-root.txt` (0600).
 
-use crate::Padu;
+use crate::Veranda;
 use crate::config::DbEngine;
 use crate::fsutil;
 use crate::packages::{Binaries, Installed, Registry};
@@ -33,7 +33,7 @@ pub struct DbCtx {
 }
 
 impl DbCtx {
-    pub fn from_app(app: &Padu, reg: &Registry) -> Option<Self> {
+    pub fn from_app(app: &Veranda, reg: &Registry) -> Option<Self> {
         let engine = app.config.db.engine;
         let kind = crate::services::db::kind(engine);
         let pkg = reg.active(kind, &app.config.db.version)?.clone();
@@ -222,7 +222,7 @@ pub fn create_database(db: &DbCtx, name: &str) -> Result<()> {
         bail!("database name may only contain letters, digits, _ and - (max 64)");
     }
     let pw = root_password(&db.layout)?
-        .context("root password unknown; run `padu db reset-password`")?;
+        .context("root password unknown; run `veranda db reset-password`")?;
     db.sql(&format!("CREATE DATABASE IF NOT EXISTS `{name}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"), Some(&pw))?;
     Ok(())
 }

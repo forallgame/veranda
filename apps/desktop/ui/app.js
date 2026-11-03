@@ -1,13 +1,9 @@
-/* Padu UI - vanilla JS, no build step. Talks to the Rust side through Tauri IPC. */
+/* Veranda UI - vanilla JS, no build step. Talks to the Rust side through Tauri IPC. */
 // Apply the saved theme as early as possible (no inline script: keeps the CSP strict).
-try { const saved = localStorage.getItem("padu.theme"); if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved; } catch (e) {}
+try { const saved = localStorage.getItem("veranda.theme"); if (saved === "light" || saved === "dark") document.documentElement.dataset.theme = saved; } catch (e) {}
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
-const KINDS = [
-  ["php", "PHP"], ["caddy", "Caddy"], ["mariadb", "MariaDB"], ["mysql", "MySQL"], ["cache", "Valkey / Redis"], ["mailpit", "Mailpit"],
-  ["node", "Node.js"], ["composer", "Composer"], ["adminer", "Adminer"], ["phpmyadmin", "phpMyAdmin"], ["nginx", "Nginx"], ["apache", "Apache"], ["cabundle", "CA bundle"],
-];
 const ICONS = {
   web: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15 15 0 0 0-1.4-5.6A8 8 0 0 1 19.9 11zM12 4c.9 1 2.1 3.3 2.4 7H9.6C9.9 7.3 11.1 5 12 4zM4.1 13h3c.2 2.1.6 4 1.3 5.6A8 8 0 0 1 4.1 13zm3-2h-3a8 8 0 0 1 4.3-5.6A15 15 0 0 0 7.1 11zM12 20c-.9-1-2.1-3.3-2.4-7h4.8c-.3 3.7-1.5 6-2.4 7zm2.6-1.4c.7-1.6 1.1-3.5 1.3-5.6h3a8 8 0 0 1-4.3 5.6z"/></svg>',
   php: '<svg viewBox="0 0 24 24"><path d="M4 7h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm1.5 2.5v5h1.4v-1.6h1c1.3 0 2.1-.7 2.1-1.7s-.8-1.7-2.1-1.7H5.5zm1.4 1.1h.9c.5 0 .8.2.8.6s-.3.6-.8.6h-.9v-1.2zm3.9-1.1v5h1.4v-1.9h1.6v1.9h1.4v-5h-1.4v2h-1.6v-2h-1.4zm5.3 0v5h1.4v-1.6h1c1.3 0 2.1-.7 2.1-1.7s-.8-1.7-2.1-1.7h-2.4zm1.4 1.1h.9c.5 0 .8.2.8.6s-.3.6-.8.6h-.9v-1.2z"/></svg>',
@@ -15,6 +11,9 @@ const ICONS = {
   cache: '<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>',
   mail: '<svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.5l8 5 8-5V6H4zm16 3-8 5-8-5v9h16V9z"/></svg>',
   pkg: '<svg viewBox="0 0 24 24"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2zm0 2.2 6.6 3.3L12 10.8 5.4 7.5 12 4.2zM5 9.2l6 3v7.3l-6-3V9.2zm8 10.3v-7.3l6-3v7.3l-6 3z"/></svg>',
+  node: '<svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3L18.6 8 12 11.7 5.4 8 12 4.3zM5 9.7l6 3.4v6.6l-6-3.3V9.7zm8 10v-6.6l6-3.4v6.7l-6 3.3z"/></svg>',
+  tool: '<svg viewBox="0 0 24 24"><path d="M21.7 18.3 14.6 11a6 6 0 0 0-7.9-7.4l3.6 3.6-1.4 2.8-2.8 1.4L2.5 7.8A6 6 0 0 0 10 15.6l7.3 7.1a1.5 1.5 0 0 0 2.1 0l2.3-2.3a1.5 1.5 0 0 0 0-2.1z"/></svg>',
+  shield: '<svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm-1 14-3.5-3.5 1.4-1.4L11 13.2l4.6-4.6 1.4 1.4L11 16z"/></svg>',
   site: '<svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6zm-6 4v10h16V8H4z"/></svg>',
   play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
   spinner: '<svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg>',
@@ -25,30 +24,44 @@ const ICONS = {
   edit: '<svg viewBox="0 0 24 24"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7L3 17.3zm17.7-10.2a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7 1.9-1.7z"/></svg>',
   trash: '<svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h-2v-8h2z"/></svg>',
   x: '<svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4L10.6 12 4.3 5.7l1.4-1.4L12 10.6l6.3-6.3z"/></svg>',
+  info: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+  file: '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>',
 };
-const SERVICE_ICON = { web: "web", php: "php", db: "db", cache: "cache", mail: "mail" };
-const SERVICE_KIND = { web: { caddy: "caddy", nginx: "nginx", apache: "apache" }, php: "php", db: { mariadb: "mariadb", mysql: "mysql" }, cache: "cache", mail: "mailpit" };
+
+// Every downloadable kind. `svc` links a kind to the runtime service it provides (web/php/db/cache/mail);
+// tools have no service. The sidebar and the service pages are generated from this table.
+const KIND_META = {
+  caddy:      { label: "Caddy",          svc: "web",   group: "web",   icon: "web" },
+  nginx:      { label: "Nginx",          svc: "web",   group: "web",   icon: "web" },
+  apache:     { label: "Apache",         svc: "web",   group: "web",   icon: "web" },
+  php:        { label: "PHP",            svc: "php",   group: "lang",  icon: "php" },
+  mariadb:    { label: "MariaDB",        svc: "db",    group: "db",    icon: "db" },
+  mysql:      { label: "MySQL",          svc: "db",    group: "db",    icon: "db" },
+  cache:      { label: "Valkey / Redis", svc: "cache", group: "more",  icon: "cache" },
+  mailpit:    { label: "Mailpit",        svc: "mail",  group: "more",  icon: "mail" },
+  composer:   { label: "Composer",       group: "tools", icon: "pkg" },
+  node:       { label: "Node.js",        group: "tools", icon: "node" },
+  adminer:    { label: "Adminer",        group: "tools", icon: "tool", open: "adminer" },
+  phpmyadmin: { label: "phpMyAdmin",     group: "tools", icon: "tool", open: "phpmyadmin" },
+  cabundle:   { label: "CA bundle",      group: "tools", icon: "shield" },
+};
+const GROUPS = [["web", "group.web"], ["lang", "group.lang"], ["db", "group.db"], ["more", "group.more"], ["tools", "group.tools"]];
+const SVC_SECTION = { web: "web", php: "php", db: "db", cache: "cache", mail: "mail" };
+const SVC_ROLE = { web: "role.web", db: "role.db" };
 
 let state = null, lang = "en", upstream = null, builtin = null, upstreamLoading = false;
 let installing = null; // { kind, downloaded, total, phase: "download"|"extract" }
 let removing = null;   // { kind, version }
 let busy = {};         // service id -> "start"|"stop"|"restart"|"reload" while a request runs
 let busyAll = null;    // "start"|"stop" while Start All / Stop All runs
-async function loadUpstream() {
-  const btn = $("#btn-check-upstream");
-  const label = $("#btn-check-upstream-label");
-  upstreamLoading = true; btn.disabled = true; btn.classList.add("busy"); label.textContent = t("btn.checking");
-  try { upstream = await invoke("upstream_versions"); } catch (e) { fail(e); }
-  upstreamLoading = false; btn.disabled = false; btn.classList.remove("busy"); label.textContent = t("btn.checkLatest");
-  renderPackages();
-}
+let currentKind = null, svcTab = "service", currentTab = "dashboard";
 
 const $ = (s, el = document) => el.querySelector(s);
 const $$ = (s, el = document) => [...el.querySelectorAll(s)];
 const esc = (s) => String(s ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const t = (key, vars = {}) => {
-  const dict = window.PADU_I18N[lang] || window.PADU_I18N.en;
-  let s = dict[key] ?? window.PADU_I18N.en[key] ?? key;
+  const dict = window.VERANDA_I18N[lang] || window.VERANDA_I18N.en;
+  let s = dict[key] ?? window.VERANDA_I18N.en[key] ?? key;
   for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, v);
   return s;
 };
@@ -57,7 +70,9 @@ const cmpVer = (a, b) => {
   for (let i = 0; i < Math.max(pa.length, pb.length); i++) { const d = (pa[i] ?? -1) - (pb[i] ?? -1); if (d) return d; }
   return 0;
 };
+const clone = (o) => JSON.parse(JSON.stringify(o));
 
+/* ---------------- activity + toasts ---------------- */
 const activity = [];
 function logActivity(msg, cls) {
   const d = new Date();
@@ -73,11 +88,10 @@ function renderActivity() {
 const TOAST_ICON = {
   ok: '<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
   bad: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
-  info: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
+  info: ICONS.info,
 };
 function toast(msg, cls = "") {
   const box = $("#toasts");
-  // keep at most 3 on screen; drop the oldest
   while (box.children.length >= 3) box.firstChild.remove();
   const el = document.createElement("div");
   el.className = `toast ${cls}`;
@@ -106,18 +120,24 @@ function askConfirm(text, okLabel) {
 }
 const applyI18n = () => { $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); }); document.documentElement.lang = lang; };
 
-// theme: system -> light -> dark
+/* ---------------- theme ---------------- */
 function setTheme(mode) {
-  try { if (mode === "system") localStorage.removeItem("padu.theme"); else localStorage.setItem("padu.theme", mode); } catch (e) {}
-  if (mode === "system") delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = mode;
+  if (mode) document.documentElement.dataset.theme = mode; else delete document.documentElement.dataset.theme;
+  try { if (mode) localStorage.setItem("veranda.theme", mode); else localStorage.removeItem("veranda.theme"); } catch (e) {}
 }
 $("#theme-toggle").onclick = () => {
-  const cur = document.documentElement.dataset.theme || "system";
-  const dark = cur === "dark" || (cur === "system" && matchMedia("(prefers-color-scheme: dark)").matches);
+  const dark = document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
   setTheme(dark ? "light" : "dark");
 };
 
-let lastSnapshot = "";
+/* ---------------- state ---------------- */
+let lastSnapshot = "", uiShown = false;
+function uiReady() { if (uiShown) return; uiShown = true; invoke("ui_ready").catch(() => {}); }
+function renderAll() {
+  for (const [name, fn] of [["nav", renderNav], ["services", renderServices], ["service", renderService], ["sites", renderSites], ["database", renderDatabase], ["settings", renderSettings]]) {
+    try { fn(); } catch (e) { fail(`${name}: ${e?.message || e}`); }
+  }
+}
 async function refresh(force = false) {
   try {
     const next = await invoke("get_state");
@@ -128,20 +148,92 @@ async function refresh(force = false) {
     lang = state.config.general.language || "en";
     applyI18n();
     $("#version").textContent = `v${state.version}`;
-    for (const [name, fn] of [["services", renderServices], ["packages", renderPackages], ["sites", renderSites], ["database", renderDatabase], ["settings", renderSettings]]) {
-      try { fn(); } catch (e) { fail(`${name}: ${e?.message || e}`); }
-    }
+    renderAll();
   } catch (e) { fail(e); }
+  uiReady();
 }
 function showTab(id) {
+  currentTab = id;
   $$(".nav-item").forEach((x) => x.classList.toggle("active", x.dataset.tab === id));
   $$(".tab").forEach((x) => x.classList.toggle("active", x.id === `tab-${id}`));
-  if (id === "logs") { renderActivity(); loadLogList(); }
-  if (id === "packages" && !upstream && !upstreamLoading) loadUpstream();
+  $$(".svc-item").forEach((x) => x.classList.toggle("active", id === "service" && x.dataset.svc === currentKind));
+  if (id === "logs") loadLogList();
+  $(".main").scrollTop = 0;
 }
 
-/* ---------------- dashboard ---------------- */
+/* ---------------- helpers over state ---------------- */
 const isHidden = (id) => (state.config.general.hidden_services || []).includes(id);
+const installedVersions = (kind) => state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
+const svcStatus = (svc) => state.services.find((s) => s.id === svc);
+function activeKind(svc) {
+  return { web: state.config.web.server, db: state.config.db.engine, php: "php", cache: "cache", mail: "mailpit" }[svc];
+}
+const isActive = (kind) => !!KIND_META[kind].svc && activeKind(KIND_META[kind].svc) === kind;
+function kindOn(kind) {
+  const m = KIND_META[kind];
+  return !!m.svc && isActive(kind) && !!state.config[SVC_SECTION[m.svc]].enabled && !isHidden(m.svc);
+}
+const serviceName = (id) => (state?.services.find((s) => s.id === id) || {}).name || id;
+function busyOf(svc) {
+  const st = svcStatus(svc);
+  if (!st) return null;
+  if (busy[svc]) return busy[svc];
+  if (busyAll && st.enabled && st.installed && (busyAll === "start" ? !st.running : st.running)) return busyAll;
+  return null;
+}
+const busyText = (act) => t(act === "stop" ? "status.stopping" : act === "start" ? "status.starting" : "status.restarting");
+function stateBadge(st, act) {
+  if (act) return `<span class="state busy">${ICONS.spinner}${busyText(act)}</span>`;
+  if (!st) return `<span class="state"><i></i>${t("svc.notSelected")}</span>`;
+  if (st.running) return `<span class="state on"><i></i>${t("status.running")}</span>`;
+  if (st.installed) return `<span class="state"><i></i>${t("status.stopped")}</span>`;
+  return `<span class="state warn"><i></i>${t("pkg.notInstalled")}</span>`;
+}
+
+/* ---------------- sidebar ---------------- */
+function renderNav() {
+  $("#svc-nav").innerHTML = GROUPS.map(([g, key]) => {
+    const kinds = Object.keys(KIND_META).filter((k) => KIND_META[k].group === g);
+    return `<div class="sgroup"><h4>${t(key)}</h4>${kinds.map((kind) => {
+      const m = KIND_META[kind];
+      const st = m.svc && isActive(kind) ? svcStatus(m.svc) : null;
+      const act = st ? busyOf(m.svc) : null;
+      const dot = act ? "busy" : st?.running ? "run" : installedVersions(kind).length ? "inst" : "";
+      const on = kindOn(kind);
+      return `<div class="svc-item ${currentTab === "service" && currentKind === kind ? "active" : ""}" data-svc="${kind}" role="button" tabindex="0">
+        <span class="sico">${ICONS[m.icon]}</span><span class="sname">${m.label}</span><i class="sdot ${dot}" title="${st?.running ? t("status.running") : ""}"></i>
+        ${m.svc ? `<input type="checkbox" class="switch mini" data-sw="${kind}" ${on ? "checked" : ""} title="${t("svc.enable")}">` : ""}
+      </div>`;
+    }).join("")}</div>`;
+  }).join("");
+}
+async function toggleKind(kind, on) {
+  const m = KIND_META[kind];
+  if (!m.svc) return;
+  const svc = m.svc, sec = SVC_SECTION[svc];
+  const cfg = clone(state.config);
+  const hidden = new Set(cfg.general.hidden_services || []);
+  if (on) {
+    // switching engines while the old one runs: stop it first so the status stays truthful
+    if ((svc === "web" || svc === "db") && activeKind(svc) !== kind && svcStatus(svc)?.running) {
+      busy[svc] = "stop"; renderAll();
+      try { await invoke("service_action", { id: svc, action: "stop" }); } catch (e) { fail(e); }
+      delete busy[svc];
+    }
+    if (svc === "web") cfg.web.server = kind;
+    if (svc === "db") cfg.db.engine = kind;
+    cfg[sec].enabled = true;
+    hidden.delete(svc);
+  } else {
+    cfg[sec].enabled = false;
+    hidden.add(svc);
+  }
+  cfg.general.hidden_services = [...hidden];
+  try { await invoke("save_config", { config: cfg }); } catch (e) { fail(e); }
+  await refresh(true);
+}
+
+/* ---------------- overview ---------------- */
 function renderServices() {
   const visible = state.services.filter((s) => !isHidden(s.id));
   const enabled = visible.filter((s) => s.enabled && s.installed);
@@ -150,7 +242,7 @@ function renderServices() {
   pill.classList.toggle("on", !busyAll && running > 0 && running === enabled.length);
   pill.classList.toggle("partial", !busyAll && running > 0 && running < enabled.length);
   pill.classList.toggle("busy", !!busyAll);
-  $(".txt", pill).textContent = busyAll ? t(busyAll === "stop" ? "status.stopping" : "status.starting")
+  $(".txt", pill).textContent = busyAll ? busyText(busyAll)
     : running === 0 ? t("status.stopped") : running === enabled.length ? t("status.running") : t("status.partial");
   for (const [id, kind] of [["#btn-start-all", "start"], ["#btn-stop-all", "stop"]]) {
     const b = $(id);
@@ -158,23 +250,19 @@ function renderServices() {
     b.classList.toggle("busy", busyAll === kind);
   }
   $("#hosts-notice").classList.toggle("hidden", state.hosts_in_sync);
-
   $$("[data-open='adminer']").forEach((b) => b.classList.toggle("hidden", isHidden("db")));
   $$("[data-open='mail']").forEach((b) => b.classList.toggle("hidden", isHidden("mail")));
-  if (!visible.length) { $("#services").innerHTML = `<div class="empty">${t("dash.empty")}</div>`; return; }
+  if (!visible.length) { $("#services").innerHTML = `<div class="empty">${ICONS.info}<span>${t("dash.empty")}</span></div>`; return; }
   $("#services").innerHTML = visible.map((s) => {
-    const kind = typeof SERVICE_KIND[s.id] === "string" ? SERVICE_KIND[s.id] : SERVICE_KIND[s.id][s.id === "web" ? state.config.web.server : state.config.db.engine];
-    const versions = state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
-    const act = busy[s.id] || (busyAll && s.enabled && s.installed && (busyAll === "start" ? !s.running : s.running) ? busyAll : null);
+    const kind = activeKind(s.id);
+    const versions = installedVersions(kind);
+    const act = busyOf(s.id);
     const cls = act ? "busy" : s.running ? "on" : s.installed ? "off" : "missing";
-    const stateTxt = act ? t(act === "stop" ? "status.stopping" : act === "start" ? "status.starting" : "status.restarting")
-      : s.running ? t("status.running") : s.installed ? t("status.stopped") : t("pkg.notInstalled");
-    const badge = `<span class="state">${act ? ICONS.spinner : "<i></i>"}${stateTxt}</span>`;
     const version = versions.length > 1
       ? `<span class="pill"><select data-version-kind="${kind}" data-service="${s.id}">${versions.map((v) => `<option ${v === s.version ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span>`
       : s.installed ? `<span class="pill">${esc(s.version)}</span>`
       : installing && installing.kind === kind ? `<span data-dash="${kind}">${progressMarkup(installing)}</span>`
-      : `<button class="btn small" data-install="${kind}">${t("btn.install")}</button>`;
+      : `<button class="btn small" data-install="${kind}" data-latest="1">${t("btn.install")}</button>`;
     const ports = s.ports.map((p) => `<span class="pill">:${p}</span>`).join("");
     const dis = act ? "disabled" : "";
     const action = s.running
@@ -182,16 +270,16 @@ function renderServices() {
          <button class="icon-btn danger" data-action="stop" data-id="${s.id}" title="${t("btn.stop")}" ${dis}>${ICONS.stop}</button>`
       : `<button class="icon-btn go" data-action="start" data-id="${s.id}" title="${t("btn.start")}" ${s.installed && !act ? "" : "disabled"}>${ICONS.play}</button>`;
     return `<div class="row ${cls}">
-      <div class="ico">${ICONS[SERVICE_ICON[s.id]]}</div>
-      <div><div class="name">${esc(s.name)} ${version}</div><div class="meta">${badge}${ports}${s.message && !s.installed ? "" : s.message ? `<span>${esc(s.message)}</span>` : ""}</div></div>
-      <div class="act"><input type="checkbox" class="switch" data-enable="${s.id}" ${s.enabled && s.installed ? "checked" : ""} ${s.installed ? "" : "disabled"} title="${s.installed ? t("settings.enabled") : t("pkg.notInstalled")}">${action}</div>
+      <div class="ico">${ICONS[KIND_META[kind].icon]}</div>
+      <div><div class="name"><button class="linkish" data-svc="${kind}">${esc(KIND_META[kind].label)}</button> ${version}</div><div class="meta">${stateBadge(s, act)}${ports}${s.message && s.installed ? `<span>${esc(s.message)}</span>` : ""}</div></div>
+      <div class="act"><input type="checkbox" class="switch" data-sw="${kind}" ${s.enabled && s.installed ? "checked" : ""} ${s.installed ? "" : "disabled"} title="${s.installed ? t("svc.enable") : t("pkg.notInstalled")}">${action}</div>
     </div>`;
   }).join("");
 }
 
 async function serviceAction(id, action) {
   if (busy[id] || busyAll) return;
-  busy[id] = action; renderServices();
+  busy[id] = action; renderAll();
   let results = null;
   try { results = await invoke("service_action", { id, action }); } catch (e) { fail(e); }
   delete busy[id];
@@ -200,14 +288,13 @@ async function serviceAction(id, action) {
 }
 async function runAll(action) {
   if (busyAll) return;
-  busyAll = action; renderServices();
+  busyAll = action; renderAll();
   let results = null;
   try { results = await invoke(action === "stop" ? "stop_all" : "start_all"); } catch (e) { fail(e); }
   busyAll = null;
   await refresh(true);
   if (results) await reportResults(results, action);
 }
-const serviceName = (id) => (state?.services.find((s) => s.id === id) || {}).name || id;
 async function reportResults(results, action) {
   const bad = results.filter((r) => !r.ok);
   const verb = action === "stop" ? "stopped" : action === "reload" ? "reloaded" : action === "restart" ? "restarted" : "started";
@@ -234,32 +321,163 @@ async function reportResults(results, action) {
   }
 }
 
+/* ---------------- service / tool page ---------------- */
+function openService(kind) {
+  if (!KIND_META[kind]) return;
+  currentKind = kind;
+  if (!KIND_META[kind].svc) svcTab = "versions";
+  renderService();
+  showTab("service");
+  if (!upstream && !upstreamLoading) loadUpstream();
+}
+function versionsFor(kind) {
+  const ups = upstream ? upstream.filter((p) => p.kind === kind) : [];
+  const built = builtin ? builtin.filter((p) => p.kind === kind) : [];
+  const inst = installedVersions(kind);
+  const all = [...new Set([...ups.map((p) => p.version), ...built.map((p) => p.version), ...inst])].sort(cmpVer).reverse();
+  const source = ups[0]?.source || built[0]?.source || "";
+  return { all, inst, source, newest: all[0] || "" };
+}
+function renderService() {
+  const box = $("#service-page");
+  if (!currentKind || !state) { box.innerHTML = ""; return; }
+  const kind = currentKind, m = KIND_META[kind];
+  const st = m.svc && isActive(kind) ? svcStatus(m.svc) : null;
+  const act = st ? busyOf(m.svc) : null;
+  const on = kindOn(kind);
+  const { all, inst, source, newest } = versionsFor(kind);
+  const headCls = act ? "busy" : st?.running ? "on" : "";
 
-/* ---------------- customize dashboard ---------------- */
-$("#btn-customize").onclick = () => {
-  const f = $("#form-customize");
-  f.elements.show_web.checked = !isHidden("web"); f.elements.show_php.checked = !isHidden("php");
-  f.elements.show_db.checked = !isHidden("db"); f.elements.show_cache.checked = !isHidden("cache"); f.elements.show_mail.checked = !isHidden("mail");
-  f.elements.web_server.value = state.config.web.server; f.elements.db_engine.value = state.config.db.engine;
-  $("#dlg-customize").showModal();
-};
-$("#btn-customize-cancel").onclick = () => $("#dlg-customize").close();
-$("#form-customize").onsubmit = async (ev) => {
-  ev.preventDefault(); const f = ev.target;
-  const cfg = JSON.parse(JSON.stringify(state.config));
-  const hidden = [];
-  for (const [id, box, sec] of [["web", "show_web", "web"], ["php", "show_php", "php"], ["db", "show_db", "db"], ["cache", "show_cache", "cache"], ["mail", "show_mail", "mail"]]) {
-    const on = f.elements[box].checked;
-    if (!on) hidden.push(id);
-    cfg[sec].enabled = on;            // visible => enabled, hidden => disabled
+  // header actions: enable switch + start/stop for services, Open for web tools
+  let actions = "";
+  if (m.svc) {
+    actions += `<label class="sw-label"><span>${t("svc.enable")}</span><input type="checkbox" class="switch" data-sw="${kind}" ${on ? "checked" : ""}></label>`;
+    if (st && st.installed) {
+      const dis = act ? "disabled" : "";
+      actions += st.running
+        ? `<button class="btn" data-action="${m.svc === "web" ? "reload" : "restart"}" data-id="${m.svc}" ${dis}>${ICONS.refresh}<span>${m.svc === "web" ? t("btn.reload") : t("btn.restart")}</span></button>
+           <button class="btn danger" data-action="stop" data-id="${m.svc}" ${dis}>${ICONS.stop}<span>${t("btn.stop")}</span></button>`
+        : `<button class="btn primary" data-action="start" data-id="${m.svc}" ${dis || !on ? "disabled" : ""}>${ICONS.play}<span>${t("btn.start")}</span></button>`;
+    }
   }
-  cfg.general.hidden_services = hidden;
-  cfg.web.server = f.elements.web_server.value;
-  cfg.db.engine = f.elements.db_engine.value;
-  try { await invoke("save_config", { config: cfg }); $("#dlg-customize").close(); toast(t("msg.saved"), "ok"); } catch (e) { fail(e); }
-  refresh(true);
-};
+  if (m.open) actions += `<button class="btn" data-open="${m.open}" ${inst.length ? "" : "disabled"}>${ICONS.open}<span>${t("btn.open")}</span></button>`;
 
+  const tabs = m.svc
+    ? `<div class="tabs"><button class="tab-btn ${svcTab === "service" ? "active" : ""}" data-svctab="service">${t("svc.tab.service")}</button><button class="tab-btn ${svcTab === "versions" ? "active" : ""}" data-svctab="versions">${t("svc.tab.versions")} <span class="count">${all.length}</span></button></div>`
+    : "";
+
+  let body = "";
+  if (m.svc && svcTab === "service") {
+    let notice = "";
+    if (!isActive(kind)) notice = `<div class="notice">${ICONS.info}<span>${t("svc.offAlt", { name: m.label, role: t(SVC_ROLE[m.svc] || "role.service") })}</span></div>`;
+    else if (!on) notice = `<div class="notice">${ICONS.info}<span>${t("svc.offHint")}</span></div>`;
+    else if (st && !st.installed) notice = `<div class="notice">${ICONS.info}<span>${t("svc.installHint")}</span></div>`;
+    const ver = st
+      ? inst.length > 1
+        ? `<select class="small" data-version-kind="${kind}" data-service="${m.svc}">${inst.map((v) => `<option ${v === st.version ? "selected" : ""}>${esc(v)}</option>`).join("")}</select>`
+        : st.installed ? `<code>${esc(st.version)}</code>` : `<span class="state warn"><i></i>${t("pkg.notInstalled")}</span>`
+      : `<code>${esc(inst[0] || "—")}</code>`;
+    const ports = st ? st.ports.map((p) => `<span class="pill">:${p}</span>`).join("") : "—";
+    const pids = st && st.pids.length ? `<code>${st.pids.join(", ")}</code>` : "—";
+    const quick = [];
+    if (m.svc === "web") quick.push(`<button class="btn small" data-open="web">${ICONS.open}<span>${t("btn.openWeb")}</span></button>`);
+    if (m.svc === "mail") quick.push(`<button class="btn small" data-open="mail">${ICONS.open}<span>${t("btn.openMail")}</span></button>`);
+    if (m.svc === "db") { quick.push(`<button class="btn small" data-open="adminer">${ICONS.open}<span>Adminer</span></button>`); quick.push(`<button class="btn small" data-tab="database">${ICONS.db}<span>${t("nav.database")}</span></button>`); }
+    if (m.svc === "php") quick.push(`<button class="btn small" data-open="phpini">${ICONS.edit}<span>php.ini</span></button>`);
+    quick.push(`<button class="btn small" data-open="config">${ICONS.file}<span>${t("btn.configFile")}</span></button>`);
+    quick.push(`<button class="btn small" data-open="logs">${ICONS.folder}<span>${t("btn.logsFolder")}</span></button>`);
+    quick.push(`<button class="btn small" data-tab="logs">${ICONS.file}<span>${t("nav.logs")}</span></button>`);
+    body = `${notice}<div class="svc-cards">
+      <section class="card"><h2>${t("svc.tab.service")}</h2>
+        <div class="kv"><span>${t("svc.state")}</span>${stateBadge(st, act)}</div>
+        <div class="kv"><span>${t("svc.versionInUse")}</span>${ver}</div>
+        <div class="kv"><span>${t("svc.ports")}</span>${ports}</div>
+        <div class="kv"><span>${t("svc.pids")}</span>${pids}</div>
+        ${st?.message && st.installed ? `<div class="kv"><span></span><span class="sub" style="margin:0">${esc(st.message)}</span></div>` : ""}
+      </section>
+      <section class="card"><h2>${t("svc.files")}</h2><div class="btn-row">${quick.join("")}</div></section>
+    </div>`;
+  } else {
+    const rows = all.map((v) => {
+      const isInst = inst.includes(v);
+      const inUse = !!st && st.installed && st.version === v;
+      const isInstalling = installing && installing.kind === kind && installing.version === v;
+      const isRemoving = removing && removing.kind === kind && removing.version === v;
+      const status = inUse ? `<span class="state on"><i></i>${t("ver.inUse")}</span>` : isInst ? `<span class="pill ok">${t("ver.installed")}</span>` : v === newest ? `<span class="pill accent">${t("ver.newest")}</span>` : "";
+      const action = isInstalling ? progressMarkup(installing)
+        : isRemoving ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
+        : isInst ? `<button class="btn small subtle" data-remove="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.remove")}</span></button>`
+        : `<button class="btn small primary" data-install="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${t("btn.install")}</button>`;
+      return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""}" data-row="${kind}:${esc(v)}">
+        <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${action}</span></div>`;
+    }).join("");
+    body = `<div class="vhead"><span>${upstreamLoading ? t("btn.checking") : t("ver.hint", { source: source || "—" })}</span>
+        <button class="btn small ${upstreamLoading ? "busy" : ""}" id="btn-check-upstream" ${upstreamLoading ? "disabled" : ""}>${ICONS.refresh}<span>${t("btn.refresh")}</span></button></div>
+      <div class="vtable"><div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
+      ${rows || `<div class="vrow"><span class="sub" style="margin:0">${upstreamLoading ? t("btn.checking") : t("ver.empty")}</span></div>`}</div>`;
+  }
+
+  box.innerHTML = `<header class="top svc-head ${headCls}">
+      <div class="ico">${ICONS[m.icon]}</div>
+      <div class="titles"><h1>${esc(m.label)}</h1><div class="meta">${m.svc ? stateBadge(st, act) : inst.length ? `<span class="pill ok">${t("ver.installed")} ${esc(inst[0])}</span>` : `<span class="state"><i></i>${t("pkg.notInstalled")}</span>`}${source ? `<span class="pill">${esc(source)}</span>` : ""}</div></div>
+      <div class="spacer"></div>
+      <div class="acts">${actions}</div>
+    </header>${tabs}${body}`;
+}
+async function loadUpstream() {
+  upstreamLoading = true; renderService();
+  try { upstream = await invoke("upstream_versions"); } catch (e) { fail(e); }
+  upstreamLoading = false;
+  renderService();
+}
+
+/* ---------------- install / remove ---------------- */
+function progressText(p) {
+  if (p.phase === "extract") return t("pkg.extracting");
+  const mb = (p.downloaded / 1048576).toFixed(1);
+  return p.total ? `${(100 * p.downloaded / p.total).toFixed(0)}% · ${mb}/${(p.total / 1048576).toFixed(1)} MiB` : `${mb} MiB`;
+}
+function progressMarkup(p) {
+  const pct = p.phase === "extract" ? 100 : p.total ? (100 * p.downloaded / p.total) : 0;
+  return `<div class="row-progress"><div class="bar"><div class="fill ${p.phase === "extract" ? "indeterminate" : ""}" style="width:${pct.toFixed(1)}%"></div></div><span class="txt">${progressText(p)}</span></div>`;
+}
+function paintProgress() {
+  if (!installing) return;
+  const html = progressMarkup(installing);
+  const cell = $(`[data-row="${installing.kind}:${installing.version}"] .act`);
+  if (cell) cell.innerHTML = html;
+  const dash = $(`[data-dash="${installing.kind}"]`);
+  if (dash) dash.innerHTML = html;
+}
+async function installPackage(kind, latest, version = null) {
+  if (installing) { toast(t("pkg.installing")); return; }
+  const v = version || versionsFor(kind).newest || "";
+  installing = { kind, version: v, downloaded: 0, total: null, phase: "download" };
+  renderAll(); paintProgress();
+  try {
+    const i = await invoke("install_package", { kind, version: version || null, latest: !!latest || !version });
+    toast(t("msg.installed", { name: KIND_META[i.kind]?.label || i.kind, version: i.version }), "ok");
+  } catch (e) { fail(e); }
+  installing = null;
+  await refresh(true);
+}
+async function removePackage(kind, version) {
+  const name = KIND_META[kind]?.label || kind;
+  if (!(await askConfirm(t("msg.confirmRemove", { name, version })))) return;
+  removing = { kind, version }; renderAll();
+  try { await invoke("remove_package", { kind, version }); toast(t("msg.removed", { name, version }), "ok"); } catch (e) { fail(e); }
+  removing = null;
+  await refresh(true);
+}
+listen("install-progress", (ev) => {
+  const p = ev.payload;
+  if (!installing || installing.kind !== p.kind) return;
+  installing.downloaded = p.downloaded; installing.total = p.total ?? installing.total;
+  installing.phase = installing.total && installing.downloaded >= installing.total ? "extract" : "download";
+  paintProgress();
+});
+listen("services-changed", () => refresh());
+listen("backup-done", (ev) => toast(t("msg.backup", { path: ev.payload }), "ok"));
 
 /* ---------------- close behaviour ---------------- */
 listen("close-requested", () => {
@@ -277,88 +495,6 @@ $("#btn-close-tray").onclick = () => closeWith("tray");
 $("#btn-close-quit").onclick = () => closeWith("quit");
 $("#dlg-close").oncancel = (ev) => { ev.preventDefault(); $("#dlg-close").close(); };
 
-/* ---------------- packages ---------------- */
-const GROUPS = [
-  ["pkg.group.web", ["caddy", "nginx", "apache"]],
-  ["pkg.group.php", ["php", "composer"]],
-  ["pkg.group.db", ["mariadb", "mysql", "adminer", "phpmyadmin"]],
-  ["pkg.group.cache", ["cache"]],
-  ["pkg.group.mail", ["mailpit"]],
-  ["pkg.group.tools", ["node", "cabundle"]],
-];
-function renderPackages() {
-  const label = Object.fromEntries(KINDS);
-  $("#packages").innerHTML = GROUPS.map(([gkey, kinds]) => {
-    const rows = kinds.map((kind) => {
-      const inst = state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
-      const ups = upstream ? upstream.filter((p) => p.kind === kind) : [];
-      const versions = [...new Set([...ups.map((p) => p.version), ...(builtin ? builtin.filter((p) => p.kind === kind).map((p) => p.version) : [])])].sort(cmpVer).reverse();
-      const newest = versions[0] || "";
-      if (!versions.length && !inst.length) return "";
-      const source = ups[0]?.source || builtin?.find((p) => p.kind === kind)?.source || "";
-      const chips = inst.map((v) => removing && removing.kind === kind && removing.version === v
-        ? `<span class="chip ok removing">${esc(v)} · ${t("pkg.removing")}</span>`
-        : `<span class="chip ok">${esc(v)}<button class="icon-btn small" data-remove="${kind}" data-version="${esc(v)}" title="${t("pkg.remove", { version: v })}">${ICONS.trash}</button></span>`).join("");
-      const isInstalling = installing && installing.kind === kind;
-      const act = isInstalling
-        ? progressMarkup(installing)
-        : versions.length
-          ? `<span class="pkg-ver"><select data-pkg-select="${kind}">${versions.map((v) => `<option value="${esc(v)}" ${inst.includes(v) ? "disabled" : ""}>${esc(v)}${v === newest ? " ★" : ""}${inst.includes(v) ? " ✓" : ""}</option>`).join("")}</select>
-             <button class="btn small primary" data-install-selected="${kind}" ${versions.every((v) => inst.includes(v)) ? "disabled" : ""}>${t("btn.install")}</button></span>`
-          : "";
-      return `<div class="row pkg ${isInstalling ? "installing" : inst.length ? "on" : "missing"}" data-row="${kind}">
-        <div class="ico">${ICONS.pkg}</div>
-        <div class="pkg-main">
-          <div class="pkg-head"><span class="name">${label[kind] || kind}</span>${source ? `<span class="src">${esc(source)}</span>` : ""}</div>
-          <div class="pkg-installed">${chips || `<span class="none">${isInstalling ? t("pkg.installing") : t("pkg.notInstalled")}</span>`}</div>
-        </div>
-        <div class="act">${act}</div>
-      </div>`;
-    }).join("");
-    return rows ? `<section class="group"><h3>${t(gkey)}</h3><div class="list">${rows}</div></section>` : "";
-  }).join("");
-  // preselect the first installable version per select
-  $$("[data-pkg-select]").forEach((sel) => { const first = [...sel.options].find((o) => !o.disabled); if (first) sel.value = first.value; });
-}
-function progressText(p) {
-  if (p.phase === "extract") return t("pkg.extracting");
-  const mb = (p.downloaded / 1048576).toFixed(1);
-  return p.total ? `${(100 * p.downloaded / p.total).toFixed(0)}% · ${mb}/${(p.total / 1048576).toFixed(1)} MiB` : `${mb} MiB`;
-}
-function progressMarkup(p) {
-  const pct = p.phase === "extract" ? 100 : p.total ? (100 * p.downloaded / p.total) : 0;
-  return `<div class="row-progress"><div class="bar"><div class="fill ${p.phase === "extract" ? "indeterminate" : ""}" style="width:${pct.toFixed(1)}%"></div></div><span class="txt">${progressText(p)}</span></div>`;
-}
-function paintProgress() {
-  if (!installing) return;
-  const html = progressMarkup(installing);
-  const row = $(`[data-row="${installing.kind}"] .act`);
-  if (row) row.innerHTML = html;
-  const dash = $(`[data-dash="${installing.kind}"]`);
-  if (dash) dash.innerHTML = html;
-}
-async function installPackage(kind, latest, version = null) {
-  if (installing) { toast(t("pkg.installing")); return; }
-  installing = { kind, downloaded: 0, total: null, phase: "download" };
-  renderPackages(); renderServices(); paintProgress();
-  try {
-    const i = await invoke("install_package", { kind, version, latest: !!latest });
-    toast(t("msg.installed", { name: i.kind, version: i.version }), "ok");
-  } catch (e) { fail(e); }
-  installing = null;
-  refresh();
-}
-listen("install-progress", (ev) => {
-  const p = ev.payload;
-  if (!installing || installing.kind !== p.kind) return;
-  installing.downloaded = p.downloaded; installing.total = p.total ?? installing.total;
-  // download finished -> extraction phase until the command returns
-  installing.phase = installing.total && installing.downloaded >= installing.total ? "extract" : "download";
-  paintProgress();
-});
-listen("services-changed", refresh);
-listen("backup-done", (ev) => toast(t("msg.backup", { path: ev.payload }), "ok"));
-
 /* ---------------- sites ---------------- */
 function renderSites() {
   const root = state.config.general.document_root || `${state.root}/www`;
@@ -367,10 +503,10 @@ function renderSites() {
     <div class="ico">${ICONS.site}</div>
     <div><div class="name">${esc(s.hostname)}${s.auto ? "" : ' <span class="pill">manual</span>'}</div><div class="meta"><span class="mono">${esc(s.root)}</span></div></div>
     <div class="act">
-      <button class="icon-btn" data-open="site:${esc(s.hostname)}" title="Open">${ICONS.open}</button>
-      <button class="icon-btn" data-open="path:${esc(s.path)}" title="Folder">${ICONS.folder}</button>
-      <button class="icon-btn" data-open="edit:${esc(s.path)}" title="Edit">${ICONS.edit}</button>
-      ${s.auto ? `<button class="icon-btn danger" data-delete-project="${esc(s.name)}" title="Delete">${ICONS.trash}</button>` : `<button class="icon-btn danger" data-remove-site="${esc(s.hostname)}" title="${t("btn.remove")}">${ICONS.x}</button>`}
+      <button class="icon-btn" data-open="site:${esc(s.hostname)}" title="${t("btn.open")}">${ICONS.open}</button>
+      <button class="icon-btn" data-open="path:${esc(s.path)}" title="${t("quick.root")}">${ICONS.folder}</button>
+      <button class="icon-btn" data-open="edit:${esc(s.path)}" title="${t("settings.editor")}">${ICONS.edit}</button>
+      ${s.auto ? `<button class="icon-btn danger" data-delete-project="${esc(s.name)}" title="${t("btn.remove")}">${ICONS.trash}</button>` : `<button class="icon-btn danger" data-remove-site="${esc(s.hostname)}" title="${t("btn.remove")}">${ICONS.x}</button>`}
     </div></div>`).join("") || `<div class="empty">${ICONS.site}<span>${esc(root)}</span></div>`;
 }
 async function syncSites() {
@@ -383,7 +519,6 @@ function renderDatabase() {
   $("#db-host").textContent = `127.0.0.1:${state.config.db.port}`;
   if (!state.db_password_known) { $("#db-password").textContent = "—"; $("#db-password").title = t("db.unknownPassword"); $("#db-password").classList.remove("secret"); }
 }
-
 
 /* ---------------- logs ---------------- */
 let currentLog = "";
@@ -419,17 +554,16 @@ $("#btn-activity-clear").onclick = () => { activity.length = 0; renderActivity()
 /* ---------------- settings ---------------- */
 function renderSettings() {
   $("#root-path").textContent = state.root; $("#root-path").title = state.root;
+  $$("[data-os]").forEach((el) => el.classList.toggle("hidden", !state.platform.startsWith(el.dataset.os)));
   for (const el of $("#form-settings").elements) {
     if (!el.name) continue;
     const [sec, key] = el.name.split(".");
     const v = state.config[sec]?.[key];
     if (el.type === "checkbox") el.checked = !!v; else el.value = v ?? "";
   }
-  const versions = state.installed.filter((i) => i.kind === "php").map((i) => i.version).sort(cmpVer).reverse();
-  $("#php-version").innerHTML = `<option value="">auto</option>${versions.map((v) => `<option ${v === state.config.php.version ? "selected" : ""}>${esc(v)}</option>`).join("")}`;
 }
 function readSettings() {
-  const cfg = JSON.parse(JSON.stringify(state.config));
+  const cfg = clone(state.config);
   for (const el of $("#form-settings").elements) {
     if (!el.name) continue;
     const [sec, key] = el.name.split(".");
@@ -440,9 +574,13 @@ function readSettings() {
 
 /* ---------------- events ---------------- */
 document.addEventListener("click", async (ev) => {
+  const item = ev.target.closest("[data-svc]");
+  if (item && !ev.target.closest("input")) { openService(item.dataset.svc); return; }
   const b = ev.target.closest("button");
   if (!b) return;
+  if (b.dataset.svctab) { svcTab = b.dataset.svctab; renderService(); return; }
   if (b.dataset.tab) { showTab(b.dataset.tab); return; }
+  if (b.id === "btn-check-upstream") { loadUpstream(); return; }
   if (b.dataset.open) { try { await invoke("open_target", { what: b.dataset.open }); } catch (e) { fail(e); } return; }
   if (b.dataset.copy) {
     let text = $(b.dataset.copy).textContent;
@@ -451,19 +589,8 @@ document.addEventListener("click", async (ev) => {
     return;
   }
   if (b.dataset.action) { b.disabled = true; await serviceAction(b.dataset.id, b.dataset.action); return; }
-  if (b.dataset.install) { await installPackage(b.dataset.install, b.dataset.latest); return; }
-  if (b.dataset.installSelected) {
-    const sel = $(`[data-pkg-select="${b.dataset.installSelected}"]`);
-    const v = sel?.value || null;
-    await installPackage(b.dataset.installSelected, false, v); return;
-  }
-  if (b.dataset.remove) {
-    const kind = b.dataset.remove, version = b.dataset.version;
-    if (!(await askConfirm(t("msg.confirmRemove", { name: kind, version })))) return;
-    removing = { kind, version }; renderPackages();
-    try { await invoke("remove_package", { kind, version }); toast(t("msg.removed", { name: kind, version }), "ok"); } catch (e) { fail(e); }
-    removing = null; refresh(); return;
-  }
+  if (b.dataset.install) { await installPackage(b.dataset.install, !!b.dataset.latest, b.dataset.version || null); return; }
+  if (b.dataset.remove) { await removePackage(b.dataset.remove, b.dataset.version); return; }
   if (b.dataset.deleteProject) {
     if (!(await askConfirm(t("msg.confirmDelete", { name: b.dataset.deleteProject })))) return;
     try { await invoke("delete_project", { name: b.dataset.deleteProject }); await syncSites(); } catch (e) { fail(e); }
@@ -471,21 +598,18 @@ document.addEventListener("click", async (ev) => {
   }
   if (b.dataset.removeSite) { try { await invoke("remove_site", { hostname: b.dataset.removeSite }); await syncSites(); } catch (e) { fail(e); } }
 });
-
+document.addEventListener("keydown", (ev) => {
+  const item = ev.target.closest?.("[data-svc]");
+  if (item && (ev.key === "Enter" || ev.key === " ")) { ev.preventDefault(); openService(item.dataset.svc); }
+});
 document.addEventListener("change", async (ev) => {
   const el = ev.target;
-  if (el.dataset.enable) {
-    const cfg = JSON.parse(JSON.stringify(state.config));
-    cfg[el.dataset.enable].enabled = el.checked;
-    try { await invoke("save_config", { config: cfg }); } catch (e) { fail(e); }
-    refresh();
-  }
+  if (el.dataset.sw) { await toggleKind(el.dataset.sw, el.checked); return; }
   if (el.dataset.versionKind) {
-    const cfg = JSON.parse(JSON.stringify(state.config));
-    const map = { php: "php", web: "web", db: "db", cache: "cache", mail: "mail" };
-    cfg[map[el.dataset.service]].version = el.value;
+    const cfg = clone(state.config);
+    cfg[SVC_SECTION[el.dataset.service]].version = el.value;
     try { await invoke("save_config", { config: cfg }); toast(t("msg.saved"), "ok"); } catch (e) { fail(e); }
-    refresh();
+    refresh(true);
   }
 });
 
@@ -493,7 +617,6 @@ $("#btn-start-all").onclick = () => runAll("start");
 $("#btn-stop-all").onclick = () => runAll("stop");
 $("#btn-hosts-sync").onclick = async () => { try { await invoke("hosts_sync"); toast(t("msg.hostsUpdated"), "ok"); } catch (e) { fail(e); } refresh(); };
 $("#btn-sync-sites").onclick = syncSites;
-$("#btn-check-upstream").onclick = loadUpstream;
 $("#btn-db-show").onclick = async () => {
   const el = $("#db-password");
   if (!state.db_password_known) return;
@@ -510,10 +633,11 @@ $("#form-site").onsubmit = async (ev) => {
   ev.preventDefault(); const f = ev.target;
   try { await invoke("add_site", { hostname: f.elements.hostname.value.trim(), path: f.elements.path.value.trim(), public: f.elements.public.value.trim() }); f.reset(); await syncSites(); } catch (e) { fail(e); }
 };
-$("#form-settings").onsubmit = async (ev) => { ev.preventDefault(); try { await invoke("save_config", { config: readSettings() }); toast(t("msg.saved"), "ok"); } catch (e) { fail(e); } refresh(); };
+$("#form-settings").onsubmit = async (ev) => { ev.preventDefault(); try { await invoke("save_config", { config: readSettings() }); toast(t("msg.saved"), "ok"); } catch (e) { fail(e); } refresh(true); };
 $("#btn-ssl-trust").onclick = async () => {
   try { const r = await invoke("ssl_trust"); toast(t("msg.trust", { ok: r.filter((x) => x.ok).length, total: r.length }), "ok"); r.filter((x) => !x.ok).forEach((x) => toast(`${x.description}: ${x.error}`, "bad")); } catch (e) { fail(e); }
 };
+
 /* ---------------- app updates ---------------- */
 let pendingUpdate = null;
 function showUpdate(info) {
@@ -549,7 +673,7 @@ listen("update-available", (ev) => showUpdate(ev.payload));
 listen("update-auto", () => { const b = $("#btn-update-install"); b.disabled = true; $("#update-notes").textContent = t("update.auto"); $("#update-progress").classList.remove("hidden"); });
 listen("update-error", (ev) => { fail(ev.payload); $("#btn-update-install").disabled = false; });
 
-// new project dialog
+/* ---------------- new project dialog ---------------- */
 $("#btn-new-project").onclick = () => {
   const sel = $("#project-template");
   sel.innerHTML = state.templates.map(([id, label]) => `<option value="${id}">${esc(label)}</option>`).join("");
@@ -571,10 +695,14 @@ $("#form-project").onsubmit = async (ev) => {
   btn.disabled = false;
 };
 
+/* ---------------- boot ---------------- */
 (async () => {
   await refresh();
   if (state?.ui_theme === "light" || state?.ui_theme === "dark") setTheme(state.ui_theme);
-  if (state?.ui_tab) showTab(state.ui_tab);
-  try { builtin = await invoke("builtin_versions"); renderPackages(); } catch (e) { fail(e); }
-  setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if ($("#tab-logs").classList.contains("active")) loadLog(); }, 15000);
+  if (state?.ui_tab) {
+    const [tab, sub] = state.ui_tab.split(":");   // e.g. "php:versions" (screenshot helper)
+    if (KIND_META[tab]) { if (sub) svcTab = sub; openService(tab); } else showTab(tab);
+  }
+  try { builtin = await invoke("builtin_versions"); renderService(); } catch (e) { fail(e); }
+  setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);
 })();

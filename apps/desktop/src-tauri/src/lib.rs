@@ -1,19 +1,19 @@
-//! Tauri shell around `padu-core`: commands for the web UI, tray icon, background jobs.
+//! Tauri shell around `veranda-core`: commands for the web UI, tray icon, background jobs.
 
-use padu_core::manifest::{Kind, Manifest};
-use padu_core::packages::{Installed, Registry};
-use padu_core::services::{self, ServiceId, ServiceStatus};
-use padu_core::sites::Site;
-use padu_core::{Config, Padu, Platform};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_updater::UpdaterExt;
+use veranda_core::manifest::{Kind, Manifest};
+use veranda_core::packages::{Installed, Registry};
+use veranda_core::services::{self, ServiceId, ServiceStatus};
+use veranda_core::sites::Site;
+use veranda_core::{Config, Platform, Veranda};
 
 pub struct AppState {
-    pub app: Mutex<Padu>,
+    pub app: Mutex<Veranda>,
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -22,7 +22,7 @@ fn err<E: std::fmt::Display>(e: E) -> String {
     format!("{e:#}")
 }
 
-fn open_app(state: &State<'_, AppState>) -> CmdResult<Padu> {
+fn open_app(state: &State<'_, AppState>) -> CmdResult<Veranda> {
     Ok(state
         .app
         .lock()
@@ -44,7 +44,7 @@ struct UiState {
     scheme: String,
     base_url: String,
     templates: Vec<(String, String)>,
-    /// Optional UI hints for automated screenshots: PADU_UI_TAB / PADU_UI_THEME.
+    /// Optional UI hints for automated screenshots: VERANDA_UI_TAB / VERANDA_UI_THEME.
     ui_tab: Option<String>,
     ui_theme: Option<String>,
 }
@@ -53,13 +53,13 @@ struct UiState {
 fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
     let app = open_app(&state)?;
     let services = services::status_all(&app).map_err(err)?;
-    let sites = padu_core::sites::discover(&app.layout, &app.config).map_err(err)?;
+    let sites = veranda_core::sites::discover(&app.layout, &app.config).map_err(err)?;
     let reg = Registry::load(&app.layout).map_err(err)?;
-    let hosts_in_sync = padu_core::hosts::is_in_sync(
+    let hosts_in_sync = veranda_core::hosts::is_in_sync(
         &Platform::current().hosts_file(),
-        &padu_core::sites::hostnames(&sites),
+        &veranda_core::sites::hostnames(&sites),
     );
-    let db_password_known = padu_core::db::root_password(&app.layout)
+    let db_password_known = veranda_core::db::root_password(&app.layout)
         .ok()
         .flatten()
         .is_some();
@@ -76,7 +76,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         format!("{scheme}://localhost:{port}")
     };
     Ok(UiState {
-        version: padu_core::VERSION.into(),
+        version: veranda_core::VERSION.into(),
         platform: Platform::current().to_string(),
         root: app.layout.root().display().to_string(),
         config: app.config.clone(),
@@ -87,12 +87,12 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         db_password_known,
         scheme: scheme.into(),
         base_url,
-        templates: padu_core::projects::TEMPLATES
+        templates: veranda_core::projects::TEMPLATES
             .iter()
             .map(|(a, b)| (a.to_string(), b.to_string()))
             .collect(),
-        ui_tab: std::env::var("PADU_UI_TAB").ok(),
-        ui_theme: std::env::var("PADU_UI_THEME").ok(),
+        ui_tab: std::env::var("VERANDA_UI_TAB").ok(),
+        ui_theme: std::env::var("VERANDA_UI_THEME").ok(),
     })
 }
 
@@ -125,7 +125,7 @@ async fn grant_web_ports(state: State<'_, AppState>) -> CmdResult<()> {
     let app = open_app(&state)?;
     tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<()> {
         let reg = Registry::load(&app.layout)?;
-        let sites = padu_core::sites::discover(&app.layout, &app.config)?;
+        let sites = veranda_core::sites::discover(&app.layout, &app.config)?;
         let ctx = services::Ctx {
             app: &app,
             reg: &reg,
@@ -133,7 +133,7 @@ async fn grant_web_ports(state: State<'_, AppState>) -> CmdResult<()> {
         };
         let server = services::web::active(&ctx)
             .ok_or_else(|| anyhow::anyhow!("install a web server first"))?;
-        padu_core::tools::grant_bind_capability(&server.binary(&ctx))
+        veranda_core::tools::grant_bind_capability(&server.binary(&ctx))
     })
     .await
     .map_err(err)?
@@ -166,6 +166,17 @@ fn to_report(results: Vec<(ServiceId, anyhow::Result<()>)>) -> Vec<ActionReport>
             }
         })
         .collect()
+}
+
+/// Called by the UI after its first render; shows the (initially hidden) main window.
+#[tauri::command]
+fn ui_ready(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    let core = open_app(&state)?;
+    if core.config.general.start_minimized {
+        return Ok(());
+    }
+    show_main(&handle);
+    Ok(())
 }
 
 #[tauri::command]
@@ -216,7 +227,7 @@ async fn install_package(
             .cloned()
         {
             Some(pk) => pk,
-            None => padu_core::resolve::versions(kind, p)
+            None => veranda_core::resolve::versions(kind, p)
                 .await
                 .map_err(err)?
                 .into_iter()
@@ -228,7 +239,7 @@ async fn install_package(
                     )
                 })?,
         },
-        None if latest => padu_core::resolve::latest(kind, p).await.map_err(err)?,
+        None if latest => veranda_core::resolve::latest(kind, p).await.map_err(err)?,
         None => builtin
             .latest(kind, p)
             .cloned()
@@ -236,7 +247,7 @@ async fn install_package(
     };
     let kind_id = kind.id().to_string();
     let h = handle.clone();
-    let progress = move |pr: padu_core::download::Progress| {
+    let progress = move |pr: veranda_core::download::Progress| {
         let _ = h.emit(
             "install-progress",
             InstallProgress {
@@ -246,20 +257,20 @@ async fn install_package(
             },
         );
     };
-    padu_core::packages::install(&app.layout, &pkg, Some(&progress))
+    veranda_core::packages::install(&app.layout, &pkg, Some(&progress))
         .await
         .map_err(err)
 }
 
 #[tauri::command]
-async fn upstream_versions() -> CmdResult<Vec<padu_core::manifest::Package>> {
-    Ok(padu_core::resolve::versions_all(Platform::current())
+async fn upstream_versions() -> CmdResult<Vec<veranda_core::manifest::Package>> {
+    Ok(veranda_core::resolve::versions_all(Platform::current())
         .await
         .packages)
 }
 
 #[tauri::command]
-fn builtin_versions() -> CmdResult<Vec<padu_core::manifest::Package>> {
+fn builtin_versions() -> CmdResult<Vec<veranda_core::manifest::Package>> {
     let m = Manifest::builtin().map_err(err)?;
     let p = Platform::current();
     Ok(m.for_platform(p).cloned().collect())
@@ -272,7 +283,7 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
     // Refuse to delete a version that a running service is using right now.
     let statuses = services::status_all(&app).map_err(err)?;
     let uses_kind = |id: ServiceId| -> bool {
-        use padu_core::config::{DbEngine, WebServer};
+        use veranda_core::config::{DbEngine, WebServer};
         match id {
             ServiceId::Web => matches!(
                 (app.config.web.server, kind),
@@ -298,7 +309,7 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
             st.name, version
         ));
     }
-    padu_core::packages::remove(&app.layout, kind, &version).map_err(err)
+    veranda_core::packages::remove(&app.layout, kind, &version).map_err(err)
 }
 
 #[tauri::command]
@@ -339,23 +350,23 @@ async fn sync_sites(state: State<'_, AppState>) -> CmdResult<SyncResult> {
 async fn hosts_sync(state: State<'_, AppState>) -> CmdResult<()> {
     let app = open_app(&state)?;
     tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<()> {
-        let sites = padu_core::sites::discover(&app.layout, &app.config)?;
-        let hosts = padu_core::sites::hostnames(&sites);
+        let sites = veranda_core::sites::discover(&app.layout, &app.config)?;
+        let hosts = veranda_core::sites::hostnames(&sites);
         let hosts_file = Platform::current().hosts_file();
-        if padu_core::hosts::is_in_sync(&hosts_file, &hosts) {
+        if veranda_core::hosts::is_in_sync(&hosts_file, &hosts) {
             return Ok(());
         }
         let payload = app.layout.tmp().join("hosts.payload");
-        padu_core::hosts::write_payload(&payload, &hosts, &app.config.general.tld)?;
-        let exe = padu_core::tools::current_exe()?;
-        padu_core::tools::run_elevated(
+        veranda_core::hosts::write_payload(&payload, &hosts, &app.config.general.tld)?;
+        let exe = veranda_core::tools::current_exe()?;
+        veranda_core::tools::run_elevated(
             &exe,
             &[
                 "--hosts-apply".into(),
                 payload.to_string_lossy().into_owned(),
             ],
         )?;
-        if !padu_core::hosts::is_in_sync(&hosts_file, &hosts) {
+        if !veranda_core::hosts::is_in_sync(&hosts_file, &hosts) {
             anyhow::bail!("hosts file was not updated");
         }
         Ok(())
@@ -373,7 +384,7 @@ fn add_site(
     public: String,
 ) -> CmdResult<()> {
     let app = open_app(&state)?;
-    padu_core::sites::add_manual(
+    veranda_core::sites::add_manual(
         &app.layout,
         &app.config,
         &hostname,
@@ -386,7 +397,7 @@ fn add_site(
 #[tauri::command]
 fn remove_site(state: State<'_, AppState>, hostname: String) -> CmdResult<bool> {
     let app = open_app(&state)?;
-    padu_core::sites::remove_manual(&app.layout, &hostname).map_err(err)
+    veranda_core::sites::remove_manual(&app.layout, &hostname).map_err(err)
 }
 
 #[derive(Deserialize)]
@@ -400,7 +411,7 @@ struct NewProject {
 #[tauri::command]
 async fn create_project(state: State<'_, AppState>, req: NewProject) -> CmdResult<String> {
     let app = open_app(&state)?;
-    use padu_core::projects::Template;
+    use veranda_core::projects::Template;
     let t = match req.template.as_str() {
         "blank" => Template::Blank,
         "wordpress" => Template::WordPress,
@@ -414,13 +425,13 @@ async fn create_project(state: State<'_, AppState>, req: NewProject) -> CmdResul
         },
         other => return Err(format!("unknown template {other}")),
     };
-    let path = padu_core::projects::create(&app, &req.name, &t, None)
+    let path = veranda_core::projects::create(&app, &req.name, &t, None)
         .await
         .map_err(err)?;
     if req.create_db {
         let reg = Registry::load(&app.layout).map_err(err)?;
-        if let Some(db) = padu_core::db::DbCtx::from_app(&app, &reg) {
-            let _ = padu_core::db::create_database(&db, &req.name.replace('-', "_"));
+        if let Some(db) = veranda_core::db::DbCtx::from_app(&app, &reg) {
+            let _ = veranda_core::db::create_database(&db, &req.name.replace('-', "_"));
         }
     }
     Ok(path.display().to_string())
@@ -429,19 +440,20 @@ async fn create_project(state: State<'_, AppState>, req: NewProject) -> CmdResul
 #[tauri::command]
 fn delete_project(state: State<'_, AppState>, name: String) -> CmdResult<()> {
     let app = open_app(&state)?;
-    padu_core::projects::delete(&app, &name).map_err(err)
+    veranda_core::projects::delete(&app, &name).map_err(err)
 }
 
-fn db_ctx(app: &Padu) -> CmdResult<padu_core::db::DbCtx> {
+fn db_ctx(app: &Veranda) -> CmdResult<veranda_core::db::DbCtx> {
     let reg = Registry::load(&app.layout).map_err(err)?;
-    padu_core::db::DbCtx::from_app(app, &reg).ok_or_else(|| "database is not installed".to_string())
+    veranda_core::db::DbCtx::from_app(app, &reg)
+        .ok_or_else(|| "database is not installed".to_string())
 }
 
 #[tauri::command]
 async fn db_create(state: State<'_, AppState>, name: String) -> CmdResult<()> {
     let app = open_app(&state)?;
     let db = db_ctx(&app)?;
-    tauri::async_runtime::spawn_blocking(move || padu_core::db::create_database(&db, &name))
+    tauri::async_runtime::spawn_blocking(move || veranda_core::db::create_database(&db, &name))
         .await
         .map_err(err)?
         .map_err(err)
@@ -451,7 +463,7 @@ async fn db_create(state: State<'_, AppState>, name: String) -> CmdResult<()> {
 async fn db_list(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
     let app = open_app(&state)?;
     let db = db_ctx(&app)?;
-    tauri::async_runtime::spawn_blocking(move || padu_core::db::list_databases(&db))
+    tauri::async_runtime::spawn_blocking(move || veranda_core::db::list_databases(&db))
         .await
         .map_err(err)?
         .map_err(err)
@@ -460,20 +472,20 @@ async fn db_list(state: State<'_, AppState>) -> CmdResult<Vec<String>> {
 #[tauri::command]
 fn db_password(state: State<'_, AppState>) -> CmdResult<Option<String>> {
     let app = open_app(&state)?;
-    padu_core::db::root_password(&app.layout).map_err(err)
+    veranda_core::db::root_password(&app.layout).map_err(err)
 }
 
 #[tauri::command]
 async fn db_set_password(state: State<'_, AppState>, new: Option<String>) -> CmdResult<String> {
     let app = open_app(&state)?;
     let db = db_ctx(&app)?;
-    let current = padu_core::db::root_password(&app.layout).map_err(err)?;
+    let current = veranda_core::db::root_password(&app.layout).map_err(err)?;
     let new = new
         .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| padu_core::db::random_token(24));
+        .unwrap_or_else(|| veranda_core::db::random_token(24));
     let n2 = new.clone();
     tauri::async_runtime::spawn_blocking(move || {
-        padu_core::db::set_root_password(&db, current.as_deref(), &n2)
+        veranda_core::db::set_root_password(&db, current.as_deref(), &n2)
     })
     .await
     .map_err(err)?
@@ -484,7 +496,7 @@ async fn db_set_password(state: State<'_, AppState>, new: Option<String>) -> Cmd
 #[tauri::command]
 async fn db_backup(state: State<'_, AppState>) -> CmdResult<String> {
     let app = open_app(&state)?;
-    tauri::async_runtime::spawn_blocking(move || padu_core::backup::run(&app))
+    tauri::async_runtime::spawn_blocking(move || veranda_core::backup::run(&app))
         .await
         .map_err(err)?
         .map(|p| p.display().to_string())
@@ -502,11 +514,11 @@ struct TrustReport {
 async fn ssl_trust(state: State<'_, AppState>) -> CmdResult<Vec<TrustReport>> {
     let app = open_app(&state)?;
     tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<Vec<TrustReport>> {
-        padu_core::tls::ensure_ca(&app.layout)?;
+        veranda_core::tls::ensure_ca(&app.layout)?;
         let mut out = Vec::new();
-        for step in padu_core::tls::trust_commands(&app.layout) {
+        for step in veranda_core::tls::trust_commands(&app.layout) {
             let r = if step.needs_admin {
-                padu_core::tools::run_elevated(std::path::Path::new(&step.program), &step.args)
+                veranda_core::tools::run_elevated(std::path::Path::new(&step.program), &step.args)
             } else {
                 std::process::Command::new(&step.program)
                     .args(&step.args)
@@ -540,25 +552,26 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
     let st = get_state(state.clone())?;
     let base = st.base_url;
     match what.as_str() {
-        "web" => padu_core::tools::open_url(cfg, &format!("{base}/")),
-        "adminer" => padu_core::tools::open_url(cfg, &format!("{base}/adminer/")),
-        "phpmyadmin" => padu_core::tools::open_url(cfg, &format!("{base}/phpmyadmin/")),
+        "web" => veranda_core::tools::open_url(cfg, &format!("{base}/")),
+        "adminer" => veranda_core::tools::open_url(cfg, &format!("{base}/adminer/")),
+        "phpmyadmin" => veranda_core::tools::open_url(cfg, &format!("{base}/phpmyadmin/")),
         "mail" => {
-            padu_core::tools::open_url(cfg, &format!("http://127.0.0.1:{}/", cfg.mail.http_port))
+            veranda_core::tools::open_url(cfg, &format!("http://127.0.0.1:{}/", cfg.mail.http_port))
         }
-        "root" => padu_core::tools::open_path(app.layout.root()),
-        "www" => padu_core::tools::open_path(&cfg.document_root(&app.layout)),
-        "logs" => padu_core::tools::open_path(&app.layout.logs()),
-        "config" => padu_core::tools::open_editor(cfg, &app.layout.config_file()),
-        "phpini" => {
-            padu_core::tools::open_editor(cfg, &padu_core::services::php::ini_path(&app.layout))
-        }
+        "root" => veranda_core::tools::open_path(app.layout.root()),
+        "www" => veranda_core::tools::open_path(&cfg.document_root(&app.layout)),
+        "logs" => veranda_core::tools::open_path(&app.layout.logs()),
+        "config" => veranda_core::tools::open_editor(cfg, &app.layout.config_file()),
+        "phpini" => veranda_core::tools::open_editor(
+            cfg,
+            &veranda_core::services::php::ini_path(&app.layout),
+        ),
         "terminal" => {
             let reg = Registry::load(&app.layout).map_err(err)?;
-            let path = padu_core::packages::runtime_path(&app.layout, &reg, cfg);
-            padu_core::tools::open_terminal(&cfg.document_root(&app.layout), &path)
+            let path = veranda_core::packages::runtime_path(&app.layout, &reg, cfg);
+            veranda_core::tools::open_terminal(&cfg.document_root(&app.layout), &path)
         }
-        s if s.starts_with("site:") => padu_core::tools::open_url(
+        s if s.starts_with("site:") => veranda_core::tools::open_url(
             cfg,
             &format!(
                 "{}://{}{}/",
@@ -570,9 +583,11 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
                     .unwrap_or_default()
             ),
         ),
-        s if s.starts_with("path:") => padu_core::tools::open_path(std::path::Path::new(&s[5..])),
+        s if s.starts_with("path:") => {
+            veranda_core::tools::open_path(std::path::Path::new(&s[5..]))
+        }
         s if s.starts_with("edit:") => {
-            padu_core::tools::open_editor(cfg, std::path::Path::new(&s[5..]))
+            veranda_core::tools::open_editor(cfg, std::path::Path::new(&s[5..]))
         }
         other => Err(anyhow::anyhow!("unknown target {other}")),
     }
@@ -585,20 +600,22 @@ fn open_url_external(state: State<'_, AppState>, url: String) -> CmdResult<()> {
     if !url.starts_with("https://github.com/") {
         return Err("only GitHub release pages are opened from here".into());
     }
-    padu_core::tools::open_url(&app.config, &url).map_err(err)
+    veranda_core::tools::open_url(&app.config, &url).map_err(err)
 }
 
 #[tauri::command]
-async fn check_update(state: State<'_, AppState>) -> CmdResult<Option<padu_core::update::Release>> {
+async fn check_update(
+    state: State<'_, AppState>,
+) -> CmdResult<Option<veranda_core::update::Release>> {
     let app = open_app(&state)?;
-    padu_core::update::check(app.config.update.repo_or_default())
+    veranda_core::update::check(app.config.update.repo_or_default())
         .await
         .map_err(err)
 }
 
 #[tauri::command]
 fn change_root(state: State<'_, AppState>, root: String) -> CmdResult<()> {
-    let app = Padu::open_at(std::path::PathBuf::from(root)).map_err(err)?;
+    let app = Veranda::open_at(std::path::PathBuf::from(root)).map_err(err)?;
     app.layout.remember().map_err(err)?;
     let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
     *guard = app;
@@ -612,7 +629,7 @@ struct LogFile {
     modified: String,
 }
 
-fn log_path(app: &Padu, name: &str) -> CmdResult<std::path::PathBuf> {
+fn log_path(app: &Veranda, name: &str) -> CmdResult<std::path::PathBuf> {
     if name.is_empty()
         || name.contains(['/', '\\'])
         || name.starts_with('.')
@@ -700,9 +717,9 @@ struct UpdateInfo {
     url: String,
 }
 
-fn updater_for(app: &AppHandle, core: &Padu) -> CmdResult<tauri_plugin_updater::Updater> {
+fn updater_for(app: &AppHandle, core: &Veranda) -> CmdResult<tauri_plugin_updater::Updater> {
     let repo = core.config.update.repo_or_default();
-    if !padu_core::config::is_repo_slug(repo) {
+    if !veranda_core::config::is_repo_slug(repo) {
         return Err("update.repo is not a valid owner/repo (Settings > GitHub repo)".into());
     }
     let url: tauri::Url = format!("https://github.com/{repo}/releases/latest/download/latest.json")
@@ -715,7 +732,7 @@ fn updater_for(app: &AppHandle, core: &Padu) -> CmdResult<tauri_plugin_updater::
         .map_err(err)
 }
 
-/// Check for a newer Padu. Tries the signed updater feed first, then the GitHub API as a
+/// Check for a newer Veranda. Tries the signed updater feed first, then the GitHub API as a
 /// read-only fallback (e.g. Linux .deb installs, which cannot self-update).
 #[tauri::command]
 async fn update_check(
@@ -736,7 +753,7 @@ async fn update_check(
             url: page.clone(),
         }));
     }
-    match padu_core::update::check(&repo).await.map_err(err)? {
+    match veranda_core::update::check(&repo).await.map_err(err)? {
         Some(r) => Ok(Some(UpdateInfo {
             version: r.version,
             notes: r.notes,
@@ -803,7 +820,7 @@ fn close_decision(
     action: String,
     remember: bool,
 ) -> CmdResult<()> {
-    use padu_core::config::CloseAction;
+    use veranda_core::config::CloseAction;
     let chosen = match action.as_str() {
         "tray" => CloseAction::Tray,
         "quit" => CloseAction::Quit,
@@ -855,8 +872,8 @@ pub fn run() {
                 .add_directive("info".parse().unwrap()),
         )
         .init();
-    let core = Padu::open().expect("cannot open the Padu root");
-    let _ = padu_core::tls::ensure_ca(&core.layout);
+    let core = Veranda::open().expect("cannot open the Veranda root");
+    let _ = veranda_core::tls::ensure_ca(&core.layout);
     let auto_start = core.config.general.auto_start;
     let start_minimized = core.config.general.start_minimized;
 
@@ -873,7 +890,7 @@ pub fn run() {
             app: Mutex::new(core),
         })
         .setup(move |app| {
-            let show = MenuItem::with_id(app, "show", "Show Padu", true, None::<&str>)?;
+            let show = MenuItem::with_id(app, "show", "Show Veranda", true, None::<&str>)?;
             let start = MenuItem::with_id(app, "start_all", "Start All", true, None::<&str>)?;
             let stop = MenuItem::with_id(app, "stop_all", "Stop All", true, None::<&str>)?;
             let web = MenuItem::with_id(app, "open_web", "Open localhost", true, None::<&str>)?;
@@ -892,7 +909,7 @@ pub fn run() {
             )?;
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().cloned().expect("icon"))
-                .tooltip("Padu")
+                .tooltip("Veranda")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| {
@@ -915,7 +932,7 @@ pub fn run() {
                         "open_web" => {
                             if let Ok(core) = open_app(&state) {
                                 let scheme = if core.config.web.ssl { "https" } else { "http" };
-                                let _ = padu_core::tools::open_url(
+                                let _ = veranda_core::tools::open_url(
                                     &core.config,
                                     &format!("{scheme}://localhost/"),
                                 );
@@ -939,8 +956,19 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            if start_minimized && let Some(w) = app.get_webview_window("main") {
-                let _ = w.hide();
+            // The window starts hidden (tauri.conf.json) and is shown by `ui_ready` once the
+            // first render is done, so the user never sees a blank page. Safety net: show it
+            // anyway after a moment if the UI failed to call back.
+            if !start_minimized {
+                let h = app.handle().clone();
+                std::thread::spawn(move || {
+                    std::thread::sleep(std::time::Duration::from_millis(2500));
+                    if let Some(w) = h.get_webview_window("main")
+                        && !w.is_visible().unwrap_or(true)
+                    {
+                        let _ = w.show();
+                    }
+                });
             }
             let handle = app.handle().clone();
             if auto_start {
@@ -983,10 +1011,10 @@ pub fn run() {
                         open_app(&state).ok()
                     };
                     if let Some(core) = core
-                        && padu_core::backup::is_due(&core)
+                        && veranda_core::backup::is_due(&core)
                     {
                         let res = tauri::async_runtime::spawn_blocking(move || {
-                            padu_core::backup::run(&core)
+                            veranda_core::backup::run(&core)
                         })
                         .await;
                         if let Ok(Ok(p)) = res {
@@ -999,7 +1027,7 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                use padu_core::config::CloseAction;
+                use veranda_core::config::CloseAction;
                 let action = window
                     .state::<AppState>()
                     .app
@@ -1026,6 +1054,7 @@ pub fn run() {
             get_state,
             service_action,
             grant_web_ports,
+            ui_ready,
             start_all,
             stop_all,
             install_package,
@@ -1057,5 +1086,5 @@ pub fn run() {
             close_decision
         ])
         .run(tauri::generate_context!())
-        .expect("error while running Padu");
+        .expect("error while running Veranda");
 }

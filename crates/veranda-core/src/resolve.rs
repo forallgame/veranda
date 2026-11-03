@@ -1,6 +1,6 @@
 //! Discover upstream versions at run time.
 //!
-//! `versions(kind, platform)` returns every version Padu can install from official sources,
+//! `versions(kind, platform)` returns every version Veranda can install from official sources,
 //! newest first; `latest` is its first element. Every resolver is best-effort: a failure only
 //! means the built-in manifest is used. Sources with real checksums are preferred; otherwise
 //! HTTPS + trust-on-first-use.

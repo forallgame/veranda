@@ -3,8 +3,8 @@
 # The compiler is paused (SIGSTOP) when the CPU package passes $HOT and resumed (SIGCONT)
 # once it cools below $COOL. One job, lowest priority.
 #
-#   scripts/build-cool.sh build -p padu-desktop
-#   HOT=78 COOL=62 scripts/build-cool.sh build --release -p padu-desktop
+#   scripts/build-cool.sh build -p veranda-desktop
+#   HOT=78 COOL=62 scripts/build-cool.sh build --release -p veranda-desktop
 set -u
 HOT=${HOT:-80}; COOL=${COOL:-65}; JOBS=${JOBS:-1}
 zone=$(grep -l x86_pkg_temp /sys/class/thermal/thermal_zone*/type 2>/dev/null | head -1 | xargs -r dirname)

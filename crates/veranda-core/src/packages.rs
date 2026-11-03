@@ -36,8 +36,23 @@ impl Registry {
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => Registry::default(),
             Err(e) => return Err(e.into()),
         };
+        // Self-heal paths after the root moved (e.g. the Padu -> Veranda rename): every package
+        // lives at the canonical `<root>/bin/<kind>/<version>`.
+        let mut healed = false;
+        for i in &mut reg.items {
+            if !i.path.is_dir() {
+                let expected = package_dir(layout, i.kind, &i.version);
+                if expected.is_dir() {
+                    i.path = expected;
+                    healed = true;
+                }
+            }
+        }
         // Drop entries whose folder disappeared (user deleted it by hand).
         reg.items.retain(|i| i.path.is_dir());
+        if healed {
+            let _ = reg.save(layout);
+        }
         Ok(reg)
     }
 

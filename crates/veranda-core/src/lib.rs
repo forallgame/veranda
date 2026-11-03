@@ -1,4 +1,4 @@
-//! Padu core: a lightweight, security-first local web development stack.
+//! Veranda core: a lightweight, security-first local web development stack.
 //!
 //! The crate is a pure library (no UI). It is shared by the CLI and the desktop app.
 //! Everything that touches the network, the filesystem or child processes lives here
@@ -32,16 +32,16 @@ pub use platform::{Arch, Os, Platform};
 pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 
 /// Product name shown in UIs and used for folder names.
-pub const APP_NAME: &str = "Padu";
+pub const APP_NAME: &str = "Veranda";
 
 /// Root object that ties the layout and configuration together.
 #[derive(Debug, Clone)]
-pub struct Padu {
+pub struct Veranda {
     pub layout: Layout,
     pub config: Config,
 }
 
-impl Padu {
+impl Veranda {
     /// Discover the installation root and load (or create) its configuration.
     pub fn open() -> anyhow::Result<Self> {
         let layout = Layout::discover()?;
@@ -50,7 +50,7 @@ impl Padu {
         Ok(Self { layout, config })
     }
 
-    /// Open a specific root (used by `padu init --root`).
+    /// Open a specific root (used by `veranda init --root`).
     pub fn open_at(root: std::path::PathBuf) -> anyhow::Result<Self> {
         let layout = Layout::new(root);
         layout.ensure()?;

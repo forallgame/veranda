@@ -1,13 +1,13 @@
 //! Periodic database dumps into `backups/`, keeping the newest N.
 
-use crate::Padu;
+use crate::Veranda;
 use crate::db::DbCtx;
 use crate::packages::Registry;
 use anyhow::{Context, Result};
 use std::path::PathBuf;
 use std::time::{Duration, SystemTime};
 
-pub fn run(app: &Padu) -> Result<PathBuf> {
+pub fn run(app: &Veranda) -> Result<PathBuf> {
     let reg = Registry::load(&app.layout)?;
     let db = DbCtx::from_app(app, &reg).context("database is not installed")?;
     if !crate::process::port_accepting(db.port) {
@@ -24,7 +24,7 @@ pub fn run(app: &Padu) -> Result<PathBuf> {
 }
 
 /// Delete older dumps beyond `backup.keep`.
-pub fn rotate(app: &Padu) -> Result<()> {
+pub fn rotate(app: &Veranda) -> Result<()> {
     let mut files: Vec<(SystemTime, PathBuf)> = std::fs::read_dir(app.layout.backups())?
         .filter_map(|e| e.ok())
         .filter(|e| e.path().extension().map(|x| x == "sql").unwrap_or(false))
@@ -37,7 +37,7 @@ pub fn rotate(app: &Padu) -> Result<()> {
     Ok(())
 }
 
-pub fn last_backup(app: &Padu) -> Option<SystemTime> {
+pub fn last_backup(app: &Veranda) -> Option<SystemTime> {
     std::fs::read_dir(app.layout.backups())
         .ok()?
         .filter_map(|e| e.ok())
@@ -47,7 +47,7 @@ pub fn last_backup(app: &Padu) -> Option<SystemTime> {
 }
 
 /// True when the configured interval has elapsed since the last dump.
-pub fn is_due(app: &Padu) -> bool {
+pub fn is_due(app: &Veranda) -> bool {
     if !app.config.backup.enabled {
         return false;
     }

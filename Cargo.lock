@@ -2920,69 +2920,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "padu-cli"
-version = "0.1.3"
-dependencies = [
- "anyhow",
- "clap",
- "padu-core",
- "serde_json",
- "tokio",
- "toml 1.1.8+spec-1.1.0",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "padu-core"
-version = "0.1.3"
-dependencies = [
- "anyhow",
- "dirs",
- "flate2",
- "hex",
- "liblzma",
- "md-5",
- "rand",
- "rcgen",
- "regex",
- "reqwest",
- "rustls",
- "semver",
- "serde",
- "serde_json",
- "sha2 0.11.1",
- "sysinfo",
- "tar",
- "tempfile",
- "time",
- "tokio",
- "toml 1.1.8+spec-1.1.0",
- "tracing",
- "which",
- "zip",
-]
-
-[[package]]
-name = "padu-desktop"
-version = "0.1.3"
-dependencies = [
- "anyhow",
- "padu-core",
- "serde",
- "serde_json",
- "tauri",
- "tauri-build",
- "tauri-plugin-dialog",
- "tauri-plugin-opener",
- "tauri-plugin-single-instance",
- "tauri-plugin-updater",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "pango"
 version = "0.18.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5122,6 +5059,69 @@ name = "valuable"
 version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
+
+[[package]]
+name = "veranda-cli"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "clap",
+ "serde_json",
+ "tokio",
+ "toml 1.1.8+spec-1.1.0",
+ "tracing",
+ "tracing-subscriber",
+ "veranda-core",
+]
+
+[[package]]
+name = "veranda-core"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "dirs",
+ "flate2",
+ "hex",
+ "liblzma",
+ "md-5",
+ "rand",
+ "rcgen",
+ "regex",
+ "reqwest",
+ "rustls",
+ "semver",
+ "serde",
+ "serde_json",
+ "sha2 0.11.1",
+ "sysinfo",
+ "tar",
+ "tempfile",
+ "time",
+ "tokio",
+ "toml 1.1.8+spec-1.1.0",
+ "tracing",
+ "which",
+ "zip",
+]
+
+[[package]]
+name = "veranda-desktop"
+version = "0.2.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-dialog",
+ "tauri-plugin-opener",
+ "tauri-plugin-single-instance",
+ "tauri-plugin-updater",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
+ "veranda-core",
+]
 
 [[package]]
 name = "version-compare"

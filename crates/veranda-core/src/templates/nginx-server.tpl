@@ -7,7 +7,7 @@
         index index.php index.html index.htm;
         charset utf-8;
         add_header X-Content-Type-Options nosniff always;
-        if ($padu_block) { return 404; }
+        if ($veranda_block) { return 404; }
 {{TOOLS}}
         location / {
             try_files $uri $uri/ /index.php$is_args$args;
@@ -16,7 +16,7 @@
         location ~ \.php$ {
             try_files $uri =404;
             fastcgi_split_path_info ^(.+\.php)(/.+)$;
-            fastcgi_pass padu_php;
+            fastcgi_pass veranda_php;
             fastcgi_index index.php;
             fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;
             fastcgi_param PATH_INFO $fastcgi_path_info;

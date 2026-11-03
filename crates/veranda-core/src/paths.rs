@@ -1,9 +1,9 @@
-//! Directory layout of a Padu installation root.
+//! Directory layout of a Veranda installation root.
 //!
 //! ```text
 //! <root>/
 //!   bin/<kind>/<version>/   downloaded runtimes (php, caddy, mariadb, ...)
-//!   etc/                    generated configuration (padu.toml, Caddyfile, php.ini, ...)
+//!   etc/                    generated configuration (veranda.toml, Caddyfile, php.ini, ...)
 //!   etc/ssl/                local CA and site certificates
 //!   etc/secrets/            generated passwords (0600)
 //!   etc/apps/               web tools served under http://localhost/<tool> (adminer, phpmyadmin)
@@ -19,7 +19,7 @@
 use anyhow::{Context, Result};
 use std::path::{Path, PathBuf};
 
-pub const ROOT_ENV: &str = "PADU_HOME";
+pub const ROOT_ENV: &str = "VERANDA_HOME";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Layout {
@@ -31,19 +31,19 @@ impl Layout {
         Self { root: root.into() }
     }
 
-    /// Default root: `<home>/padu` on every platform (no spaces, user-writable).
+    /// Default root: `<home>/veranda` on every platform (no spaces, user-writable).
     pub fn default_root() -> PathBuf {
         dirs::home_dir()
             .unwrap_or_else(|| PathBuf::from("."))
-            .join("padu")
+            .join("veranda")
     }
 
     /// Small pointer file in the per-user config dir that remembers a custom root.
     pub fn pointer_file() -> Option<PathBuf> {
-        dirs::config_dir().map(|d| d.join("padu").join("root"))
+        dirs::config_dir().map(|d| d.join("veranda").join("root"))
     }
 
-    /// Resolution order: `$PADU_HOME`, pointer file, default root.
+    /// Resolution order: `$VERANDA_HOME`, pointer file, default root.
     pub fn discover() -> Result<Self> {
         if let Ok(v) = std::env::var(ROOT_ENV)
             && !v.trim().is_empty()
@@ -55,10 +55,64 @@ impl Layout {
         {
             let s = s.trim();
             if !s.is_empty() {
-                return Ok(Self::new(PathBuf::from(s)));
+                let l = Self::new(PathBuf::from(s));
+                Self::migrate_config_file(l.root());
+                return Ok(l);
             }
         }
-        Ok(Self::new(Self::default_root()))
+        if let Some(p) = Self::legacy_pointer_file()
+            && let Ok(s) = std::fs::read_to_string(&p)
+            && !s.trim().is_empty()
+        {
+            let l = Self::new(PathBuf::from(s.trim()));
+            let _ = l.remember();
+            Self::migrate_config_file(l.root());
+            return Ok(l);
+        }
+        let root = Self::default_root();
+        Self::migrate_legacy(&root);
+        Ok(Self::new(root))
+    }
+
+    /// Pointer file written by the app while it was still called Padu.
+    fn legacy_pointer_file() -> Option<PathBuf> {
+        dirs::config_dir().map(|d| d.join("padu").join("root"))
+    }
+
+    /// First start after the rename from Padu: move `~/padu` to the new default root when
+    /// nothing from it is running, and rename the config file. Best effort; on any failure the
+    /// old folder simply stays where it is and a fresh root is created.
+    fn migrate_legacy(root: &Path) {
+        if let Some(home) = dirs::home_dir() {
+            let old = home.join("padu");
+            if !root.exists() && old.is_dir() && !Self::has_live_pids(&old) {
+                let _ = std::fs::rename(&old, root);
+            }
+        }
+        Self::migrate_config_file(root);
+    }
+
+    fn migrate_config_file(root: &Path) {
+        let etc = root.join("etc");
+        let old = etc.join("padu.toml");
+        let new = etc.join("veranda.toml");
+        if old.is_file() && !new.exists() {
+            let _ = std::fs::rename(old, new);
+        }
+    }
+
+    fn has_live_pids(root: &Path) -> bool {
+        let Ok(rd) = std::fs::read_dir(root.join("run")) else {
+            return false;
+        };
+        rd.flatten()
+            .filter(|e| e.path().extension().is_some_and(|x| x == "pid"))
+            .any(|e| {
+                std::fs::read_to_string(e.path())
+                    .ok()
+                    .and_then(|s| s.trim().parse::<u32>().ok())
+                    .is_some_and(crate::process::is_pid_alive)
+            })
     }
 
     /// Persist a custom root so later invocations find it.
@@ -118,7 +172,7 @@ impl Layout {
         self.root.join("usr")
     }
     pub fn config_file(&self) -> PathBuf {
-        self.etc().join("padu.toml")
+        self.etc().join("veranda.toml")
     }
     pub fn sites_file(&self) -> PathBuf {
         self.etc().join("sites.toml")

@@ -29,13 +29,13 @@ pub fn socket_path(layout: &Layout, db: &DbCtx) -> std::path::PathBuf {
     if preferred.as_os_str().len() <= 100 {
         preferred
     } else {
-        std::env::temp_dir().join(format!("padu-{}-{}.sock", db.engine.id(), db.port))
+        std::env::temp_dir().join(format!("veranda-{}-{}.sock", db.engine.id(), db.port))
     }
 }
 
 /// Marker written once the data directory is initialised *and* the root password is set.
 fn ready_marker(db: &DbCtx) -> std::path::PathBuf {
-    db.data_dir.join(".padu-ready")
+    db.data_dir.join(".veranda-ready")
 }
 
 pub fn prepare(ctx: &Ctx) -> Result<()> {

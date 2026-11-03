@@ -1,6 +1,6 @@
 [package]
-name = "padu-core"
-description = "Core engine for Padu: a lightweight, secure local web development stack"
+name = "veranda-core"
+description = "Core engine for Veranda: a lightweight, secure local web development stack"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true

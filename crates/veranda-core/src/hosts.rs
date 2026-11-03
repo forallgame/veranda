@@ -1,15 +1,32 @@
 //! Managed block inside the system hosts file.
 //!
 //! Only the lines between the markers are ever touched. Writing needs administrator
-//! rights, so the desired host list is handed to an elevated helper (`padu hosts apply
+//! rights, so the desired host list is handed to an elevated helper (`veranda hosts apply
 //! --from <file>`) which re-validates every entry before writing.
 
 use crate::fsutil;
 use anyhow::{Context, Result, bail};
 use std::path::Path;
 
-pub const BEGIN: &str = "# >>> padu managed block - do not edit between the markers >>>";
-pub const END: &str = "# <<< padu managed block <<<";
+pub const BEGIN: &str = "# >>> veranda managed block - do not edit between the markers >>>";
+pub const END: &str = "# <<< veranda managed block <<<";
+/// Markers written by releases before the rename; removed on the next write.
+const LEGACY_BEGIN: &str = "# >>> padu managed block - do not edit between the markers >>>";
+const LEGACY_END: &str = "# <<< padu managed block <<<";
+
+/// Drop the block written under the old name, if any.
+fn strip_legacy(lines: Vec<&str>) -> Vec<&str> {
+    let start = lines.iter().position(|l| l.trim() == LEGACY_BEGIN);
+    let end = lines.iter().position(|l| l.trim() == LEGACY_END);
+    match (start, end) {
+        (Some(s), Some(e)) if e >= s => {
+            let mut out = lines[..s].to_vec();
+            out.extend_from_slice(&lines[e + 1..]);
+            out
+        }
+        _ => lines,
+    }
+}
 
 /// Strict hostname check: lowercase labels, digits, hyphens, must end with `.tld`.
 pub fn is_valid_hostname(host: &str, tld: &str) -> bool {
@@ -46,7 +63,7 @@ pub fn render_block(hosts: &[String]) -> String {
 /// Replace (or append) the managed block in `existing`.
 pub fn merge(existing: &str, hosts: &[String]) -> String {
     let block = render_block(hosts);
-    let lines: Vec<&str> = existing.lines().collect();
+    let lines = strip_legacy(existing.lines().collect());
     let start = lines.iter().position(|l| l.trim() == BEGIN);
     let end = lines.iter().position(|l| l.trim() == END);
     let newline = if existing.contains("\r\n") {
@@ -106,6 +123,9 @@ pub fn is_in_sync(hosts_file: &Path, hosts: &[String]) -> bool {
     let Ok(text) = std::fs::read_to_string(hosts_file) else {
         return false;
     };
+    if text.contains(LEGACY_BEGIN) {
+        return false; // old block still present: rewrite once to clean it up
+    }
     let mut want: Vec<String> = hosts.to_vec();
     want.sort();
     want.dedup();
@@ -169,7 +189,7 @@ pub fn apply_payload(hosts_file: &Path, payload: &Path) -> Result<()> {
     if merged == existing {
         return Ok(());
     }
-    let backup = hosts_file.with_extension("padu.bak");
+    let backup = hosts_file.with_extension("veranda.bak");
     let _ = std::fs::write(&backup, &existing);
     // /etc/hosts must stay world-readable; write in place rather than rename (keeps owner/mode).
     std::fs::write(hosts_file, merged.as_bytes())

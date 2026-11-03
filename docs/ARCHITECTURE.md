@@ -2,22 +2,22 @@
 
 ```
 ┌──────────────────────────┐   ┌──────────────────────────┐
-│ apps/desktop (Tauri 2)   │   │ apps/cli (`padu`)        │
+│ apps/desktop (Tauri 2)   │   │ apps/cli (`veranda`)        │
 │ ui/ vanilla HTML+JS      │   │ clap sub-commands         │
 │ src-tauri commands+tray  │   │ elevated hosts helper     │
 └───────────┬──────────────┘   └───────────┬──────────────┘
             └──────────────┬───────────────┘
                  ┌─────────▼──────────┐
-                 │ crates/padu-core  │  pure library, no UI
+                 │ crates/veranda-core  │  pure library, no UI
                  └────────────────────┘
 ```
 
-## Core modules (`crates/padu-core/src`)
+## Core modules (`crates/veranda-core/src`)
 
 | Module | Responsibility |
 |---|---|
-| `paths` | Installation root discovery (`$PADU_HOME`, pointer file, `~/padu`) and directory layout |
-| `config` | `etc/padu.toml` with defaults, validation, unknown keys rejected |
+| `paths` | Installation root discovery (`$VERANDA_HOME`, pointer file, `~/veranda`) and directory layout |
+| `config` | `etc/veranda.toml` with defaults, validation, unknown keys rejected |
 | `manifest` + `packages.toml` | Package kinds, download parts, checksums, built-in verified versions |
 | `resolve` | Run-time discovery of newer versions from official APIs/listings |
 | `download` | HTTPS-only streaming downloads, checksum verification, TOFU ledger |
@@ -38,9 +38,9 @@
 ## Installation root
 
 ```
-~/padu
+~/veranda
 ├── bin/<kind>/<version>/   runtimes (php/8.5.8, caddy/2.11.7, mariadb/13.0.2 ...)
-├── etc/padu.toml          configuration
+├── etc/veranda.toml          configuration
 ├── etc/sites.toml          manual sites
 ├── etc/caddy|nginx|apache  generated web server config
 ├── etc/php/php.ini         generated; etc/php/conf.d/99-user.ini is yours
@@ -66,7 +66,7 @@ reload from the current site list, so adding a folder and pressing *Sync* is all
 
 - Built-in manifest: verified versions + checksums at release time (tests enforce https URLs and
   coverage for Linux x86_64, Windows x86_64, macOS arm64).
-- `padu packages --check` / *Check latest versions* queries upstream sources; the built-in list is
+- `veranda packages --check` / *Check latest versions* queries upstream sources; the built-in list is
   the fallback when offline.
 - App updates: `update.repo = "owner/repo"` in the config; the CLI and the desktop app compare the
   newest GitHub release tag with the running version. Releases are produced by

@@ -1,6 +1,6 @@
 # Security model
 
-Padu runs third-party servers on a developer machine. The goals are: nothing reachable from the
+Veranda runs third-party servers on a developer machine. The goals are: nothing reachable from the
 network, nothing tampered with in transit, no silent privilege escalation, and sane defaults even
 if the user never opens the settings.
 
@@ -30,10 +30,10 @@ if the user never opens the settings.
 - The app never runs as root/administrator. Only two operations need elevation and both go
   through a minimal helper:
   1. **Hosts file** - the GUI/CLI writes a payload (`tld=` + validated hostnames) and runs
-     `padu hosts apply --from <payload>` elevated (pkexec / osascript / UAC). The helper
-     re-validates every hostname against a strict grammar, only touches the lines between the Padu
+     `veranda hosts apply --from <payload>` elevated (pkexec / osascript / UAC). The helper
+     re-validates every hostname against a strict grammar, only touches the lines between the Veranda
      markers, keeps a backup and writes in place.
-  2. **Ports < 1024 on Linux** - `padu doctor --fix-ports` applies `cap_net_bind_service` to the web
+  2. **Ports < 1024 on Linux** - `veranda doctor --fix-ports` applies `cap_net_bind_service` to the web
      server binary with `setcap` (optional; ports 8080/8443 work without it).
 - CA trust is installed into the **current user's** store (NSS db on Linux, login keychain on
   macOS, `certutil -user` on Windows). System-wide installation on Linux is a separate, explicit

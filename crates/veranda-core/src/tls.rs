@@ -14,7 +14,7 @@ use rcgen::{
 };
 use std::path::PathBuf;
 
-pub const CA_NAME: &str = "Padu Local Development CA";
+pub const CA_NAME: &str = "Veranda Local Development CA";
 
 pub struct Paths {
     pub ca_crt: PathBuf,
@@ -37,7 +37,7 @@ fn ca_params() -> CertificateParams {
     let mut params = CertificateParams::default();
     let mut dn = DistinguishedName::new();
     dn.push(DnType::CommonName, CA_NAME);
-    dn.push(DnType::OrganizationName, "Padu");
+    dn.push(DnType::OrganizationName, "Veranda");
     params.distinguished_name = dn;
     params.is_ca = IsCa::Ca(BasicConstraints::Constrained(0));
     params.key_usages = vec![
@@ -108,7 +108,7 @@ pub fn ensure_site_cert(layout: &Layout, hosts: &[String]) -> Result<bool> {
     let mut params = CertificateParams::new(sans.clone())?;
     let mut dn = DistinguishedName::new();
     dn.push(DnType::CommonName, "localhost");
-    dn.push(DnType::OrganizationName, "Padu");
+    dn.push(DnType::OrganizationName, "Veranda");
     params.distinguished_name = dn;
     params.is_ca = IsCa::ExplicitNoCa;
     params.key_usages = vec![
@@ -196,7 +196,7 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
                 program: "sh".into(),
                 args: vec![
                     "-c".into(),
-                    format!("cp '{ca_s}' /usr/local/share/ca-certificates/padu-local-ca.crt && update-ca-certificates"),
+                    format!("cp '{ca_s}' /usr/local/share/ca-certificates/veranda-local-ca.crt && update-ca-certificates"),
                 ],
                 needs_admin: true,
             });
@@ -204,7 +204,7 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
             v.push(TrustStep {
                 description: "Install into the system store (Fedora/RHEL)".into(),
                 program: "sh".into(),
-                args: vec!["-c".into(), format!("cp '{ca_s}' /etc/pki/ca-trust/source/anchors/padu-local-ca.crt && update-ca-trust")],
+                args: vec!["-c".into(), format!("cp '{ca_s}' /etc/pki/ca-trust/source/anchors/veranda-local-ca.crt && update-ca-trust")],
                 needs_admin: true,
             });
         }

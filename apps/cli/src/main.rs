@@ -1,17 +1,17 @@
-//! `padu` command line interface. Also used as the elevated helper for hosts-file writes.
+//! `veranda` command line interface. Also used as the elevated helper for hosts-file writes.
 
 use anyhow::{Context, Result, bail};
 use clap::{Args, Parser, Subcommand};
-use padu_core::config::WebServer;
-use padu_core::manifest::{Kind, Manifest};
-use padu_core::packages::Registry;
-use padu_core::projects::Template;
-use padu_core::services::{self, ServiceId};
-use padu_core::{Layout, Padu, Platform};
 use std::path::PathBuf;
+use veranda_core::config::WebServer;
+use veranda_core::manifest::{Kind, Manifest};
+use veranda_core::packages::Registry;
+use veranda_core::projects::Template;
+use veranda_core::services::{self, ServiceId};
+use veranda_core::{Layout, Platform, Veranda};
 
 #[derive(Parser)]
-#[command(name = "padu", version = padu_core::VERSION, about = "Padu - lightweight, secure local web development stack")]
+#[command(name = "veranda", version = veranda_core::VERSION, about = "Veranda - lightweight, secure local web development stack")]
 struct Cli {
     /// Machine readable output where supported.
     #[arg(long, global = true)]
@@ -22,7 +22,7 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Cmd {
-    /// Create the installation root (default: ~/padu) and its configuration.
+    /// Create the installation root (default: ~/veranda) and its configuration.
     Init {
         #[arg(long)]
         root: Option<PathBuf>,
@@ -51,7 +51,7 @@ enum Cmd {
         #[arg(long)]
         check: bool,
     },
-    /// Select the active version of a runtime (`padu use php 8.4.27-1`).
+    /// Select the active version of a runtime (`veranda use php 8.4.27-1`).
     Use { kind: String, version: String },
     /// Remove an installed runtime version.
     Remove { kind: String, version: String },
@@ -100,7 +100,7 @@ enum Cmd {
         #[arg(long)]
         fix_ports: bool,
     },
-    /// Check GitHub for a newer Padu release.
+    /// Check GitHub for a newer Veranda release.
     Update,
     /// Dump all databases now.
     Backup,
@@ -123,7 +123,7 @@ enum SiteCmd {
 enum HostsCmd {
     /// Write the managed block (asks for administrator rights).
     Sync,
-    /// Print the hosts that Padu wants in the hosts file.
+    /// Print the hosts that Veranda wants in the hosts file.
     Show,
     /// Internal: apply a validated payload file. Runs elevated.
     #[command(hide = true)]
@@ -181,7 +181,7 @@ enum SslCmd {
 #[derive(Subcommand)]
 enum ConfigCmd {
     Show,
-    /// Set a value, e.g. `padu config set web.http_port 8080`.
+    /// Set a value, e.g. `veranda config set web.http_port 8080`.
     Set {
         key: String,
         value: String,
@@ -218,26 +218,26 @@ async fn run(cli: Cli) -> Result<()> {
         Cmd::Init { root } => {
             let app = match root {
                 Some(r) => {
-                    let app = Padu::open_at(r)?;
+                    let app = Veranda::open_at(r)?;
                     app.layout.remember()?;
                     app
                 }
-                None => Padu::open()?,
+                None => Veranda::open()?,
             };
-            padu_core::tls::ensure_ca(&app.layout)?;
+            veranda_core::tls::ensure_ca(&app.layout)?;
             let www = app.config.document_root(&app.layout);
             let index = www.join("index.php");
             if !index.exists() {
                 std::fs::write(&index, WELCOME_PHP)?;
             }
-            println!("Padu root: {}", app.layout.root().display());
+            println!("Veranda root: {}", app.layout.root().display());
             println!("Config:     {}", app.layout.config_file().display());
             println!(
-                "Next: padu install php && padu install caddy && padu install mariadb && padu start"
+                "Next: veranda install php && veranda install caddy && veranda install mariadb && veranda start"
             );
         }
         Cmd::Status => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let st = services::status_all(&app)?;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&st)?);
@@ -267,7 +267,7 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Start { service } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match service {
                 Some(s) => {
                     services::start(&app, s.parse()?)?;
@@ -277,13 +277,13 @@ async fn run(cli: Cli) -> Result<()> {
                     let missing = services::prepare_all(&app)?;
                     report(services::start_all(&app));
                     if !missing.is_empty() {
-                        println!("hosts file is out of date; run: padu hosts sync");
+                        println!("hosts file is out of date; run: veranda hosts sync");
                     }
                 }
             }
         }
         Cmd::Stop { service } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match service {
                 Some(s) => {
                     services::stop(&app, s.parse()?)?;
@@ -293,7 +293,7 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Restart { service } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match service {
                 Some(s) => services::restart(&app, s.parse()?)?,
                 None => {
@@ -303,19 +303,19 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Reload => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             services::reload(&app, ServiceId::Web)?;
             println!("web server reloaded");
         }
         Cmd::Install { package, latest } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let (kind, version) = match package.split_once('@') {
                 Some((k, v)) => (k.parse::<Kind>()?, Some(v.to_string())),
                 None => (package.parse::<Kind>()?, None),
             };
             let p = Platform::current();
             let pkg = if latest && version.is_none() {
-                padu_core::resolve::latest(kind, p).await?
+                veranda_core::resolve::latest(kind, p).await?
             } else {
                 let m = Manifest::builtin()?;
                 match version {
@@ -332,7 +332,7 @@ async fn run(cli: Cli) -> Result<()> {
             // Throttled progress: live line on a terminal, one line per 10% otherwise.
             let tty = std::io::IsTerminal::is_terminal(&std::io::stderr());
             let last = std::sync::Mutex::new((std::time::Instant::now(), 0u64));
-            let progress = move |pr: padu_core::download::Progress| {
+            let progress = move |pr: veranda_core::download::Progress| {
                 let mut l = last.lock().unwrap();
                 let pct = pr.total.map(|t| pr.downloaded * 100 / t.max(1));
                 let step = if tty { 1 } else { 10 };
@@ -362,7 +362,7 @@ async fn run(cli: Cli) -> Result<()> {
                 }
             };
             let installed =
-                padu_core::packages::install(&app.layout, &pkg, Some(&progress)).await?;
+                veranda_core::packages::install(&app.layout, &pkg, Some(&progress)).await?;
             eprintln!();
             println!(
                 "installed {} {} -> {}",
@@ -373,12 +373,12 @@ async fn run(cli: Cli) -> Result<()> {
             post_install_hints(&app, kind, &installed.path)?;
         }
         Cmd::Packages { check } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let reg = Registry::load(&app.layout)?;
             let p = Platform::current();
             let builtin = Manifest::builtin()?;
             let live = if check {
-                Some(padu_core::resolve::latest_all(p).await)
+                Some(veranda_core::resolve::latest_all(p).await)
             } else {
                 None
             };
@@ -419,7 +419,7 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Use { kind, version } => {
-            let mut app = Padu::open()?;
+            let mut app = Veranda::open()?;
             let kind: Kind = kind.parse()?;
             let reg = Registry::load(&app.layout)?;
             reg.find(kind, &version)
@@ -436,9 +436,9 @@ async fn run(cli: Cli) -> Result<()> {
                 }
                 Kind::MariaDb | Kind::MySql => {
                     app.config.db.engine = if kind == Kind::MariaDb {
-                        padu_core::config::DbEngine::MariaDb
+                        veranda_core::config::DbEngine::MariaDb
                     } else {
-                        padu_core::config::DbEngine::MySql
+                        veranda_core::config::DbEngine::MySql
                     };
                     app.config.db.version = version.clone();
                 }
@@ -450,12 +450,12 @@ async fn run(cli: Cli) -> Result<()> {
             println!("{kind} -> {version}. Restart the affected service to apply.");
         }
         Cmd::Remove { kind, version } => {
-            let app = Padu::open()?;
-            padu_core::packages::remove(&app.layout, kind.parse()?, &version)?;
+            let app = Veranda::open()?;
+            veranda_core::packages::remove(&app.layout, kind.parse()?, &version)?;
             println!("removed {kind} {version}");
         }
         Cmd::Sites { sync } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             if sync {
                 let missing = services::prepare_all(&app)?;
                 if services::status_all(&app)?
@@ -468,7 +468,7 @@ async fn run(cli: Cli) -> Result<()> {
                     hosts_sync(&app)?;
                 }
             }
-            let sites = padu_core::sites::discover(&app.layout, &app.config)?;
+            let sites = veranda_core::sites::discover(&app.layout, &app.config)?;
             if cli.json {
                 println!("{}", serde_json::to_string_pretty(&sites)?);
             } else {
@@ -484,25 +484,25 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Site { cmd } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match cmd {
                 SiteCmd::Add {
                     hostname,
                     path,
                     public,
                 } => {
-                    padu_core::sites::add_manual(
+                    veranda_core::sites::add_manual(
                         &app.layout,
                         &app.config,
                         &hostname,
                         &path,
                         &public,
                     )?;
-                    println!("added {hostname}. Run: padu sites --sync");
+                    println!("added {hostname}. Run: veranda sites --sync");
                 }
                 SiteCmd::Remove { hostname } => {
-                    if padu_core::sites::remove_manual(&app.layout, &hostname)? {
-                        println!("removed {hostname}. Run: padu sites --sync");
+                    if veranda_core::sites::remove_manual(&app.layout, &hostname)? {
+                        println!("removed {hostname}. Run: veranda sites --sync");
                     } else {
                         println!("{hostname} was not a manual site");
                     }
@@ -513,24 +513,24 @@ async fn run(cli: Cli) -> Result<()> {
             HostsCmd::Apply { from } => {
                 // Elevated helper: no config access, just validate + write.
                 let hosts_file = Platform::current().hosts_file();
-                padu_core::hosts::apply_payload(&hosts_file, &from)?;
+                veranda_core::hosts::apply_payload(&hosts_file, &from)?;
                 let _ = std::fs::remove_file(&from);
             }
             HostsCmd::Sync => {
-                let app = Padu::open()?;
+                let app = Veranda::open()?;
                 hosts_sync(&app)?;
             }
             HostsCmd::Show => {
-                let app = Padu::open()?;
-                let sites = padu_core::sites::discover(&app.layout, &app.config)?;
+                let app = Veranda::open()?;
+                let sites = veranda_core::sites::discover(&app.layout, &app.config)?;
                 print!(
                     "{}",
-                    padu_core::hosts::render_block(&padu_core::sites::hostnames(&sites))
+                    veranda_core::hosts::render_block(&veranda_core::sites::hostnames(&sites))
                 );
             }
         },
         Cmd::Project { cmd } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match cmd {
                 ProjectCmd::Create { name, template, db } => {
                     let t = match template.as_str() {
@@ -544,13 +544,13 @@ async fn run(cli: Cli) -> Result<()> {
                             _ => bail!("unknown template {other}"),
                         },
                     };
-                    let path = padu_core::projects::create(&app, &name, &t, None).await?;
+                    let path = veranda_core::projects::create(&app, &name, &t, None).await?;
                     println!("created {}", path.display());
                     if db {
                         let reg = Registry::load(&app.layout)?;
-                        let dbctx = padu_core::db::DbCtx::from_app(&app, &reg)
+                        let dbctx = veranda_core::db::DbCtx::from_app(&app, &reg)
                             .context("database not installed")?;
-                        padu_core::db::create_database(&dbctx, &name.replace('-', "_"))?;
+                        veranda_core::db::create_database(&dbctx, &name.replace('-', "_"))?;
                         println!("created database {}", name.replace('-', "_"));
                     }
                     let missing = services::prepare_all(&app)?;
@@ -570,60 +570,60 @@ async fn run(cli: Cli) -> Result<()> {
                     );
                 }
                 ProjectCmd::Delete { name } => {
-                    padu_core::projects::delete(&app, &name)?;
-                    println!("deleted {name}. Run: padu sites --sync");
+                    veranda_core::projects::delete(&app, &name)?;
+                    println!("deleted {name}. Run: veranda sites --sync");
                 }
                 ProjectCmd::List => {
-                    for (id, label) in padu_core::projects::TEMPLATES {
+                    for (id, label) in veranda_core::projects::TEMPLATES {
                         println!("{id:<10} {label}");
                     }
                 }
             }
         }
         Cmd::Db { cmd } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let reg = Registry::load(&app.layout)?;
-            let db = padu_core::db::DbCtx::from_app(&app, &reg)
-                .context("database is not installed (padu install mariadb)")?;
+            let db = veranda_core::db::DbCtx::from_app(&app, &reg)
+                .context("database is not installed (veranda install mariadb)")?;
             match cmd {
                 DbCmd::Create { name } => {
-                    padu_core::db::create_database(&db, &name)?;
+                    veranda_core::db::create_database(&db, &name)?;
                     println!("created {name}");
                 }
                 DbCmd::Drop { name } => {
-                    padu_core::db::drop_database(&db, &name)?;
+                    veranda_core::db::drop_database(&db, &name)?;
                     println!("dropped {name}");
                 }
                 DbCmd::List => {
-                    for d in padu_core::db::list_databases(&db)? {
+                    for d in veranda_core::db::list_databases(&db)? {
                         println!("{d}");
                     }
                 }
-                DbCmd::Password => match padu_core::db::root_password(&app.layout)? {
+                DbCmd::Password => match veranda_core::db::root_password(&app.layout)? {
                     Some(p) => println!("{p}"),
                     None => println!("(no password stored yet; start the database once)"),
                 },
                 DbCmd::SetPassword { new } => {
-                    let current = padu_core::db::root_password(&app.layout)?;
-                    let new = new.unwrap_or_else(|| padu_core::db::random_token(24));
-                    padu_core::db::set_root_password(&db, current.as_deref(), &new)?;
+                    let current = veranda_core::db::root_password(&app.layout)?;
+                    let new = new.unwrap_or_else(|| veranda_core::db::random_token(24));
+                    veranda_core::db::set_root_password(&db, current.as_deref(), &new)?;
                     println!("root password updated: {new}");
                 }
                 DbCmd::Backup => {
-                    let p = padu_core::backup::run(&app)?;
+                    let p = veranda_core::backup::run(&app)?;
                     println!("backup written to {}", p.display());
                 }
             }
         }
         Cmd::Ssl { cmd } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             match cmd {
                 SslCmd::Trust => {
-                    padu_core::tls::ensure_ca(&app.layout)?;
-                    for step in padu_core::tls::trust_commands(&app.layout) {
+                    veranda_core::tls::ensure_ca(&app.layout)?;
+                    for step in veranda_core::tls::trust_commands(&app.layout) {
                         println!("-> {}", step.description);
                         let result = if step.needs_admin {
-                            padu_core::tools::run_elevated(
+                            veranda_core::tools::run_elevated(
                                 std::path::Path::new(&step.program),
                                 &step.args,
                             )
@@ -647,23 +647,23 @@ async fn run(cli: Cli) -> Result<()> {
                     }
                 }
                 SslCmd::Regenerate => {
-                    let p = padu_core::tls::paths(&app.layout);
+                    let p = veranda_core::tls::paths(&app.layout);
                     let _ = std::fs::remove_file(&p.ca_crt);
                     let _ = std::fs::remove_file(&p.ca_key);
-                    padu_core::tls::ensure_ca(&app.layout)?;
+                    veranda_core::tls::ensure_ca(&app.layout)?;
                     services::prepare_all(&app)?;
                     println!(
-                        "new CA generated at {}. Run: padu ssl trust",
+                        "new CA generated at {}. Run: veranda ssl trust",
                         p.ca_crt.display()
                     );
                 }
                 SslCmd::Path => {
-                    println!("{}", padu_core::tls::paths(&app.layout).ca_crt.display())
+                    println!("{}", veranda_core::tls::paths(&app.layout).ca_crt.display())
                 }
             }
         }
         Cmd::Config { cmd } => {
-            let mut app = Padu::open()?;
+            let mut app = Veranda::open()?;
             match cmd {
                 ConfigCmd::Show => print!("{}", toml::to_string_pretty(&app.config)?),
                 ConfigCmd::Set { key, value } => {
@@ -692,7 +692,7 @@ async fn run(cli: Cli) -> Result<()> {
             }
         }
         Cmd::Open { what } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let cfg = &app.config;
             let scheme = if cfg.web.ssl { "https" } else { "http" };
             let port = if cfg.web.ssl {
@@ -707,55 +707,55 @@ async fn run(cli: Cli) -> Result<()> {
             };
             match what.as_str() {
                 "web" | "www" => {
-                    padu_core::tools::open_url(cfg, &format!("{scheme}://localhost{port_s}/"))?
+                    veranda_core::tools::open_url(cfg, &format!("{scheme}://localhost{port_s}/"))?
                 }
-                "db" | "adminer" => padu_core::tools::open_url(
+                "db" | "adminer" => veranda_core::tools::open_url(
                     cfg,
                     &format!("{scheme}://localhost{port_s}/adminer/"),
                 )?,
-                "phpmyadmin" => padu_core::tools::open_url(
+                "phpmyadmin" => veranda_core::tools::open_url(
                     cfg,
                     &format!("{scheme}://localhost{port_s}/phpmyadmin/"),
                 )?,
-                "mail" => padu_core::tools::open_url(
+                "mail" => veranda_core::tools::open_url(
                     cfg,
                     &format!("http://127.0.0.1:{}/", cfg.mail.http_port),
                 )?,
-                "root" => padu_core::tools::open_path(app.layout.root())?,
-                "logs" => padu_core::tools::open_path(&app.layout.logs())?,
-                site => padu_core::tools::open_url(
+                "root" => veranda_core::tools::open_path(app.layout.root())?,
+                "logs" => veranda_core::tools::open_path(&app.layout.logs())?,
+                site => veranda_core::tools::open_url(
                     cfg,
                     &format!("{scheme}://{}{port_s}/", cfg.hostname_for(site)),
                 )?,
             }
         }
         Cmd::Terminal => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             let reg = Registry::load(&app.layout)?;
-            let path = padu_core::packages::runtime_path(&app.layout, &reg, &app.config);
-            padu_core::tools::open_terminal(&app.config.document_root(&app.layout), &path)?;
+            let path = veranda_core::packages::runtime_path(&app.layout, &reg, &app.config);
+            veranda_core::tools::open_terminal(&app.config.document_root(&app.layout), &path)?;
         }
         Cmd::Doctor { fix_ports } => {
-            let app = Padu::open()?;
+            let app = Veranda::open()?;
             doctor(&app, fix_ports)?;
         }
         Cmd::Update => {
-            let app = Padu::open()?;
-            match padu_core::update::check(app.config.update.repo_or_default()).await? {
+            let app = Veranda::open()?;
+            match veranda_core::update::check(app.config.update.repo_or_default()).await? {
                 Some(r) => println!("new version {} available: {}", r.version, r.url),
-                None => println!("Padu {} is up to date", padu_core::VERSION),
+                None => println!("Veranda {} is up to date", veranda_core::VERSION),
             }
         }
         Cmd::Backup => {
-            let app = Padu::open()?;
-            let p = padu_core::backup::run(&app)?;
+            let app = Veranda::open()?;
+            let p = veranda_core::backup::run(&app)?;
             println!("backup written to {}", p.display());
         }
     }
     Ok(())
 }
 
-fn table_value(cfg: &padu_core::Config, section: &str, field: &str) -> String {
+fn table_value(cfg: &veranda_core::Config, section: &str, field: &str) -> String {
     toml::Value::try_from(cfg)
         .ok()
         .and_then(|v| v.get(section)?.get(field).map(|x| x.to_string()))
@@ -771,22 +771,22 @@ fn report(results: Vec<(ServiceId, Result<()>)>) {
     }
 }
 
-fn hosts_sync(app: &Padu) -> Result<()> {
-    let sites = padu_core::sites::discover(&app.layout, &app.config)?;
-    let hosts = padu_core::sites::hostnames(&sites);
+fn hosts_sync(app: &Veranda) -> Result<()> {
+    let sites = veranda_core::sites::discover(&app.layout, &app.config)?;
+    let hosts = veranda_core::sites::hostnames(&sites);
     let hosts_file = Platform::current().hosts_file();
-    if padu_core::hosts::is_in_sync(&hosts_file, &hosts) {
+    if veranda_core::hosts::is_in_sync(&hosts_file, &hosts) {
         println!("hosts file already up to date");
         return Ok(());
     }
     let payload = app.layout.tmp().join("hosts.payload");
-    padu_core::hosts::write_payload(&payload, &hosts, &app.config.general.tld)?;
-    let exe = padu_core::tools::current_exe()?;
+    veranda_core::hosts::write_payload(&payload, &hosts, &app.config.general.tld)?;
+    let exe = veranda_core::tools::current_exe()?;
     println!(
         "updating {} (administrator rights required)",
         hosts_file.display()
     );
-    padu_core::tools::run_elevated(
+    veranda_core::tools::run_elevated(
         &exe,
         &[
             "hosts".into(),
@@ -795,7 +795,7 @@ fn hosts_sync(app: &Padu) -> Result<()> {
             payload.to_string_lossy().into_owned(),
         ],
     )?;
-    if padu_core::hosts::is_in_sync(&hosts_file, &hosts) {
+    if veranda_core::hosts::is_in_sync(&hosts_file, &hosts) {
         println!("hosts file updated ({} entries)", hosts.len());
         Ok(())
     } else {
@@ -803,18 +803,18 @@ fn hosts_sync(app: &Padu) -> Result<()> {
     }
 }
 
-fn post_install_hints(app: &Padu, kind: Kind, path: &std::path::Path) -> Result<()> {
+fn post_install_hints(app: &Veranda, kind: Kind, path: &std::path::Path) -> Result<()> {
     #[cfg(target_os = "linux")]
     if matches!(kind, Kind::Caddy | Kind::Nginx | Kind::Apache) && app.config.web.http_port < 1024 {
         println!(
-            "Linux needs permission to bind ports 80/443 without root. Run: padu doctor --fix-ports"
+            "Linux needs permission to bind ports 80/443 without root. Run: veranda doctor --fix-ports"
         );
     }
     let _ = (app, kind, path);
     Ok(())
 }
 
-fn doctor(app: &Padu, fix_ports: bool) -> Result<()> {
+fn doctor(app: &Veranda, fix_ports: bool) -> Result<()> {
     let layout: &Layout = &app.layout;
     println!("root        {}", layout.root().display());
     println!("platform    {}", Platform::current());
@@ -826,7 +826,7 @@ fn doctor(app: &Padu, fix_ports: bool) -> Result<()> {
     for kind in [Kind::Php, Kind::Caddy, Kind::MariaDb, Kind::Mailpit] {
         match reg.newest(kind) {
             Some(i) => println!("{:<11} {}", kind.id(), i.version),
-            None => println!("{:<11} missing -> padu install {}", kind.id(), kind.id()),
+            None => println!("{:<11} missing -> veranda install {}", kind.id(), kind.id()),
         }
     }
     for (port, what) in [
@@ -839,35 +839,35 @@ fn doctor(app: &Padu, fix_ports: bool) -> Result<()> {
     ] {
         let st = services::status_all(app)?;
         let ours = st.iter().any(|s| s.running && s.ports.contains(&port));
-        if padu_core::process::port_in_use(port) && !ours {
+        if veranda_core::process::port_in_use(port) && !ours {
             println!(
                 "WARN        port {port} ({what}) is used by another program: {}",
-                padu_core::process::port_owner(port).unwrap_or_default()
+                veranda_core::process::port_owner(port).unwrap_or_default()
             );
         }
     }
     let hosts_file = Platform::current().hosts_file();
-    let sites = padu_core::sites::discover(layout, &app.config)?;
-    if padu_core::hosts::is_in_sync(&hosts_file, &padu_core::sites::hostnames(&sites)) {
+    let sites = veranda_core::sites::discover(layout, &app.config)?;
+    if veranda_core::hosts::is_in_sync(&hosts_file, &veranda_core::sites::hostnames(&sites)) {
         println!("hosts       in sync ({} sites)", sites.len());
     } else {
-        println!("hosts       out of date -> padu hosts sync");
+        println!("hosts       out of date -> veranda hosts sync");
     }
-    let tls = padu_core::tls::paths(layout);
+    let tls = veranda_core::tls::paths(layout);
     println!(
         "ca          {}{}",
         tls.ca_crt.display(),
         if tls.ca_crt.is_file() {
             ""
         } else {
-            " (missing -> padu init)"
+            " (missing -> veranda init)"
         }
     );
     #[cfg(target_os = "linux")]
     {
         if fix_ports {
             let web_reg = Registry::load(layout)?;
-            let sites = padu_core::sites::discover(layout, &app.config)?;
+            let sites = veranda_core::sites::discover(layout, &app.config)?;
             let ctx = services::Ctx {
                 app,
                 reg: &web_reg,
@@ -876,14 +876,14 @@ fn doctor(app: &Padu, fix_ports: bool) -> Result<()> {
             match services::web::active(&ctx) {
                 Some(server) => {
                     let bin = server.binary(&ctx);
-                    padu_core::tools::grant_bind_capability(&bin)?;
+                    veranda_core::tools::grant_bind_capability(&bin)?;
                     println!("granted cap_net_bind_service to {}", bin.display());
                 }
                 None => println!("install a web server first"),
             }
         } else if app.config.web.http_port < 1024 {
             println!(
-                "ports       <1024 need: padu doctor --fix-ports (or set web.http_port=8080, web.https_port=8443)"
+                "ports       <1024 need: veranda doctor --fix-ports (or set web.http_port=8080, web.https_port=8443)"
             );
         }
     }
@@ -892,12 +892,12 @@ fn doctor(app: &Padu, fix_ports: bool) -> Result<()> {
 }
 
 const WELCOME_PHP: &str = r#"<?php
-// Padu welcome page. Replace this folder's content or create projects next to it.
+// Veranda welcome page. Replace this folder's content or create projects next to it.
 $local = in_array($_SERVER['REMOTE_ADDR'] ?? '', ['127.0.0.1', '::1'], true);
 if (($_GET['q'] ?? '') === 'info') { if ($local) { phpinfo(); } else { http_response_code(403); } exit; }
 ?><!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Padu</title>
+<title>Veranda</title>
 <style>
 :root{color-scheme:light dark;--bg:#f6f7fb;--fg:#15171f;--card:#fff;--muted:#6b7280;--accent:#2563eb}
 @media(prefers-color-scheme:dark){:root{--bg:#0f1117;--fg:#e6e8ef;--card:#171a23;--muted:#9aa0ae;--accent:#60a5fa}}
@@ -905,13 +905,13 @@ body{margin:0;min-height:100vh;display:grid;place-items:center;background:var(--
 main{background:var(--card);padding:40px 48px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.08);max-width:560px;width:calc(100% - 32px);box-sizing:border-box}
 h1{margin:0 0 8px;font-size:40px;letter-spacing:-.02em}p{margin:6px 0;color:var(--muted)}a{color:var(--accent)}code{font-family:ui-monospace,monospace}
 </style></head><body><main>
-<h1>Padu</h1>
+<h1>Veranda</h1>
 <p>Your local stack is running.</p>
 <?php if ($local): ?>
 <p>PHP <?= htmlspecialchars(PHP_VERSION, ENT_QUOTES) ?> &middot; <a href="/?q=info">phpinfo()</a></p>
 <p>Server: <?= htmlspecialchars($_SERVER['SERVER_SOFTWARE'] ?? 'unknown', ENT_QUOTES) ?></p>
 <p>Document root: <code><?= htmlspecialchars($_SERVER['DOCUMENT_ROOT'] ?? '', ENT_QUOTES) ?></code></p>
 <?php endif; ?>
-<p>Create a folder here and it becomes <code>https://&lt;folder&gt;.test</code> after <code>padu sites --sync</code>.</p>
+<p>Create a folder here and it becomes <code>https://&lt;folder&gt;.test</code> after <code>veranda sites --sync</code>.</p>
 </main></body></html>
 "#;

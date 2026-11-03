@@ -1,8 +1,8 @@
 <p align="center">
-  <img src="apps/desktop/src-tauri/icons/128x128.png" width="96" alt="Padu">
+  <img src="apps/desktop/src-tauri/icons/128x128.png" width="96" alt="Veranda">
 </p>
 
-<h1 align="center">Padu</h1>
+<h1 align="center">Veranda</h1>
 
 <p align="center">
   A small, friendly local development stack: web server, PHP, database, cache and mail catcher in one window.<br>
@@ -18,12 +18,12 @@
 
 ---
 
-Padu is for anyone who builds for the web and wants the usual local setup to just work. It
+Veranda is for anyone who builds for the web and wants the usual local setup to just work. It
 serves plain HTML and JavaScript sites, PHP applications (WordPress, Laravel, Symfony and
 friends), and gives any project a local database, cache, mail catcher and Node.js. You pick
 only the parts you need; nothing is forced on you and nothing runs that you did not start.
 
-![Padu dashboard](docs/screenshot-dark.png)
+![Veranda dashboard](docs/screenshot-dark.png)
 
 ## What you get
 
@@ -42,7 +42,7 @@ only the parts you need; nothing is forced on you and nothing runs that you did 
 - **Safe by default.** Everything listens on localhost only. The database gets a random root
   password on first start. HTTPS uses a local certificate authority that never leaves your
   computer. No accounts, no telemetry.
-- **Stays current.** Padu tells you when a new release is out and updates itself on click (or
+- **Stays current.** Veranda tells you when a new release is out and updates itself on click (or
   automatically, if you prefer). The package list always knows the newest PHP, MariaDB and the
   rest.
 - **Linux, Windows and macOS**, dark and light mode.
@@ -55,68 +55,68 @@ Download the file for your system from the **[latest release](../../releases/lat
 
 **Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
 ```sh
-sudo apt install ./Padu_0.1.3_amd64.deb
+sudo apt install ./Veranda_0.2.0_amd64.deb
 ```
-Padu appears in your application menu. Updates: Padu shows a banner and opens the release page;
+Veranda appears in your application menu. Updates: Veranda shows a banner and opens the release page;
 download the new `.deb` and run the same command.
 
 **Fedora, openSUSE, RHEL** (`.rpm`):
 ```sh
-sudo dnf install ./Padu-0.1.3-1.x86_64.rpm     # or: sudo zypper install ./Padu-*.rpm
+sudo dnf install ./Veranda-0.2.0-1.x86_64.rpm     # or: sudo zypper install ./Veranda-*.rpm
 ```
 
 **Any distribution** (`.AppImage`, no installation):
 ```sh
-chmod +x Padu_0.1.3_amd64.AppImage
-./Padu_0.1.3_amd64.AppImage
+chmod +x Veranda_0.2.0_amd64.AppImage
+./Veranda_0.2.0_amd64.AppImage
 ```
 The AppImage can update itself from inside the app. Move it to a folder like `~/Applications`
 if you want to keep it around.
 
-Ports 80 and 443 need a one-time permission on Linux: in Padu press **Start All** and follow the
-hint, or run `padu doctor --fix-ports` from the CLI. You can also use 8080/8443 in Settings.
+Ports 80 and 443 need a one-time permission on Linux: in Veranda press **Start All** and follow the
+hint, or run `veranda doctor --fix-ports` from the CLI. You can also use 8080/8443 in Settings.
 
 ### Windows 10 / 11
 
-1. Download `Padu_0.1.3_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
+1. Download `Veranda_0.2.0_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
    PC", click **More info → Run anyway** (the installer is new and not yet widely downloaded;
    that is all the warning means).
-2. Follow the installer. Padu is added to the Start menu. The Microsoft WebView2 runtime is
+2. Follow the installer. Veranda is added to the Start menu. The Microsoft WebView2 runtime is
    installed automatically if your PC does not have it.
-3. Prefer MSI for company deployment? `Padu_0.1.3_x64_en-US.msi` is in the same release.
+3. Prefer MSI for company deployment? `Veranda_0.2.0_x64_en-US.msi` is in the same release.
 
 Updates install in place from the app.
 
 ### macOS (Apple Silicon and Intel)
 
-1. Download `Padu_0.1.3_universal.dmg`, open it and drag **Padu** into **Applications**.
-2. First launch: right-click (or Control-click) Padu → **Open** → **Open**. macOS asks this once
+1. Download `Veranda_0.2.0_universal.dmg`, open it and drag **Veranda** into **Applications**.
+2. First launch: right-click (or Control-click) Veranda → **Open** → **Open**. macOS asks this once
    because the app is not signed with an Apple Developer certificate.
 3. Updates install in place from the app.
 
 ### Command line (optional)
 
-Every release also includes a `padu` command-line tool with the same features as the app:
+Every release also includes a `veranda` command-line tool with the same features as the app:
 
 ```sh
 # Linux / macOS
-chmod +x padu-cli-linux-x86_64 && sudo mv padu-cli-linux-x86_64 /usr/local/bin/padu
-# Windows (PowerShell): move padu-cli-windows-x86_64.exe to a folder on your PATH and rename it padu.exe
+chmod +x veranda-cli-linux-x86_64 && sudo mv veranda-cli-linux-x86_64 /usr/local/bin/veranda
+# Windows (PowerShell): move veranda-cli-windows-x86_64.exe to a folder on your PATH and rename it veranda.exe
 
-padu init && padu install php && padu install caddy && padu start
+veranda init && veranda install php && veranda install caddy && veranda start
 ```
 
 ### Where things live
 
-The first launch creates a `padu` folder in your home directory (`~/padu`, or
-`C:\Users\you\padu`) for projects (`www/`), settings, downloaded runtimes, databases and logs.
+The first launch creates a `veranda` folder in your home directory (`~/veranda`, or
+`C:\Users\you\veranda`) for projects (`www/`), settings, downloaded runtimes, databases and logs.
 Nothing else on your system is touched. Uninstalling the app leaves that folder for you.
 
 ## First five minutes
 
-1. Open Padu → **Packages** → install PHP, Caddy and MariaDB (and Mailpit if you send email).
+1. Open Veranda → click **PHP**, **Caddy** and **MariaDB** in the sidebar → **Versions** tab → **Install** (and Mailpit if you send email).
 2. **Settings → Trust local CA** so `https://*.test` shows a padlock in your browser.
-3. **Dashboard → Start All**. When Padu asks to update your hosts file, allow it; that is what
+3. **Dashboard → Start All**. When Veranda asks to update your hosts file, allow it; that is what
    makes `my-app.test` point to your computer.
 4. **Sites → New project**: WordPress, Laravel, Symfony, any Composer template, a git URL, or an
    empty folder. A database with the same name is created for you.
@@ -127,7 +127,7 @@ Database login: host `127.0.0.1`, user `root`, password under **Database → Sho
 
 ## How it works
 
-Padu is written in Rust with a small web-based interface (Tauri 2) that uses the web view your
+Veranda is written in Rust with a small web-based interface (Tauri 2) that uses the web view your
 operating system already ships, so there is no bundled browser. It writes hardened configuration
 for the servers it manages, supervises their processes, and edits the hosts file through a tiny
 helper that only touches the lines it owns. Details: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md),
@@ -135,7 +135,7 @@ helper that only touches the lines it owns. Details: [docs/ARCHITECTURE.md](docs
 
 ## License
 
-Padu is free and open source under the [MIT License](LICENSE). It is an original implementation
+Veranda is free and open source under the [MIT License](LICENSE). It is an original implementation
 and contains no code, templates or assets from other local-stack products; other product names
 in these docs belong to their owners. Rust dependencies and their licenses are listed in
 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). Runtimes are downloaded from their official

@@ -1,22 +1,22 @@
 [workspace]
 resolver = "3"
 members = [
-    "crates/padu-core",
+    "crates/veranda-core",
     "apps/cli",
     "apps/desktop/src-tauri",
 ]
-default-members = ["crates/padu-core", "apps/cli"]
+default-members = ["crates/veranda-core", "apps/cli"]
 
 [workspace.package]
-version = "0.1.3"
+version = "0.2.0"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT"
 repository = ""
-authors = ["Padu contributors"]
+authors = ["Veranda contributors"]
 
 [workspace.dependencies]
-padu-core = { path = "crates/padu-core" }
+veranda-core = { path = "crates/veranda-core" }
 anyhow = "1.0.104"
 serde = { version = "1.0.229", features = ["derive"] }
 serde_json = "1.0.154"

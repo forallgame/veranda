@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Padu are documented here. The format follows
+All notable changes to Veranda are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the project uses
 [Semantic Versioning](https://semver.org/).
 
@@ -10,6 +10,21 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-03
+
+### Changed
+- **Renamed to Veranda** (formerly Padu). Binaries, package names, the app identifier
+  (`dev.veranda.desktop`), the config file (`etc/veranda.toml`), the `VERANDA_HOME` variable and
+  the default root (`~/veranda`) all follow the new name. An existing `~/padu` root is moved to
+  `~/veranda` automatically on first start when no service is running, and the old managed block
+  in the hosts file is replaced. Uninstall the old Padu package after installing Veranda.
+- New icon and a service-centred layout: every service and tool has its own page with a
+  Service tab (status, ports, actions, files) and a Versions tab (install / remove any version),
+  and the sidebar switches choose which services the dashboard starts.
+- Linux: GPU rendering is on by default (was forced off); `general.hardware_acceleration = false`
+  turns it off for drivers that flicker. The window appears only after the first render, with a
+  dark background, so there is no white flash on launch.
+
 ## [0.1.3] - 2026-11-03
 
 ### Fixed
@@ -17,7 +32,7 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
   It is now detected separately and the desktop app offers the one-time permission
   (`setcap`, asks for your password) or a switch to 8080/8443.
 - MySQL/MariaDB on Debian/Ubuntu 24.04+: the generic tarball needs `libaio.so.1`, which the distro
-  ships as `libaio.so.1t64`. Padu now links it into the package's private lib folder; if libaio is
+  ships as `libaio.so.1t64`. Veranda now links it into the package's private lib folder; if libaio is
   missing entirely, the error says which package to install.
 
 ### Changed
@@ -28,8 +43,8 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 ## [0.1.2] - 2026-11-03
 
 ### Changed
-- Updates always come from the official repository (`forallgame/padu`); the GitHub repo field was
-  removed from Settings (forks can still set `update.repo` in `padu.toml`).
+- Updates always come from the official repository (`forallgame/veranda`); the GitHub repo field was
+  removed from Settings (forks can still set `update.repo` in `veranda.toml`).
 
 ### Fixed
 - Dashboard: the on/off switch of a service whose package is not installed is now shown off and
@@ -40,7 +55,7 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 ### Fixed
 - Smoother scrolling: the UI only re-renders when data actually changed, and the Linux build
   disables WebKitGTK's DMA-BUF renderer, which caused stuttering on many GPUs.
-- Launching Padu while it is already running (for example from the tray) now focuses the existing
+- Launching Veranda while it is already running (for example from the tray) now focuses the existing
   window instead of starting a second process with a second tray icon.
 - README download commands use the real asset names.
 
@@ -56,7 +71,7 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 ## [0.1.0] - 2026-10-31
 
 ### Added
-- Core engine (`padu-core`): configuration, package manifest with verified versions, HTTPS-only
+- Core engine (`veranda-core`): configuration, package manifest with verified versions, HTTPS-only
   downloader with SHA-256/SHA-512/MD5/remote checksum verification and a trust-on-first-use ledger,
   zip/tar.gz/tar.xz extraction with path-traversal protection, process supervision with pid files.
 - Services: Caddy (default), Nginx and Apache front-ends; PHP-FPM (Linux/macOS) and php-cgi workers
@@ -70,7 +85,7 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
   Node.js, Composer, Adminer, phpMyAdmin, Nginx, Apache, Valkey/Redis and the Mozilla CA bundle.
 - Project creation: blank, WordPress, Laravel, Symfony, any Composer template, git clone.
 - Database helpers: create/drop/list, password rotation, full dumps with rotation.
-- `padu` CLI covering every feature, plus `doctor` and self-update check against GitHub releases.
+- `veranda` CLI covering every feature, plus `doctor` and self-update check against GitHub releases.
 - Tauri 2 desktop app with dashboard, packages, sites, database and settings pages, tray icon,
   light/dark/system theme, English and Indonesian UI, background backups.
 - Desktop: Logs tab (per-service log tail with error/warning highlighting, clear, open folder) and an

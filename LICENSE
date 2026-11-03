@@ -22,7 +22,7 @@ SOFTWARE.
 
 ---
 
-Third-party software: Padu downloads runtimes (PHP, Caddy, Nginx, Apache HTTP Server,
+Third-party software: Veranda downloads runtimes (PHP, Caddy, Nginx, Apache HTTP Server,
 MariaDB, MySQL, Valkey, Redis, Mailpit, Node.js, Composer, Adminer, phpMyAdmin, the Mozilla
 CA bundle) from their official distribution servers at the user's request. They are not part
 of this software, are not redistributed with it, and remain under their own licenses. Rust

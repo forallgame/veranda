@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Padu",
-  "version": "0.1.3",
-  "identifier": "dev.padu.desktop",
+  "productName": "Veranda",
+  "version": "0.2.0",
+  "identifier": "dev.veranda.desktop",
   "build": {
     "frontendDist": "../ui"
   },
@@ -10,14 +10,16 @@
     "withGlobalTauri": true,
     "windows": [
       {
-        "title": "Padu",
+        "title": "Veranda",
         "label": "main",
         "width": 800,
         "height": 640,
         "minWidth": 560,
         "minHeight": 480,
         "resizable": true,
-        "center": true
+        "center": true,
+        "visible": false,
+        "backgroundColor": "#0f131b"
       }
     ],
     "security": {
@@ -29,7 +31,7 @@
     "targets": "all",
     "category": "DeveloperTool",
     "shortDescription": "Lightweight, secure local web development stack",
-    "longDescription": "Padu runs PHP, Caddy/Nginx/Apache, MariaDB/MySQL, Valkey and Mailpit locally with automatic virtual hosts and local HTTPS.",
+    "longDescription": "Veranda runs PHP, Caddy/Nginx/Apache, MariaDB/MySQL, Valkey and Mailpit locally with automatic virtual hosts and local HTTPS.",
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",

@@ -1,6 +1,6 @@
 //! Quick project creation inside the document root.
 
-use crate::Padu;
+use crate::Veranda;
 use crate::download::{ProgressFn, client, download};
 use crate::fsutil;
 use crate::manifest::{ArchiveType, Checksum, Kind};
@@ -58,7 +58,7 @@ fn is_packagist_name(s: &str) -> bool {
 
 /// Create a project named `name` under the document root. Returns the project path.
 pub async fn create(
-    app: &Padu,
+    app: &Veranda,
     name: &str,
     template: &Template,
     progress: Option<&ProgressFn>,
@@ -79,7 +79,7 @@ pub async fn create(
             std::fs::create_dir_all(&dest)?;
             std::fs::write(
                 dest.join("index.php"),
-                format!("<?php\n// {name} - created by Padu\nphpinfo();\n"),
+                format!("<?php\n// {name} - created by Veranda\nphpinfo();\n"),
             )?;
         }
         Template::WordPress => {
@@ -141,7 +141,7 @@ pub async fn create(
 }
 
 async fn composer_create(
-    app: &Padu,
+    app: &Veranda,
     reg: &Registry,
     path_entries: &[PathBuf],
     package: &str,
@@ -173,7 +173,7 @@ async fn composer_create(
 }
 
 /// Delete a project folder inside the document root (and nothing else).
-pub fn delete(app: &Padu, name: &str) -> Result<()> {
+pub fn delete(app: &Veranda, name: &str) -> Result<()> {
     if !fsutil::is_safe_name(name) {
         bail!("invalid project name");
     }

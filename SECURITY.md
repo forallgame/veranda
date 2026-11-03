@@ -1,6 +1,6 @@
 # Security policy
 
-Padu is a local development tool, but it still handles downloads, certificates and a database.
+Veranda is a local development tool, but it still handles downloads, certificates and a database.
 See [docs/SECURITY.md](docs/SECURITY.md) for the threat model.
 
 Supported versions: the latest minor release.

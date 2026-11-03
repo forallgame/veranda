@@ -1,4 +1,4 @@
-# Building Padu
+# Building Veranda
 
 Requirements on every platform: Rust stable (1.90+) via rustup. The desktop app additionally needs
 the Tauri 2 prerequisites.
@@ -6,11 +6,11 @@ the Tauri 2 prerequisites.
 ## CLI (all platforms)
 
 ```sh
-cargo build --release -p padu-cli
-# binary: target/release/padu (padu.exe on Windows)
+cargo build --release -p veranda-cli
+# binary: target/release/veranda (veranda.exe on Windows)
 ```
 
-Run the test-suite: `cargo test -p padu-core`.
+Run the test-suite: `cargo test -p veranda-core`.
 
 ## Desktop app
 
@@ -25,7 +25,7 @@ cargo tauri dev          # development
 cargo tauri build        # .deb, .rpm and .AppImage in target/release/bundle/
 ```
 Tip for laptops that run hot: use `scripts/build-cool.sh` (one job, lowest priority, pauses the
-compiler above 80°C and resumes below 65°C), e.g. `scripts/build-cool.sh build -p padu-desktop`.
+compiler above 80°C and resumes below 65°C), e.g. `scripts/build-cool.sh build -p veranda-desktop`.
 For release builds and installers prefer the GitHub Actions workflows: they run on GitHub's
 machines, not on your laptop.
 
@@ -46,19 +46,19 @@ Tauri's tool: `cargo tauri icon assets/icon.svg`.
 
 ## Auto-update (desktop)
 
-Padu updates itself through Tauri's signed updater. One-time setup:
+Veranda updates itself through Tauri's signed updater. One-time setup:
 
 1. Install the Tauri CLI, then generate a signing key pair (keep the private key outside the repo):
    ```sh
    cargo install tauri-cli --version "^2" --locked
-   cargo tauri signer generate -w ~/.tauri/padu.key
+   cargo tauri signer generate -w ~/.tauri/veranda.key
    ```
-2. Put the **public** key (contents of `~/.tauri/padu.key.pub`) into
+2. Put the **public** key (contents of `~/.tauri/veranda.key.pub`) into
    `apps/desktop/src-tauri/tauri.conf.json` -> `plugins.updater.pubkey`.
 3. In the GitHub repository add the secrets `TAURI_SIGNING_PRIVATE_KEY` (contents of
-   `~/.tauri/padu.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password you chose, or empty).
-4. Padu checks `https://github.com/forallgame/padu/releases/latest/download/latest.json` on start
-   and from *Check for updates* (forks can point `update.repo` in `padu.toml` elsewhere); it
+   `~/.tauri/veranda.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password you chose, or empty).
+4. Veranda checks `https://github.com/forallgame/veranda/releases/latest/download/latest.json` on start
+   and from *Check for updates* (forks can point `update.repo` in `veranda.toml` elsewhere); it
    verifies the signature, downloads, installs and restarts.
 
 Platform notes: Windows (NSIS/MSI) and macOS (.app) update in place. On Linux only the
@@ -74,9 +74,9 @@ If the private key is ever lost, existing installs can no longer receive updates
    Linux `.deb` / `.rpm` / `.AppImage`, Windows `.exe` (NSIS) / `.msi`, macOS universal `.dmg`,
    the CLI binaries, the signed updater files and `latest.json`. Everything lands on a **draft**
    release. Open it on GitHub, check the assets, and press *Publish release*.
-4. Install once by hand: Linux `sudo apt install ./padu_0.1.0_amd64.deb` (or run the AppImage),
-   Windows run the `.exe`, macOS open the `.dmg`. Padu then appears in the app menu.
-5. From the next release on, Padu shows an
+4. Install once by hand: Linux `sudo apt install ./veranda_0.1.0_amd64.deb` (or run the AppImage),
+   Windows run the `.exe`, macOS open the `.dmg`. Veranda then appears in the app menu.
+5. From the next release on, Veranda shows an
    update banner (or installs automatically if *Install updates automatically* is on). On Linux the
    AppImage self-updates; `.deb`/`.rpm` installs show the release page instead.
 

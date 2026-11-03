@@ -8,7 +8,7 @@ use anyhow::{Context, Result};
 use serde::{Deserialize, Serialize};
 use std::fmt;
 
-/// Kinds of software Padu can manage. The string form is the folder under `bin/`.
+/// Kinds of software Veranda can manage. The string form is the folder under `bin/`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Kind {

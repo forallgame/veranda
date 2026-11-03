@@ -1,6 +1,6 @@
 # Third-party notices
 
-Padu's executables are built from the open-source Rust crates below (as resolved in `Cargo.lock`).
+Veranda's executables are built from the open-source Rust crates below (as resolved in `Cargo.lock`).
 All of them are available under permissive licenses (MIT, Apache-2.0, BSD, ISC, Zlib, Unicode-3.0,
 MPL-2.0 or similar). Their copyright notices and license texts are included in each crate's source
 package on crates.io. This list is regenerated at release time from `cargo metadata`.
@@ -564,7 +564,7 @@ package on crates.io. This list is regenerated at release time from `cargo metad
 ## Runtimes downloaded on demand
 
 The following programs are downloaded from their official servers only when the user asks for them.
-They are not bundled with or redistributed by Padu.
+They are not bundled with or redistributed by Veranda.
 
 | Program | License | Source |
 |---|---|---|

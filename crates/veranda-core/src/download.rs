@@ -19,7 +19,11 @@ use tokio::io::AsyncWriteExt;
 /// Hard cap on a single download (defensive; the largest runtime is < 1 GiB).
 pub const MAX_DOWNLOAD_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
-pub const USER_AGENT: &str = concat!("Padu/", env!("CARGO_PKG_VERSION"), " (+https://localhost)");
+pub const USER_AGENT: &str = concat!(
+    "Veranda/",
+    env!("CARGO_PKG_VERSION"),
+    " (+https://localhost)"
+);
 
 #[derive(Debug, Clone, Copy)]
 pub struct Progress {
