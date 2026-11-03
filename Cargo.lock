@@ -2921,7 +2921,7 @@ dependencies = [
 
 [[package]]
 name = "padu-cli"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "clap",
@@ -2935,7 +2935,7 @@ dependencies = [
 
 [[package]]
 name = "padu-core"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "dirs",
@@ -2965,7 +2965,7 @@ dependencies = [
 
 [[package]]
 name = "padu-desktop"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "anyhow",
  "padu-core",

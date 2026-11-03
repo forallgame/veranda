@@ -141,7 +141,7 @@ function showTab(id) {
 const isHidden = (id) => (state.config.general.hidden_services || []).includes(id);
 function renderServices() {
   const visible = state.services.filter((s) => !isHidden(s.id));
-  const enabled = visible.filter((s) => s.enabled);
+  const enabled = visible.filter((s) => s.enabled && s.installed);
   const running = enabled.filter((s) => s.running).length;
   const pill = $("#global-status");
   pill.classList.toggle("on", running > 0 && running === enabled.length);
@@ -169,7 +169,7 @@ function renderServices() {
     return `<div class="row ${cls}">
       <div class="ico">${ICONS[SERVICE_ICON[s.id]]}</div>
       <div><div class="name">${esc(s.name)} ${version}</div><div class="meta">${ports}${s.message && !s.installed ? "" : s.message ? `<span>${esc(s.message)}</span>` : ""}</div></div>
-      <div class="act"><input type="checkbox" class="switch" data-enable="${s.id}" ${s.enabled ? "checked" : ""} title="${t("settings.enabled")}">${action}</div>
+      <div class="act"><input type="checkbox" class="switch" data-enable="${s.id}" ${s.enabled && s.installed ? "checked" : ""} ${s.installed ? "" : "disabled"} title="${s.installed ? t("settings.enabled") : t("pkg.notInstalled")}">${action}</div>
     </div>`;
   }).join("");
 }

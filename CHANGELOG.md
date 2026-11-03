@@ -10,9 +10,15 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-11-03
+
 ### Changed
 - Updates always come from the official repository (`forallgame/padu`); the GitHub repo field was
   removed from Settings (forks can still set `update.repo` in `padu.toml`).
+
+### Fixed
+- Dashboard: the on/off switch of a service whose package is not installed is now shown off and
+  locked, so it no longer looks as if the package were installed and enabled.
 
 ## [0.1.1] - 2026-11-03
 
