@@ -478,7 +478,6 @@ function showUpdate(info) {
   b.classList.remove("hidden");
 }
 async function checkForUpdate(interactive) {
-  if (!state.config.update.repo) { if (interactive) toast(t("msg.noRepo")); return; }
   try {
     const r = await invoke("update_check");
     if (r) showUpdate(r); else if (interactive) toast(t("msg.upToDate", { version: state.version }), "ok");

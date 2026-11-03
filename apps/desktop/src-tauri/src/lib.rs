@@ -553,7 +553,7 @@ fn open_url_external(state: State<'_, AppState>, url: String) -> CmdResult<()> {
 #[tauri::command]
 async fn check_update(state: State<'_, AppState>) -> CmdResult<Option<padu_core::update::Release>> {
     let app = open_app(&state)?;
-    padu_core::update::check(&app.config.update.repo)
+    padu_core::update::check(app.config.update.repo_or_default())
         .await
         .map_err(err)
 }
@@ -663,9 +663,9 @@ struct UpdateInfo {
 }
 
 fn updater_for(app: &AppHandle, core: &Padu) -> CmdResult<tauri_plugin_updater::Updater> {
-    let repo = core.config.update.repo.trim();
+    let repo = core.config.update.repo_or_default();
     if !padu_core::config::is_repo_slug(repo) {
-        return Err("update.repo is not configured (Settings > GitHub repo)".into());
+        return Err("update.repo is not a valid owner/repo (Settings > GitHub repo)".into());
     }
     let url: tauri::Url = format!("https://github.com/{repo}/releases/latest/download/latest.json")
         .parse()
@@ -685,7 +685,7 @@ async fn update_check(
     state: State<'_, AppState>,
 ) -> CmdResult<Option<UpdateInfo>> {
     let core = open_app(&state)?;
-    let repo = core.config.update.repo.trim().to_string();
+    let repo = core.config.update.repo_or_default().to_string();
     let page = format!("https://github.com/{repo}/releases/latest");
     if let Ok(updater) = updater_for(&handle, &core)
         && let Ok(found) = updater.check().await
@@ -921,7 +921,7 @@ pub fn run() {
                 tokio::time::sleep(std::time::Duration::from_secs(8)).await;
                 let state = handle_u.state::<AppState>();
                 let Ok(core) = open_app(&state) else { return };
-                if !core.config.update.check_on_start || core.config.update.repo.trim().is_empty() {
+                if !core.config.update.check_on_start {
                     return;
                 }
                 if let Ok(Some(info)) = update_check(handle_u.clone(), state.clone()).await {

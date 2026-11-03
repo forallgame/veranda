@@ -741,7 +741,7 @@ async fn run(cli: Cli) -> Result<()> {
         }
         Cmd::Update => {
             let app = Padu::open()?;
-            match padu_core::update::check(&app.config.update.repo).await? {
+            match padu_core::update::check(app.config.update.repo_or_default()).await? {
                 Some(r) => println!("new version {} available: {}", r.version, r.url),
                 None => println!("Padu {} is up to date", padu_core::VERSION),
             }

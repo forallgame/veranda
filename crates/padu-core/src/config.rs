@@ -153,6 +153,7 @@ pub struct Backup {
 #[serde(default, deny_unknown_fields)]
 pub struct Update {
     /// Check GitHub releases of this repository (`owner/repo`) for new app versions.
+    /// Empty = the official Padu repository.
     pub repo: String,
     pub check_on_start: bool,
     /// Also look for newer PHP / server versions on start (network access).
@@ -251,6 +252,17 @@ impl Default for Backup {
             interval_hours: 8,
             keep: 5,
         }
+    }
+}
+
+/// Where official Padu releases are published.
+pub const DEFAULT_UPDATE_REPO: &str = "forallgame/padu";
+
+impl Update {
+    /// Configured repository, or the official one when the field is empty.
+    pub fn repo_or_default(&self) -> &str {
+        let r = self.repo.trim();
+        if r.is_empty() { DEFAULT_UPDATE_REPO } else { r }
     }
 }
 
