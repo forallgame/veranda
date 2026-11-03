@@ -55,20 +55,20 @@ Download the file for your system from the **[latest release](../../releases/lat
 
 **Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
 ```sh
-sudo apt install ./padu_0.1.0_amd64.deb
+sudo apt install ./Padu_0.1.1_amd64.deb
 ```
 Padu appears in your application menu. Updates: Padu shows a banner and opens the release page;
 download the new `.deb` and run the same command.
 
 **Fedora, openSUSE, RHEL** (`.rpm`):
 ```sh
-sudo dnf install ./padu-0.1.0-1.x86_64.rpm     # or: sudo zypper install ./padu-*.rpm
+sudo dnf install ./Padu-0.1.1-1.x86_64.rpm     # or: sudo zypper install ./Padu-*.rpm
 ```
 
 **Any distribution** (`.AppImage`, no installation):
 ```sh
-chmod +x padu_0.1.0_amd64.AppImage
-./padu_0.1.0_amd64.AppImage
+chmod +x Padu_0.1.1_amd64.AppImage
+./Padu_0.1.1_amd64.AppImage
 ```
 The AppImage can update itself from inside the app. Move it to a folder like `~/Applications`
 if you want to keep it around.
@@ -78,18 +78,18 @@ hint, or run `padu doctor --fix-ports` from the CLI. You can also use 8080/8443 
 
 ### Windows 10 / 11
 
-1. Download `Padu_0.1.0_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
+1. Download `Padu_0.1.1_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
    PC", click **More info → Run anyway** (the installer is new and not yet widely downloaded;
    that is all the warning means).
 2. Follow the installer. Padu is added to the Start menu. The Microsoft WebView2 runtime is
    installed automatically if your PC does not have it.
-3. Prefer MSI for company deployment? `Padu_0.1.0_x64_en-US.msi` is in the same release.
+3. Prefer MSI for company deployment? `Padu_0.1.1_x64_en-US.msi` is in the same release.
 
 Updates install in place from the app.
 
 ### macOS (Apple Silicon and Intel)
 
-1. Download `Padu_0.1.0_universal.dmg`, open it and drag **Padu** into **Applications**.
+1. Download `Padu_0.1.1_universal.dmg`, open it and drag **Padu** into **Applications**.
 2. First launch: right-click (or Control-click) Padu → **Open** → **Open**. macOS asks this once
    because the app is not signed with an Apple Developer certificate.
 3. Updates install in place from the app.

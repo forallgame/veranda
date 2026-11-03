@@ -10,7 +10,9 @@ HOT=${HOT:-80}; COOL=${COOL:-65}; JOBS=${JOBS:-1}
 zone=$(grep -l x86_pkg_temp /sys/class/thermal/thermal_zone*/type 2>/dev/null | head -1 | xargs -r dirname)
 temp() { [ -n "$zone" ] && echo $(( $(cat "$zone/temp") / 1000 )) || echo 0; }
 until [ "$(temp)" -le "$COOL" ]; do sleep 5; done
-nice -n 19 cargo "$@" -j "$JOBS" &
+# put -j before any `--` so it reaches cargo, not rustc
+sub="$1"; shift
+nice -n 19 cargo "$sub" -j "$JOBS" "$@" &
 pid=$!
 paused=0
 while kill -0 "$pid" 2>/dev/null; do

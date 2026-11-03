@@ -757,6 +757,34 @@ async fn update_install(handle: AppHandle, state: State<'_, AppState>) -> CmdRes
     handle.restart();
 }
 
+/// Answer from the "hide or quit?" dialog. `remember` stores the choice in the config.
+#[tauri::command]
+fn close_decision(
+    handle: AppHandle,
+    state: State<'_, AppState>,
+    action: String,
+    remember: bool,
+) -> CmdResult<()> {
+    use padu_core::config::CloseAction;
+    let chosen = match action.as_str() {
+        "tray" => CloseAction::Tray,
+        "quit" => CloseAction::Quit,
+        other => return Err(format!("unknown close action {other}")),
+    };
+    if remember {
+        let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
+        guard.config.general.close_action = chosen;
+        guard.save_config().map_err(err)?;
+    }
+    if let Some(w) = handle.get_webview_window("main") {
+        let _ = w.hide();
+    }
+    if chosen == CloseAction::Quit {
+        quit_app(handle);
+    }
+    Ok(())
+}
+
 /// Stop services on a worker thread (never blocks the UI), then exit. Hard deadline of 15 s.
 fn quit_app(app: AppHandle) {
     let state = app.state::<AppState>();
@@ -795,6 +823,11 @@ pub fn run() {
     let start_minimized = core.config.general.start_minimized;
 
     tauri::Builder::default()
+        // Must be registered first: a second launch focuses the running window instead of
+        // starting another process (and another tray icon).
+        .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+            show_main(app);
+        }))
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -928,19 +961,26 @@ pub fn run() {
         })
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                let to_tray = window
+                use padu_core::config::CloseAction;
+                let action = window
                     .state::<AppState>()
                     .app
                     .lock()
-                    .map(|a| a.config.general.close_to_tray)
-                    .unwrap_or(true);
-                if to_tray {
-                    api.prevent_close();
-                    let _ = window.hide();
-                } else {
-                    api.prevent_close();
-                    let _ = window.hide();
-                    quit_app(window.app_handle().clone());
+                    .map(|a| a.config.general.close_action)
+                    .unwrap_or(CloseAction::Ask);
+                api.prevent_close();
+                match action {
+                    CloseAction::Tray => {
+                        let _ = window.hide();
+                    }
+                    CloseAction::Quit => {
+                        let _ = window.hide();
+                        quit_app(window.app_handle().clone());
+                    }
+                    CloseAction::Ask => {
+                        // The UI shows a dialog and answers through `close_decision`.
+                        let _ = window.emit("close-requested", ());
+                    }
                 }
             }
         })
@@ -974,7 +1014,8 @@ pub fn run() {
             clear_log,
             update_check,
             update_install,
-            open_url_external
+            open_url_external,
+            close_decision
         ])
         .run(tauri::generate_context!())
         .expect("error while running Padu");

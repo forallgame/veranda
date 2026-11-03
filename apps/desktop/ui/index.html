@@ -53,6 +53,7 @@
         <div class="spacer"></div>
         <button class="btn primary" id="btn-start-all"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span data-i18n="btn.startAll">Start All</span></button>
         <button class="btn" id="btn-stop-all"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg><span data-i18n="btn.stopAll">Stop All</span></button>
+        <button class="icon-btn" id="btn-customize" title="Customize"><svg viewBox="0 0 24 24"><path d="M3 6h10v2H3V6zm14 0h4v2h-4V6zm-6 5h10v2H11v-2zM3 11h4v2H3v-2zm0 5h10v2H3v-2zm14 0h4v2h-4v-2zM13 4h2v6h-2V4zM7 9h2v6H7V9zm6 5h2v6h-2v-6z"/></svg></button>
       </header>
       <div class="banner hidden" id="hosts-notice">
         <span data-i18n="notice.hosts">Hosts file needs an update</span>
@@ -162,7 +163,7 @@
             <label class="check"><input type="checkbox" name="general.smart_public_dir"><span data-i18n="settings.smartPublic">Serve public/ when present</span></label>
             <label class="check"><input type="checkbox" name="general.auto_start"><span data-i18n="settings.autoStart">Start services on launch</span></label>
             <label class="check"><input type="checkbox" name="general.start_minimized"><span data-i18n="settings.startMinimized">Start minimized</span></label>
-            <label class="check"><input type="checkbox" name="general.close_to_tray"><span data-i18n="settings.closeToTray">Close button hides to tray</span></label>
+            <label><span data-i18n="settings.closeAction">Close button</span><select name="general.close_action"><option value="ask" data-i18n="close.ask">Ask every time</option><option value="tray" data-i18n="close.tray">Hide to tray</option><option value="quit" data-i18n="close.quit">Quit</option></select></label>
           </div>
         </section>
         <section class="card">
@@ -234,6 +235,38 @@
     <div class="actions-row">
       <button type="button" class="btn" id="btn-project-cancel" data-i18n="btn.cancel">Cancel</button>
       <button type="submit" class="btn primary" data-i18n="btn.create">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-customize">
+  <form method="dialog" id="form-customize">
+    <h2 data-i18n="custom.title">Customize dashboard</h2>
+    <p class="sub" data-i18n="custom.hint">Pick what you use. Hidden services are not started.</p>
+    <div class="custom-list">
+      <label class="custom-row"><input type="checkbox" name="show_web" checked><span data-i18n="custom.web">Web server</span>
+        <select name="web_server"><option value="caddy">Caddy</option><option value="nginx">Nginx</option><option value="apache">Apache</option></select></label>
+      <label class="custom-row"><input type="checkbox" name="show_php" checked><span>PHP</span></label>
+      <label class="custom-row"><input type="checkbox" name="show_db" checked><span data-i18n="custom.db">Database</span>
+        <select name="db_engine"><option value="mariadb">MariaDB</option><option value="mysql">MySQL</option></select></label>
+      <label class="custom-row"><input type="checkbox" name="show_cache"><span>Valkey / Redis</span></label>
+      <label class="custom-row"><input type="checkbox" name="show_mail"><span>Mailpit</span></label>
+    </div>
+    <div class="actions-row">
+      <button type="button" class="btn" id="btn-customize-cancel" data-i18n="btn.cancel">Cancel</button>
+      <button type="submit" class="btn primary" data-i18n="btn.save">Save</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-close">
+  <form method="dialog" id="form-close">
+    <h2 data-i18n="close.title">Close Padu?</h2>
+    <p class="sub" data-i18n="close.text">Hide to the tray and keep your sites running, or stop everything and quit.</p>
+    <label class="check"><input type="checkbox" name="remember"><span data-i18n="close.remember">Remember my choice (changeable in Settings)</span></label>
+    <div class="actions-row">
+      <button type="button" class="btn" id="btn-close-quit" data-i18n="close.quit">Quit</button>
+      <button type="button" class="btn primary" id="btn-close-tray" data-i18n="close.tray">Hide to tray</button>
     </div>
   </form>
 </dialog>

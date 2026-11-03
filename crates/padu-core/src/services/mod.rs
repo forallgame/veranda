@@ -105,6 +105,9 @@ pub const STOP_GRACE: Duration = Duration::from_secs(5);
 
 fn enabled(app: &Padu, id: ServiceId) -> bool {
     let c = &app.config;
+    if c.general.hidden_services.iter().any(|h| h == id.id()) {
+        return false;
+    }
     match id {
         ServiceId::Web => c.web.enabled,
         ServiceId::Php => c.php.enabled,

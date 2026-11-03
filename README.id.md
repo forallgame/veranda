@@ -56,20 +56,20 @@ Unduh berkas untuk sistem Anda dari **[rilis terbaru](../../releases/latest)**.
 
 **Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
 ```sh
-sudo apt install ./padu_0.1.0_amd64.deb
+sudo apt install ./Padu_0.1.1_amd64.deb
 ```
 Padu muncul di menu aplikasi. Pembaruan: Padu menampilkan pemberitahuan dan membuka halaman
 rilis; unduh `.deb` baru lalu jalankan perintah yang sama.
 
 **Fedora, openSUSE, RHEL** (`.rpm`):
 ```sh
-sudo dnf install ./padu-0.1.0-1.x86_64.rpm     # atau: sudo zypper install ./padu-*.rpm
+sudo dnf install ./Padu-0.1.1-1.x86_64.rpm     # atau: sudo zypper install ./Padu-*.rpm
 ```
 
 **Distribusi apa pun** (`.AppImage`, tanpa pemasangan):
 ```sh
-chmod +x padu_0.1.0_amd64.AppImage
-./padu_0.1.0_amd64.AppImage
+chmod +x Padu_0.1.1_amd64.AppImage
+./Padu_0.1.1_amd64.AppImage
 ```
 AppImage bisa memperbarui dirinya dari dalam aplikasi. Pindahkan ke folder seperti
 `~/Applications` agar rapi.
@@ -80,18 +80,18 @@ Settings.
 
 ### Windows 10 / 11
 
-1. Unduh `Padu_0.1.0_x64-setup.exe` lalu jalankan. Jika SmartScreen berkata "Windows protected
+1. Unduh `Padu_0.1.1_x64-setup.exe` lalu jalankan. Jika SmartScreen berkata "Windows protected
    your PC", klik **More info → Run anyway** (pemasangnya masih baru dan belum banyak diunduh;
    hanya itu arti peringatannya).
 2. Ikuti pemasangnya. Padu ditambahkan ke menu Start. Runtime Microsoft WebView2 dipasang
    otomatis jika komputer Anda belum punya.
-3. Perlu MSI untuk pemasangan di perusahaan? `Padu_0.1.0_x64_en-US.msi` ada di rilis yang sama.
+3. Perlu MSI untuk pemasangan di perusahaan? `Padu_0.1.1_x64_en-US.msi` ada di rilis yang sama.
 
 Pembaruan dipasang langsung dari dalam aplikasi.
 
 ### macOS (Apple Silicon dan Intel)
 
-1. Unduh `Padu_0.1.0_universal.dmg`, buka, lalu seret **Padu** ke **Applications**.
+1. Unduh `Padu_0.1.1_universal.dmg`, buka, lalu seret **Padu** ke **Applications**.
 2. Peluncuran pertama: klik kanan (atau Control-klik) Padu → **Open** → **Open**. macOS bertanya
    sekali karena aplikasi belum ditandatangani sertifikat Apple Developer.
 3. Pembaruan dipasang langsung dari dalam aplikasi.

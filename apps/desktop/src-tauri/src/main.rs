@@ -18,5 +18,12 @@ fn main() {
         let _ = std::fs::remove_file(&payload);
         std::process::exit(code);
     }
+    // WebKitGTK's DMA-BUF renderer causes stuttering scroll and flicker on many Linux GPUs
+    // (especially on Wayland). Opting out is the usual fix for Tauri apps; users can override.
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("WEBKIT_DISABLE_DMABUF_RENDERER").is_none() {
+        // SAFETY: called before any other thread exists (start of main).
+        unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
+    }
     padu_desktop_lib::run()
 }

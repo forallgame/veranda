@@ -37,8 +37,14 @@ pub struct General {
     pub auto_start: bool,
     /// Start the app minimized to the tray.
     pub start_minimized: bool,
-    /// Closing the window hides to the tray (true) or quits the app (false).
+    /// What the window close button does: ask every time, hide to the tray, or quit.
+    pub close_action: CloseAction,
+    /// Older setting kept for compatibility (false used to mean "quit"); not written any more.
+    #[serde(skip_serializing)]
     pub close_to_tray: bool,
+    /// Services hidden from the dashboard (`web`, `php`, `db`, `cache`, `mail`). Hidden services are
+    /// never started by "Start All".
+    pub hidden_services: Vec<String>,
     /// Command for "Edit" actions, e.g. `code`. Empty = system default.
     pub editor: String,
     /// Command for "Open" actions. Empty = system default browser.
@@ -61,6 +67,18 @@ pub struct Web {
     pub version: String,
     /// Allow directory listings for folders without an index file (localhost only).
     pub autoindex: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash, Default)]
+#[serde(rename_all = "lowercase")]
+pub enum CloseAction {
+    /// Show a small dialog (hide or quit) with a "remember my choice" box.
+    #[default]
+    Ask,
+    /// Hide the window; services keep running; the tray icon stays.
+    Tray,
+    /// Stop services and exit.
+    Quit,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -153,7 +171,9 @@ impl Default for General {
             smart_public_dir: true,
             auto_start: false,
             start_minimized: false,
+            close_action: CloseAction::Ask,
             close_to_tray: true,
+            hidden_services: Vec::new(),
             editor: String::new(),
             browser: String::new(),
             language: "en".into(),
@@ -250,8 +270,12 @@ impl Config {
         let path = layout.config_file();
         match std::fs::read_to_string(&path) {
             Ok(text) => {
-                let cfg: Config =
+                let mut cfg: Config =
                     toml::from_str(&text).with_context(|| format!("parsing {}", path.display()))?;
+                // Migrate the old boolean: `close_to_tray = false` meant "quit on close".
+                if !cfg.general.close_to_tray && cfg.general.close_action == CloseAction::Ask {
+                    cfg.general.close_action = CloseAction::Quit;
+                }
                 cfg.validate()?;
                 Ok(cfg)
             }
@@ -288,6 +312,11 @@ impl Config {
         }
         if self.php.workers == 0 || self.php.workers > 64 {
             anyhow::bail!("php.workers must be between 1 and 64");
+        }
+        for id in &self.general.hidden_services {
+            if !matches!(id.as_str(), "web" | "php" | "db" | "cache" | "mail") {
+                anyhow::bail!("general.hidden_services contains unknown service `{id}`");
+            }
         }
         if self.backup.keep == 0 {
             anyhow::bail!("backup.keep must be at least 1");

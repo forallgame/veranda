@@ -10,6 +10,24 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-11-03
+
+### Fixed
+- Smoother scrolling: the UI only re-renders when data actually changed, and the Linux build
+  disables WebKitGTK's DMA-BUF renderer, which caused stuttering on many GPUs.
+- Launching Padu while it is already running (for example from the tray) now focuses the existing
+  window instead of starting a second process with a second tray icon.
+- README download commands use the real asset names.
+
+### Added
+- Dashboard customization (slider button): choose the web server, the database engine and which
+  services are shown. Hidden services are not started by Start All.
+- Close behaviour setting: ask every time (default, with "remember my choice"), hide to tray, or
+  quit. Changeable later in Settings.
+
+### Changed
+- Redesigned buttons, switches, tiles and navigation highlight.
+
 ## [0.1.0] - 2026-10-31
 
 ### Added

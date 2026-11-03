@@ -114,9 +114,14 @@ $("#theme-toggle").onclick = () => {
   setTheme(dark ? "light" : "dark");
 };
 
-async function refresh() {
+let lastSnapshot = "";
+async function refresh(force = false) {
   try {
-    state = await invoke("get_state");
+    const next = await invoke("get_state");
+    const snap = JSON.stringify(next);
+    if (!force && snap === lastSnapshot) return;   // nothing changed: leave the DOM alone (no scroll jank)
+    lastSnapshot = snap;
+    state = next;
     lang = state.config.general.language || "en";
     applyI18n();
     $("#version").textContent = `v${state.version}`;
@@ -133,8 +138,10 @@ function showTab(id) {
 }
 
 /* ---------------- dashboard ---------------- */
+const isHidden = (id) => (state.config.general.hidden_services || []).includes(id);
 function renderServices() {
-  const enabled = state.services.filter((s) => s.enabled);
+  const visible = state.services.filter((s) => !isHidden(s.id));
+  const enabled = visible.filter((s) => s.enabled);
   const running = enabled.filter((s) => s.running).length;
   const pill = $("#global-status");
   pill.classList.toggle("on", running > 0 && running === enabled.length);
@@ -142,7 +149,10 @@ function renderServices() {
   $(".txt", pill).textContent = running === 0 ? t("status.stopped") : running === enabled.length ? t("status.running") : t("status.partial");
   $("#hosts-notice").classList.toggle("hidden", state.hosts_in_sync);
 
-  $("#services").innerHTML = state.services.map((s) => {
+  $$("[data-open='adminer']").forEach((b) => b.classList.toggle("hidden", isHidden("db")));
+  $$("[data-open='mail']").forEach((b) => b.classList.toggle("hidden", isHidden("mail")));
+  if (!visible.length) { $("#services").innerHTML = `<div class="empty">${t("dash.empty")}</div>`; return; }
+  $("#services").innerHTML = visible.map((s) => {
     const kind = typeof SERVICE_KIND[s.id] === "string" ? SERVICE_KIND[s.id] : SERVICE_KIND[s.id][s.id === "web" ? state.config.web.server : state.config.db.engine];
     const versions = state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
     const cls = s.running ? "on" : s.installed ? "" : "missing";
@@ -166,7 +176,7 @@ function renderServices() {
 
 async function serviceAction(id, action) {
   try { await invoke("service_action", { id, action }); } catch (e) { fail(e); }
-  refresh();
+  refresh(true);
 }
 function reportResults(results) {
   const bad = results.filter((r) => !r.ok);
@@ -175,6 +185,49 @@ function reportResults(results) {
   const allMissing = bad.every((r) => /not installed/i.test(r.error));
   toast(allMissing ? t("msg.installFirst") : `${t("msg.startFailed")}:\n${bad.map((r) => `${r.id}: ${r.error.split("\n")[0]}`).join("\n")}`, "bad");
 }
+
+
+/* ---------------- customize dashboard ---------------- */
+$("#btn-customize").onclick = () => {
+  const f = $("#form-customize");
+  f.elements.show_web.checked = !isHidden("web"); f.elements.show_php.checked = !isHidden("php");
+  f.elements.show_db.checked = !isHidden("db"); f.elements.show_cache.checked = !isHidden("cache"); f.elements.show_mail.checked = !isHidden("mail");
+  f.elements.web_server.value = state.config.web.server; f.elements.db_engine.value = state.config.db.engine;
+  $("#dlg-customize").showModal();
+};
+$("#btn-customize-cancel").onclick = () => $("#dlg-customize").close();
+$("#form-customize").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  const cfg = JSON.parse(JSON.stringify(state.config));
+  const hidden = [];
+  for (const [id, box, sec] of [["web", "show_web", "web"], ["php", "show_php", "php"], ["db", "show_db", "db"], ["cache", "show_cache", "cache"], ["mail", "show_mail", "mail"]]) {
+    const on = f.elements[box].checked;
+    if (!on) hidden.push(id);
+    cfg[sec].enabled = on;            // visible => enabled, hidden => disabled
+  }
+  cfg.general.hidden_services = hidden;
+  cfg.web.server = f.elements.web_server.value;
+  cfg.db.engine = f.elements.db_engine.value;
+  try { await invoke("save_config", { config: cfg }); $("#dlg-customize").close(); toast(t("msg.saved"), "ok"); } catch (e) { fail(e); }
+  refresh(true);
+};
+
+
+/* ---------------- close behaviour ---------------- */
+listen("close-requested", () => {
+  const dlg = $("#dlg-close");
+  $("#form-close").elements.remember.checked = false;
+  if (!dlg.open) dlg.showModal();
+});
+async function closeWith(action) {
+  const remember = $("#form-close").elements.remember.checked;
+  $("#dlg-close").close();
+  try { await invoke("close_decision", { action, remember }); } catch (e) { fail(e); }
+  if (remember) refresh(true);
+}
+$("#btn-close-tray").onclick = () => closeWith("tray");
+$("#btn-close-quit").onclick = () => closeWith("quit");
+$("#dlg-close").oncancel = (ev) => { ev.preventDefault(); $("#dlg-close").close(); };
 
 /* ---------------- packages ---------------- */
 const GROUPS = [
@@ -476,5 +529,5 @@ $("#form-project").onsubmit = async (ev) => {
   if (state?.ui_theme === "light" || state?.ui_theme === "dark") setTheme(state.ui_theme);
   if (state?.ui_tab) showTab(state.ui_tab);
   try { builtin = await invoke("builtin_versions"); renderPackages(); } catch (e) { fail(e); }
-  setInterval(() => { if (document.visibilityState !== "visible") return; refresh(); if ($("#tab-logs").classList.contains("active")) loadLog(); }, 15000);
+  setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if ($("#tab-logs").classList.contains("active")) loadLog(); }, 15000);
 })();
