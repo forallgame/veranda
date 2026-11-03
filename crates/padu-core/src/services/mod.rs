@@ -265,10 +265,33 @@ pub fn not_installed(kind: crate::manifest::Kind) -> anyhow::Error {
 }
 
 /// Fail early with a useful message when a port is taken by someone else.
-pub fn ensure_port_free(port: u16, what: &str) -> Result<()> {
-    if crate::process::port_in_use(port) {
-        let owner = crate::process::port_owner(port).unwrap_or_default();
-        bail!("port {port} needed by {what} is already in use. {owner}");
+/// The OS refused to bind a privileged port (Linux, ports < 1024 without root).
+/// Front-ends detect this error to offer the one-time permission fix.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct PortPermission {
+    pub port: u16,
+}
+
+impl fmt::Display for PortPermission {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "port {} needs permission: on Linux, ports below 1024 require a one-time grant \
+             (padu doctor --fix-ports) or use ports 8080/8443 in Settings",
+            self.port
+        )
     }
-    Ok(())
+}
+
+impl std::error::Error for PortPermission {}
+
+pub fn ensure_port_free(port: u16, what: &str) -> Result<()> {
+    match crate::process::port_state(port) {
+        crate::process::PortState::Free => Ok(()),
+        crate::process::PortState::Denied => Err(PortPermission { port }.into()),
+        crate::process::PortState::InUse => {
+            let owner = crate::process::port_owner(port).unwrap_or_default();
+            bail!("port {port} needed by {what} is already in use. {owner}");
+        }
+    }
 }

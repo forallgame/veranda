@@ -97,15 +97,43 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
 }
 
 #[tauri::command]
-async fn service_action(state: State<'_, AppState>, id: String, action: String) -> CmdResult<()> {
+async fn service_action(
+    state: State<'_, AppState>,
+    id: String,
+    action: String,
+) -> CmdResult<Vec<ActionReport>> {
     let app = open_app(&state)?;
     let sid: ServiceId = id.parse().map_err(err)?;
-    tauri::async_runtime::spawn_blocking(move || match action.as_str() {
-        "start" => services::start(&app, sid),
-        "stop" => services::stop(&app, sid),
-        "restart" => services::restart(&app, sid),
-        "reload" => services::reload(&app, sid),
-        other => anyhow::bail!("unknown action {other}"),
+    tauri::async_runtime::spawn_blocking(move || {
+        let r = match action.as_str() {
+            "start" => services::start(&app, sid),
+            "stop" => services::stop(&app, sid),
+            "restart" => services::restart(&app, sid),
+            "reload" => services::reload(&app, sid),
+            other => Err(anyhow::anyhow!("unknown action {other}")),
+        };
+        to_report(vec![(sid, r)])
+    })
+    .await
+    .map_err(err)
+}
+
+/// Linux only: grant the active web server binary permission to bind ports below 1024
+/// (`setcap cap_net_bind_service`, asks for the user's password). No-op elsewhere.
+#[tauri::command]
+async fn grant_web_ports(state: State<'_, AppState>) -> CmdResult<()> {
+    let app = open_app(&state)?;
+    tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<()> {
+        let reg = Registry::load(&app.layout)?;
+        let sites = padu_core::sites::discover(&app.layout, &app.config)?;
+        let ctx = services::Ctx {
+            app: &app,
+            reg: &reg,
+            sites: &sites,
+        };
+        let server = services::web::active(&ctx)
+            .ok_or_else(|| anyhow::anyhow!("install a web server first"))?;
+        padu_core::tools::grant_bind_capability(&server.binary(&ctx))
     })
     .await
     .map_err(err)?
@@ -117,15 +145,25 @@ struct ActionReport {
     id: String,
     ok: bool,
     error: String,
+    /// Set when the OS refused a privileged port; the UI offers the one-time permission fix.
+    port_permission: Option<u16>,
 }
 
 fn to_report(results: Vec<(ServiceId, anyhow::Result<()>)>) -> Vec<ActionReport> {
     results
         .into_iter()
-        .map(|(id, r)| ActionReport {
-            id: id.to_string(),
-            ok: r.is_ok(),
-            error: r.err().map(|e| format!("{e:#}")).unwrap_or_default(),
+        .map(|(id, r)| {
+            let port_permission = r.as_ref().err().and_then(|e| {
+                e.chain()
+                    .find_map(|c| c.downcast_ref::<services::PortPermission>())
+                    .map(|p| p.port)
+            });
+            ActionReport {
+                id: id.to_string(),
+                ok: r.is_ok(),
+                error: r.err().map(|e| format!("{e:#}")).unwrap_or_default(),
+                port_permission,
+            }
         })
         .collect()
 }
@@ -987,6 +1025,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_state,
             service_action,
+            grant_web_ports,
             start_all,
             stop_all,
             install_package,

@@ -575,7 +575,7 @@ pub fn start(ctx: &Ctx) -> Result<()> {
     process::spawn_detached(layout, PID, cmd)?;
     if !process::wait_for_port(cfg.web.http_port, std::time::Duration::from_secs(10)) {
         let hint = if cfg!(target_os = "linux") && cfg.web.http_port < 1024 {
-            " On Linux, ports below 1024 need: padu doctor --fix-ports (or use ports 8080/8443)."
+            " On Linux, ports below 1024 need a one-time permission (padu doctor --fix-ports) or use ports 8080/8443 in Settings."
         } else {
             ""
         };

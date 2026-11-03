@@ -17,6 +17,7 @@ const ICONS = {
   pkg: '<svg viewBox="0 0 24 24"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2zm0 2.2 6.6 3.3L12 10.8 5.4 7.5 12 4.2zM5 9.2l6 3v7.3l-6-3V9.2zm8 10.3v-7.3l6-3v7.3l-6 3z"/></svg>',
   site: '<svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6zm-6 4v10h16V8H4z"/></svg>',
   play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+  spinner: '<svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg>',
   stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>',
   refresh: '<svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg>',
   open: '<svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14V3zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>',
@@ -31,6 +32,8 @@ const SERVICE_KIND = { web: { caddy: "caddy", nginx: "nginx", apache: "apache" }
 let state = null, lang = "en", upstream = null, builtin = null, upstreamLoading = false;
 let installing = null; // { kind, downloaded, total, phase: "download"|"extract" }
 let removing = null;   // { kind, version }
+let busy = {};         // service id -> "start"|"stop"|"restart"|"reload" while a request runs
+let busyAll = null;    // "start"|"stop" while Start All / Stop All runs
 async function loadUpstream() {
   const btn = $("#btn-check-upstream");
   const label = $("#btn-check-upstream-label");
@@ -144,9 +147,16 @@ function renderServices() {
   const enabled = visible.filter((s) => s.enabled && s.installed);
   const running = enabled.filter((s) => s.running).length;
   const pill = $("#global-status");
-  pill.classList.toggle("on", running > 0 && running === enabled.length);
-  pill.classList.toggle("partial", running > 0 && running < enabled.length);
-  $(".txt", pill).textContent = running === 0 ? t("status.stopped") : running === enabled.length ? t("status.running") : t("status.partial");
+  pill.classList.toggle("on", !busyAll && running > 0 && running === enabled.length);
+  pill.classList.toggle("partial", !busyAll && running > 0 && running < enabled.length);
+  pill.classList.toggle("busy", !!busyAll);
+  $(".txt", pill).textContent = busyAll ? t(busyAll === "stop" ? "status.stopping" : "status.starting")
+    : running === 0 ? t("status.stopped") : running === enabled.length ? t("status.running") : t("status.partial");
+  for (const [id, kind] of [["#btn-start-all", "start"], ["#btn-stop-all", "stop"]]) {
+    const b = $(id);
+    b.disabled = !!busyAll;
+    b.classList.toggle("busy", busyAll === kind);
+  }
   $("#hosts-notice").classList.toggle("hidden", state.hosts_in_sync);
 
   $$("[data-open='adminer']").forEach((b) => b.classList.toggle("hidden", isHidden("db")));
@@ -155,35 +165,73 @@ function renderServices() {
   $("#services").innerHTML = visible.map((s) => {
     const kind = typeof SERVICE_KIND[s.id] === "string" ? SERVICE_KIND[s.id] : SERVICE_KIND[s.id][s.id === "web" ? state.config.web.server : state.config.db.engine];
     const versions = state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
-    const cls = s.running ? "on" : s.installed ? "" : "missing";
+    const act = busy[s.id] || (busyAll && s.enabled && s.installed && (busyAll === "start" ? !s.running : s.running) ? busyAll : null);
+    const cls = act ? "busy" : s.running ? "on" : s.installed ? "off" : "missing";
+    const stateTxt = act ? t(act === "stop" ? "status.stopping" : act === "start" ? "status.starting" : "status.restarting")
+      : s.running ? t("status.running") : s.installed ? t("status.stopped") : t("pkg.notInstalled");
+    const badge = `<span class="state">${act ? ICONS.spinner : "<i></i>"}${stateTxt}</span>`;
     const version = versions.length > 1
       ? `<span class="pill"><select data-version-kind="${kind}" data-service="${s.id}">${versions.map((v) => `<option ${v === s.version ? "selected" : ""}>${esc(v)}</option>`).join("")}</select></span>`
       : s.installed ? `<span class="pill">${esc(s.version)}</span>`
       : installing && installing.kind === kind ? `<span data-dash="${kind}">${progressMarkup(installing)}</span>`
       : `<button class="btn small" data-install="${kind}">${t("btn.install")}</button>`;
     const ports = s.ports.map((p) => `<span class="pill">:${p}</span>`).join("");
+    const dis = act ? "disabled" : "";
     const action = s.running
-      ? `<button class="icon-btn" data-action="${s.id === "web" ? "reload" : "restart"}" data-id="${s.id}" title="${s.id === "web" ? t("btn.reload") : t("btn.restart")}">${ICONS.refresh}</button>
-         <button class="icon-btn" data-action="stop" data-id="${s.id}" title="${t("btn.stop")}">${ICONS.stop}</button>`
-      : `<button class="icon-btn" data-action="start" data-id="${s.id}" title="${t("btn.start")}" ${s.installed ? "" : "disabled"}>${ICONS.play}</button>`;
+      ? `<button class="icon-btn" data-action="${s.id === "web" ? "reload" : "restart"}" data-id="${s.id}" title="${s.id === "web" ? t("btn.reload") : t("btn.restart")}" ${dis}>${ICONS.refresh}</button>
+         <button class="icon-btn danger" data-action="stop" data-id="${s.id}" title="${t("btn.stop")}" ${dis}>${ICONS.stop}</button>`
+      : `<button class="icon-btn go" data-action="start" data-id="${s.id}" title="${t("btn.start")}" ${s.installed && !act ? "" : "disabled"}>${ICONS.play}</button>`;
     return `<div class="row ${cls}">
       <div class="ico">${ICONS[SERVICE_ICON[s.id]]}</div>
-      <div><div class="name">${esc(s.name)} ${version}</div><div class="meta">${ports}${s.message && !s.installed ? "" : s.message ? `<span>${esc(s.message)}</span>` : ""}</div></div>
+      <div><div class="name">${esc(s.name)} ${version}</div><div class="meta">${badge}${ports}${s.message && !s.installed ? "" : s.message ? `<span>${esc(s.message)}</span>` : ""}</div></div>
       <div class="act"><input type="checkbox" class="switch" data-enable="${s.id}" ${s.enabled && s.installed ? "checked" : ""} ${s.installed ? "" : "disabled"} title="${s.installed ? t("settings.enabled") : t("pkg.notInstalled")}">${action}</div>
     </div>`;
   }).join("");
 }
 
 async function serviceAction(id, action) {
-  try { await invoke("service_action", { id, action }); } catch (e) { fail(e); }
-  refresh(true);
+  if (busy[id] || busyAll) return;
+  busy[id] = action; renderServices();
+  let results = null;
+  try { results = await invoke("service_action", { id, action }); } catch (e) { fail(e); }
+  delete busy[id];
+  await refresh(true);
+  if (results) await reportResults(results, action);
 }
-function reportResults(results) {
+async function runAll(action) {
+  if (busyAll) return;
+  busyAll = action; renderServices();
+  let results = null;
+  try { results = await invoke(action === "stop" ? "stop_all" : "start_all"); } catch (e) { fail(e); }
+  busyAll = null;
+  await refresh(true);
+  if (results) await reportResults(results, action);
+}
+const serviceName = (id) => (state?.services.find((s) => s.id === id) || {}).name || id;
+async function reportResults(results, action) {
   const bad = results.filter((r) => !r.ok);
-  if (!bad.length) { toast("OK", "ok"); return; }
-  bad.forEach((r) => logActivity(`${r.id}: ${r.error}`, "bad"));
-  const allMissing = bad.every((r) => /not installed/i.test(r.error));
-  toast(allMissing ? t("msg.installFirst") : `${t("msg.startFailed")}:\n${bad.map((r) => `${r.id}: ${r.error.split("\n")[0]}`).join("\n")}`, "bad");
+  const verb = action === "stop" ? "stopped" : action === "reload" ? "reloaded" : action === "restart" ? "restarted" : "started";
+  if (!bad.length) {
+    if (!results.length) { toast(t("msg.nothingToDo"), "info"); return; }
+    toast(results.length > 1 ? t(`msg.all.${verb}`) : t(`msg.one.${verb}`, { name: serviceName(results[0].id) }), "ok");
+    return;
+  }
+  bad.forEach((r) => logActivity(`${serviceName(r.id)}: ${r.error}`, "bad"));
+  const perm = bad.find((r) => r.port_permission);
+  const rest = bad.filter((r) => r !== perm);
+  if (rest.length) {
+    const allMissing = rest.every((r) => /not installed/i.test(r.error));
+    const head = t(action === "stop" ? "msg.stopFailed" : "msg.startFailed");
+    toast(allMissing ? t("msg.installFirst") : `${head}:\n${rest.map((r) => `${serviceName(r.id)}: ${r.error.split("\n")[0]}`).join("\n")}`, "bad");
+  }
+  if (perm) {
+    $("#confirm-title").textContent = t("ports.title", { port: perm.port_permission });
+    const ok = await askConfirm(t("ports.body"), t("btn.allow"));
+    $("#confirm-title").textContent = t("confirm.title");
+    if (!ok) return;
+    try { await invoke("grant_web_ports"); toast(t("msg.portsGranted"), "ok"); } catch (e) { fail(e); return; }
+    await serviceAction(perm.id, "start");
+  }
 }
 
 
@@ -441,9 +489,9 @@ document.addEventListener("change", async (ev) => {
   }
 });
 
-$("#btn-start-all").onclick = async () => { $("#btn-start-all").disabled = true; try { reportResults(await invoke("start_all")); } catch (e) { fail(e); } $("#btn-start-all").disabled = false; refresh(); };
-$("#btn-stop-all").onclick = async () => { try { reportResults(await invoke("stop_all")); } catch (e) { fail(e); } refresh(); };
-$("#btn-hosts-sync").onclick = async () => { try { await invoke("hosts_sync"); toast("OK", "ok"); } catch (e) { fail(e); } refresh(); };
+$("#btn-start-all").onclick = () => runAll("start");
+$("#btn-stop-all").onclick = () => runAll("stop");
+$("#btn-hosts-sync").onclick = async () => { try { await invoke("hosts_sync"); toast(t("msg.hostsUpdated"), "ok"); } catch (e) { fail(e); } refresh(); };
 $("#btn-sync-sites").onclick = syncSites;
 $("#btn-check-upstream").onclick = loadUpstream;
 $("#btn-db-show").onclick = async () => {
@@ -452,7 +500,7 @@ $("#btn-db-show").onclick = async () => {
   if (el.classList.contains("secret")) { el.textContent = (await invoke("db_password")) || ""; el.classList.remove("secret"); }
   else { el.textContent = "••••••••••••"; el.classList.add("secret"); }
 };
-$("#btn-db-rotate").onclick = async () => { try { const pw = await invoke("db_set_password", { new: null }); $("#db-password").textContent = pw; $("#db-password").classList.remove("secret"); toast("OK", "ok"); } catch (e) { fail(e); } };
+$("#btn-db-rotate").onclick = async () => { try { const pw = await invoke("db_set_password", { new: null }); $("#db-password").textContent = pw; $("#db-password").classList.remove("secret"); toast(t("msg.pwRotated"), "ok"); } catch (e) { fail(e); } };
 $("#btn-db-backup").onclick = async () => { try { const p = await invoke("db_backup"); toast(t("msg.backup", { path: p }), "ok"); } catch (e) { fail(e); } };
 $("#form-db").onsubmit = async (ev) => {
   ev.preventDefault(); const name = ev.target.elements.name.value.trim();

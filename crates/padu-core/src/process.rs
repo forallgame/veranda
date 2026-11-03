@@ -148,7 +148,23 @@ pub fn stop_named(layout: &Layout, name: &str, grace: Duration) -> Result<()> {
 
 /// True if something listens on 127.0.0.1:port.
 pub fn port_in_use(port: u16) -> bool {
-    TcpListener::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)).is_err()
+    !matches!(port_state(port), PortState::Free)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PortState {
+    Free,
+    InUse,
+    /// The OS refused the bind: on Linux, ports below 1024 need root or CAP_NET_BIND_SERVICE.
+    Denied,
+}
+
+pub fn port_state(port: u16) -> PortState {
+    match TcpListener::bind(SocketAddrV4::new(Ipv4Addr::LOCALHOST, port)) {
+        Ok(_) => PortState::Free,
+        Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => PortState::Denied,
+        Err(_) => PortState::InUse,
+    }
 }
 
 /// True once something accepts connections on 127.0.0.1:port.

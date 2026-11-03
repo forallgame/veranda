@@ -123,6 +123,50 @@ pub fn status(ctx: &Ctx) -> ServiceStatus {
     }
 }
 
+/// Generic Linux tarballs of MySQL/MariaDB link `libaio.so.1`. Debian/Ubuntu 24.04+ ship it as
+/// `libaio.so.1t64`, which the loader does not match, so the server dies with exit 127.
+/// The binaries carry `RUNPATH=$ORIGIN/../lib/private`; dropping a symlink there fixes it
+/// without touching the system. Missing entirely => a clear install hint.
+#[cfg(target_os = "linux")]
+pub fn ensure_runtime_libs(pkg_dir: &std::path::Path) -> Result<()> {
+    const DIRS: [&str; 6] = [
+        "/usr/lib/x86_64-linux-gnu",
+        "/usr/lib/aarch64-linux-gnu",
+        "/usr/lib64",
+        "/usr/lib",
+        "/lib/x86_64-linux-gnu",
+        "/lib64",
+    ];
+    let find = |name: &str| {
+        DIRS.iter()
+            .map(|d| std::path::Path::new(d).join(name))
+            .find(|p| p.exists())
+    };
+    let private = pkg_dir.join("lib").join("private");
+    let shim = private.join("libaio.so.1");
+    if shim.exists() || find("libaio.so.1").is_some() {
+        return Ok(());
+    }
+    match find("libaio.so.1t64") {
+        Some(sys) => {
+            std::fs::create_dir_all(&private)?;
+            std::os::unix::fs::symlink(&sys, &shim)
+                .with_context(|| format!("linking {} -> {}", shim.display(), sys.display()))?;
+            Ok(())
+        }
+        None => bail!(
+            "the database server needs the libaio library. Install it and try again: \
+             `sudo apt install libaio1t64` (Debian/Ubuntu), `sudo dnf install libaio` (Fedora), \
+             `sudo pacman -S libaio` (Arch)"
+        ),
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn ensure_runtime_libs(_pkg_dir: &std::path::Path) -> Result<()> {
+    Ok(())
+}
+
 pub fn start(ctx: &Ctx) -> Result<()> {
     let db = DbCtx::from_app(ctx.app, ctx.reg)
         .ok_or_else(|| super::not_installed(kind(ctx.app.config.db.engine)))?;
@@ -133,6 +177,7 @@ pub fn start(ctx: &Ctx) -> Result<()> {
     }
     process::clear_pid(layout, PID);
     super::ensure_port_free(db.port, "the database")?;
+    ensure_runtime_libs(&db.pkg.path)?;
     let needs_setup = !ready_marker(&db).exists();
     if !db.is_initialized() {
         crate::db::initialize(&db).context("initialising the database directory")?;

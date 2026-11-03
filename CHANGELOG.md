@@ -10,6 +10,21 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.1.3] - 2026-11-03
+
+### Fixed
+- Linux: a privileged port (80/443) that the OS refused to bind was reported as "already in use".
+  It is now detected separately and the desktop app offers the one-time permission
+  (`setcap`, asks for your password) or a switch to 8080/8443.
+- MySQL/MariaDB on Debian/Ubuntu 24.04+: the generic tarball needs `libaio.so.1`, which the distro
+  ships as `libaio.so.1t64`. Padu now links it into the package's private lib folder; if libaio is
+  missing entirely, the error says which package to install.
+
+### Changed
+- Dashboard: every service shows a clear Running / Stopped / Starting… / Stopping… badge, running
+  rows are highlighted, buttons show progress while a request runs, and results read
+  "PHP stopped" / "All services stopped" instead of "OK". Stop errors have their own message.
+
 ## [0.1.2] - 2026-11-03
 
 ### Changed
