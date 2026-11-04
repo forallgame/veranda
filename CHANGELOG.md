@@ -10,6 +10,20 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.4.1] - 2026-11-04
+
+### Fixed
+- CI on Windows: the FlyEnv import test wrote a Windows path into hand-made JSON (invalid escape).
+- Installed packages could "disappear" from the app when `etc/installed.json` held an entry an
+  older build could not read (for example after running a newer build on the same root): the
+  whole file was discarded and the next install overwrote it. The registry now keeps entries it
+  cannot read, repairs moved paths, and re-registers every package folder under `bin/` that the
+  file does not mention, so packages on disk are never shown as uninstalled.
+
+### Changed
+- Version lists show a clear loading state while upstream is queried: a progress bar on the table,
+  shimmering placeholder rows and a status line; new rows fade in when the list arrives.
+
 ## [0.4.0] - 2026-11-04
 
 ### Added

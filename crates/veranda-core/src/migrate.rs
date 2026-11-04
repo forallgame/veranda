@@ -452,12 +452,13 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let proj = dir.path().join("demo");
         std::fs::create_dir_all(proj.join("public")).unwrap();
-        let json = format!(
-            r#"[{{"id":1,"name":"demo.test","root":"{}","alias":""}},{{"id":2,"name":"","root":""}}]"#,
-            proj.join("public").display()
-        );
+        // Built with serde so Windows paths (backslashes) are escaped correctly.
+        let json = serde_json::json!([
+            { "id": 1, "name": "demo.test", "root": proj.join("public").display().to_string(), "alias": "" },
+            { "id": 2, "name": "", "root": "" }
+        ]);
         let f = dir.path().join("host.json");
-        std::fs::write(&f, json).unwrap();
+        std::fs::write(&f, serde_json::to_string(&json).unwrap()).unwrap();
         let p = projects_in_flyenv(&f).unwrap();
         assert_eq!(p.len(), 1);
         assert_eq!(p[0].name, "demo");

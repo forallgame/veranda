@@ -447,13 +447,17 @@ function renderService() {
         : isRemoving ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
         : isInst ? `<button class="btn small subtle" data-remove="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.remove")}</span></button>`
         : `<button class="btn small primary" data-install="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${t("btn.install")}</button>`;
-      return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""}" data-row="${kind}:${esc(v)}">
+      return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""} ${upstreamFresh && !isInst ? "fresh" : ""}" data-row="${kind}:${esc(v)}">
         <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${action}</span></div>`;
     }).join("");
-    body = `${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}<div class="vhead"><span>${upstreamLoading ? t("btn.checking") : t("ver.hint", { source: source || "—" })}</span>
+    const skeleton = upstreamLoading
+      ? [0, 1, 2].map(() => `<div class="vrow skeleton"><span class="sk w1"></span><span class="sk w2"></span><span class="sk w3"></span><span class="act"><span class="sk w4"></span></span></div>`).join("")
+      : "";
+    body = `${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}
+      <div class="vhead ${upstreamLoading ? "loading" : ""}"><span>${upstreamLoading ? `${ICONS.spinner}${t("ver.fetching", { source: source || "—" })}` : t("ver.hint", { source: source || "—" })}</span>
         <button class="btn small ${upstreamLoading ? "busy" : ""}" id="btn-check-upstream" ${upstreamLoading ? "disabled" : ""}>${ICONS.refresh}<span>${t("btn.refresh")}</span></button></div>
-      <div class="vtable"><div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
-      ${rows || `<div class="vrow"><span class="sub" style="margin:0">${upstreamLoading ? t("btn.checking") : t("ver.empty")}</span></div>`}</div>`;
+      <div class="vtable ${upstreamLoading ? "loading" : ""}">${upstreamLoading ? `<div class="loadbar"><div class="fill"></div></div>` : ""}<div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
+      ${rows}${skeleton}${!rows && !upstreamLoading ? `<div class="vrow"><span class="sub" style="margin:0">${t("ver.empty")}</span></div>` : ""}</div>`;
   }
 
   box.innerHTML = `<header class="top svc-head ${headCls}">
@@ -463,11 +467,13 @@ function renderService() {
       <div class="acts">${actions}</div>
     </header>${tabs}${body}`;
 }
+let upstreamFresh = false;   // true right after a fetch, so new rows fade in once
 async function loadUpstream() {
   upstreamLoading = true; renderService();
-  try { upstream = await invoke("upstream_versions"); } catch (e) { fail(e); }
+  try { upstream = await invoke("upstream_versions"); upstreamFresh = true; } catch (e) { fail(e); }
   upstreamLoading = false;
   renderService();
+  upstreamFresh = false;
 }
 
 /* ---------------- install / remove ---------------- */

@@ -1,6 +1,7 @@
 // UI strings - short labels only.
 window.VERANDA_I18N = {
   en: {
+    "ver.fetching": "Fetching the version list from {source}…",
     "settings.pgPort": "PostgreSQL port",
     "ports.busyTitle": "Port {port} is busy", "ports.busyBody": "It is used by {owner}. {name} can move to port {new}; your sites keep working, only the port in the address changes. You can change it again in Settings.", "btn.usePort": "Use port {new}", "msg.portMoved": "{name} now uses port {new}",
     "ver.external": "{n} version(s) managed by {source} were found and are used as they are; nothing is downloaded twice.",
@@ -31,6 +32,7 @@ window.VERANDA_I18N = {
     "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
+    "ver.fetching": "Mengambil daftar versi dari {source}…",
     "settings.pgPort": "Port PostgreSQL",
     "ports.busyTitle": "Port {port} sedang dipakai", "ports.busyBody": "Dipakai oleh {owner}. {name} bisa pindah ke port {new}; situs tetap jalan, hanya port di alamatnya yang berubah. Bisa diubah lagi di Pengaturan.", "btn.usePort": "Pakai port {new}", "msg.portMoved": "{name} sekarang memakai port {new}",
     "ver.external": "{n} versi yang dikelola {source} ditemukan dan dipakai apa adanya; tidak ada yang diunduh dua kali.",

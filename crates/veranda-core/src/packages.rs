@@ -27,37 +27,94 @@ pub struct Installed {
 pub struct Registry {
     #[serde(default)]
     pub items: Vec<Installed>,
+    /// Entries this build cannot read (written by a newer Veranda with package kinds we do not
+    /// know). Kept verbatim and written back on save, so an older build never erases them.
+    #[serde(skip)]
+    foreign: Vec<serde_json::Value>,
 }
 
 impl Registry {
+    /// Load `etc/installed.json`. The file is never the only source of truth: entries whose
+    /// folder moved are healed, unreadable entries are preserved, and package folders that are
+    /// missing from the file are re-registered, so a corrupt or stale file cannot "uninstall"
+    /// anything.
     pub fn load(layout: &Layout) -> Result<Self> {
-        let mut reg: Registry = match std::fs::read_to_string(layout.installed_file()) {
-            Ok(t) => serde_json::from_str(&t).unwrap_or_default(),
-            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Registry::default(),
+        let raw: serde_json::Value = match std::fs::read_to_string(layout.installed_file()) {
+            Ok(t) => serde_json::from_str(&t).unwrap_or(serde_json::Value::Null),
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => serde_json::Value::Null,
             Err(e) => return Err(e.into()),
         };
+        let mut reg = Registry::default();
+        if let Some(arr) = raw.get("items").and_then(|v| v.as_array()) {
+            for v in arr {
+                match serde_json::from_value::<Installed>(v.clone()) {
+                    Ok(i) => reg.items.push(i),
+                    Err(_) => reg.foreign.push(v.clone()),
+                }
+            }
+        }
+        let mut changed = false;
         // Self-heal paths after the root moved (e.g. the Padu -> Veranda rename): every package
         // lives at the canonical `<root>/bin/<kind>/<version>`.
-        let mut healed = false;
         for i in &mut reg.items {
             if !i.path.is_dir() {
                 let expected = package_dir(layout, i.kind, &i.version);
                 if expected.is_dir() {
                     i.path = expected;
-                    healed = true;
+                    changed = true;
                 }
             }
         }
         // Drop entries whose folder disappeared (user deleted it by hand).
+        let before = reg.items.len();
         reg.items.retain(|i| i.path.is_dir());
-        if healed {
+        changed |= reg.items.len() != before;
+        // Re-register package folders the file does not mention.
+        for kind in Kind::ALL {
+            let Ok(rd) = std::fs::read_dir(layout.bin_kind(kind.id())) else {
+                continue;
+            };
+            for e in rd.flatten() {
+                let p = e.path();
+                let Some(name) = p.file_name().and_then(|n| n.to_str()) else {
+                    continue;
+                };
+                if !p.is_dir()
+                    || name.starts_with('.')
+                    || !fsutil::is_safe_name(&name.to_ascii_lowercase().replace('.', "-"))
+                    || reg.find(kind, name).is_some()
+                    || std::fs::read_dir(&p)
+                        .map(|mut d| d.next().is_none())
+                        .unwrap_or(true)
+                {
+                    continue;
+                }
+                tracing::info!("re-registering {kind} {name} found in {}", p.display());
+                reg.items.push(Installed {
+                    kind,
+                    version: name.to_string(),
+                    path: p.clone(),
+                    source: "recovered".into(),
+                    installed_at: fsutil::timestamp(),
+                    digests: Vec::new(),
+                });
+                changed = true;
+            }
+        }
+        if changed {
             let _ = reg.save(layout);
         }
         Ok(reg)
     }
 
     pub fn save(&self, layout: &Layout) -> Result<()> {
-        let text = serde_json::to_string_pretty(self)?;
+        let mut all: Vec<serde_json::Value> = self
+            .items
+            .iter()
+            .map(serde_json::to_value)
+            .collect::<std::result::Result<_, _>>()?;
+        all.extend(self.foreign.iter().cloned());
+        let text = serde_json::to_string_pretty(&serde_json::json!({ "items": all }))?;
         fsutil::write_atomic(&layout.installed_file(), text.as_bytes())
     }
 
@@ -494,6 +551,39 @@ pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn registry_keeps_unknown_entries_and_recovers_folders() {
+        let dir = tempfile::tempdir().unwrap();
+        let layout = Layout::new(dir.path());
+        layout.ensure().unwrap();
+        // a folder that exists but is missing from the file
+        let php = layout.bin_kind("php").join("8.5.8");
+        std::fs::create_dir_all(&php).unwrap();
+        std::fs::write(php.join("php"), "x").unwrap();
+        // an entry written by a future build with a kind we do not know
+        let future = layout.bin_kind("rustfs").join("1.0.0");
+        std::fs::create_dir_all(&future).unwrap();
+        std::fs::write(
+            layout.installed_file(),
+            format!(
+                r#"{{"items":[{{"kind":"rustfs","version":"1.0.0","path":"{}","source":"x","installed_at":"now"}}]}}"#,
+                future.display()
+            ),
+        )
+        .unwrap();
+        let reg = Registry::load(&layout).unwrap();
+        assert_eq!(reg.items.len(), 1);
+        assert_eq!(reg.items[0].kind, Kind::Php);
+        assert_eq!(reg.items[0].source, "recovered");
+        // saved again: both the recovered php and the foreign rustfs entry survive
+        let text = std::fs::read_to_string(layout.installed_file()).unwrap();
+        assert!(text.contains("rustfs") && text.contains("8.5.8"));
+        let again = Registry::load(&layout).unwrap();
+        assert_eq!(again.items.len(), 1);
+        assert!(text.matches("\"kind\"").count() == 2);
+        let _ = again;
+    }
 
     #[test]
     fn file_names() {
