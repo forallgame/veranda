@@ -437,8 +437,13 @@ function renderService() {
       const isInst = inst.includes(v);
       const x = ext.find((e) => e.version === v);
       if (x && !isInst) {
-        return `<div class="vrow" data-row="${kind}:${esc(v)}"><span class="v">${esc(v)}</span><span class="src">${esc(x.bin_dir)}</span><span><span class="pill ok">${esc(x.source)}</span></span>
-          <span class="act"><button class="btn small subtle" data-open="path:${esc(x.bin_dir)}" title="${esc(x.bin_dir)}">${ICONS.folder}<span>${t("quick.root")}</span></button></span></div>`;
+        const isRemovingExt = removing && removing.kind === kind && removing.version === v;
+        const removeBtn = x.source === "nvm"
+          ? isRemovingExt ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
+            : `<button class="btn small subtle" data-remove-ext="${kind}" data-version="${esc(v)}" data-source="${esc(x.source)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.removeNvm")}</span></button>`
+          : "";
+        return `<div class="vrow ${isRemovingExt ? "removing" : ""}" data-row="${kind}:${esc(v)}"><span class="v">${esc(v)}</span><span class="src">${esc(x.bin_dir)}</span><span><span class="pill ok">${esc(x.source)}</span></span>
+          <span class="act"><button class="icon-btn small" data-open="path:${esc(x.bin_dir)}" title="${esc(x.bin_dir)}">${ICONS.folder}</button>${removeBtn}</span></div>`;
       }
       const inUse = !!st && st.installed && st.version === v;
       const isInstalling = installing && installing.kind === kind && installing.version === v;
@@ -486,7 +491,9 @@ function progressText(p) {
 }
 function progressMarkup(p) {
   const pct = p.phase === "extract" ? 100 : p.total ? (100 * p.downloaded / p.total) : 0;
-  return `<div class="row-progress"><div class="bar"><div class="fill ${p.phase === "extract" ? "indeterminate" : ""}" style="width:${pct.toFixed(1)}%"></div></div><span class="txt">${progressText(p)}</span></div>`;
+  const cancel = p.phase === "download" && !p.note && !p.cancelling
+    ? `<button class="icon-btn small" data-cancel-install="1" title="${t("btn.cancel")}">${ICONS.x}</button>` : "";
+  return `<div class="row-progress"><div class="bar"><div class="fill ${p.phase === "extract" ? "indeterminate" : ""}" style="width:${pct.toFixed(1)}%"></div></div><span class="txt">${p.cancelling ? t("pkg.cancelling") : progressText(p)}</span>${cancel}</div>`;
 }
 function paintProgress() {
   if (!installing) return;
@@ -504,7 +511,9 @@ async function installPackage(kind, latest, version = null) {
   try {
     const i = await invoke("install_package", { kind, version: version || null, latest: !!latest || !version });
     toast(t("msg.installed", { name: KIND_META[i.kind]?.label || i.kind, version: i.version }), "ok");
-  } catch (e) { fail(e); }
+  } catch (e) {
+    if (/download cancelled/i.test(String(e?.message || e))) toast(t("msg.cancelled", { name: KIND_META[kind]?.label || kind }), "info"); else fail(e);
+  }
   installing = null;
   await refresh(true);
 }
@@ -704,7 +713,15 @@ document.addEventListener("click", async (ev) => {
   }
   if (b.dataset.action) { b.disabled = true; await serviceAction(b.dataset.id, b.dataset.action); return; }
   if (b.dataset.install) { await installPackage(b.dataset.install, !!b.dataset.latest, b.dataset.version || null); return; }
+  if (b.dataset.cancelInstall) { if (installing) { installing.cancelling = true; paintProgress(); } try { await invoke("cancel_install"); } catch (e) { fail(e); } return; }
   if (b.dataset.remove) { await removePackage(b.dataset.remove, b.dataset.version); return; }
+  if (b.dataset.removeExt) {
+    const kind = b.dataset.removeExt, version = b.dataset.version, source = b.dataset.source;
+    if (!(await askConfirm(t("msg.confirmRemoveExt", { version, source })))) return;
+    removing = { kind, version }; renderAll();
+    try { await invoke("remove_external", { kind, version, source }); toast(t("msg.removedExt", { version, source }), "ok"); } catch (e) { fail(e); }
+    removing = null; await refresh(true); return;
+  }
   if (b.dataset.deleteProject) {
     if (!(await askConfirm(t("msg.confirmDelete", { name: b.dataset.deleteProject })))) return;
     try { await invoke("delete_project", { name: b.dataset.deleteProject }); await syncSites(); } catch (e) { fail(e); }
@@ -835,6 +852,22 @@ async function perfBenchmark() {
   invoke("perf_report", { text }).catch(() => {});
 }
 
+/* ---------------- scripted checks (VERANDA_UI_AUTOTEST=..., dev only) ---------------- */
+async function autotest(name) {
+  const report = (text) => invoke("perf_report", { text: `autotest ${name}: ${text}` }).catch(() => {});
+  if (name === "cancel-install") {
+    // start the biggest download we have (Go), cancel it after a few seconds, report what happened
+    openService("go");
+    const { newest } = versionsFor("go");
+    const started = performance.now();
+    const done = installPackage("go", false, newest);
+    setTimeout(() => { const b = $("[data-cancel-install]"); if (b) b.click(); else report("no cancel button found"); }, 4000);
+    await done;
+    const last = activity[0]?.msg || "";
+    report(`newest=${newest} elapsed=${((performance.now() - started) / 1000).toFixed(1)}s installed=${installedVersions("go").length} last="${last}"`);
+  }
+}
+
 /* ---------------- boot ---------------- */
 (async () => {
   await refresh();
@@ -846,5 +879,6 @@ async function perfBenchmark() {
   }
   try { builtin = await invoke("builtin_versions"); renderService(); } catch (e) { fail(e); }
   if (state?.ui_perf) setTimeout(perfBenchmark, 1200);
+  if (state?.ui_autotest) setTimeout(() => autotest(state.ui_autotest), 1500);
   setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);
 })();

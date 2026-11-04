@@ -331,6 +331,45 @@ pub fn nvm_install(version: &str, on_line: &dyn Fn(String)) -> Result<()> {
     Ok(())
 }
 
+/// `nvm uninstall <version>` through the user's own nvm.
+pub fn nvm_uninstall(version: &str) -> Result<()> {
+    let dir = nvm_dir().context("nvm is not installed")?;
+    if version.is_empty() || !version.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        bail!("invalid Node version {version:?}");
+    }
+    let mut cmd = if cfg!(windows) {
+        let mut c = Command::new(dir.join("nvm.exe"));
+        c.args(["uninstall", version]);
+        c
+    } else {
+        let mut c = Command::new("bash");
+        c.arg("-c")
+            .arg(format!(
+                "source \"$NVM_DIR/nvm.sh\" --no-use && nvm uninstall {version}"
+            ))
+            .env("NVM_DIR", &dir);
+        c
+    };
+    cmd.stdin(Stdio::null());
+    let out = cmd.output().context("starting nvm")?;
+    if !out.status.success() {
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        bail!(
+            "nvm uninstall {version} failed: {}",
+            text.lines()
+                .rev()
+                .find(|l| !l.trim().is_empty())
+                .unwrap_or("")
+                .trim()
+        );
+    }
+    Ok(())
+}
+
 /// Node.js versions managed by nvm, nvm-windows, fnm or volta. Filesystem only (no processes),
 /// so it is cheap enough to run on every status refresh.
 pub fn external_node_versions() -> Vec<ExternalRuntime> {

@@ -10,6 +10,12 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.4.3] - 2026-11-04
+
+### Added
+- A cancel button on a running download: the partial file is deleted and nothing is installed.
+- Node.js: nvm-managed versions get a "Remove via nvm" button (runs `nvm uninstall`).
+
 ## [0.4.2] - 2026-11-04
 
 ### Added

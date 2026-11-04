@@ -53,6 +53,8 @@ struct UiState {
     ui_theme: Option<String>,
     /// VERANDA_UI_PERF=1 makes the UI run a scroll benchmark and report it via `perf_report`.
     ui_perf: bool,
+    /// VERANDA_UI_AUTOTEST=<name> runs a scripted UI check (dev only), reported via `perf_report`.
+    ui_autotest: Option<String>,
 }
 
 #[tauri::command]
@@ -102,6 +104,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         ui_tab: std::env::var("VERANDA_UI_TAB").ok(),
         ui_theme: std::env::var("VERANDA_UI_THEME").ok(),
         ui_perf: std::env::var("VERANDA_UI_PERF").is_ok(),
+        ui_autotest: std::env::var("VERANDA_UI_AUTOTEST").ok(),
     })
 }
 
@@ -414,6 +417,26 @@ fn save_config(state: State<'_, AppState>, config: Config) -> CmdResult<()> {
 #[derive(Serialize)]
 struct SyncResult {
     missing_hosts: Vec<String>,
+}
+
+/// Abort the download that is running; the install command then returns "download cancelled".
+#[tauri::command]
+fn cancel_install() {
+    veranda_core::download::request_cancel();
+}
+
+/// Remove a Node version that nvm manages (the only external manager with a remove command).
+#[tauri::command]
+async fn remove_external(kind: String, version: String, source: String) -> CmdResult<()> {
+    if kind != "node" || source != "nvm" {
+        return Err(format!(
+            "{source} versions are managed outside Veranda; remove it there"
+        ));
+    }
+    tauri::async_runtime::spawn_blocking(move || veranda_core::tools::nvm_uninstall(&version))
+        .await
+        .map_err(err)?
+        .map_err(err)
 }
 
 #[tauri::command]
@@ -1188,6 +1211,8 @@ pub fn run() {
             migrate_detect,
             migrate_run,
             pg_password,
+            remove_external,
+            cancel_install,
             start_all,
             stop_all,
             install_package,

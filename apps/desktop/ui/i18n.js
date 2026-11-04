@@ -1,6 +1,8 @@
 // UI strings - short labels only.
 window.VERANDA_I18N = {
   en: {
+    "pkg.cancelling": "Cancelling…", "msg.cancelled": "{name} download cancelled; nothing was installed",
+    "btn.removeNvm": "Remove via nvm", "msg.confirmRemoveExt": "Remove Node {version} from {source}? This runs {source} uninstall.", "msg.removedExt": "Node {version} removed from {source}",
     "btn.installNvm": "Install via nvm", "ver.nvmInstall": "nvm was found, so new versions are installed through nvm (they appear in nvm ls) instead of Veranda's own folder.",
     "cache.valkeyNote": "Valkey is the open-source continuation of Redis 7.2 (Linux Foundation). Same commands, same port, same clients; Redis itself no longer publishes free binaries.", "cache.redisNote": "On Windows this is the community Redis build; on Linux and macOS Veranda uses Valkey, the open-source continuation of Redis 7.2 (same commands and clients).",
     "ver.fetching": "Fetching the version list from {source}…",
@@ -34,6 +36,8 @@ window.VERANDA_I18N = {
     "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
+    "pkg.cancelling": "Membatalkan…", "msg.cancelled": "Unduhan {name} dibatalkan; tidak ada yang dipasang",
+    "btn.removeNvm": "Hapus lewat nvm", "msg.confirmRemoveExt": "Hapus Node {version} dari {source}? Ini menjalankan {source} uninstall.", "msg.removedExt": "Node {version} dihapus dari {source}",
     "btn.installNvm": "Pasang lewat nvm", "ver.nvmInstall": "nvm ditemukan, jadi versi baru dipasang lewat nvm (muncul di nvm ls), bukan ke folder Veranda.",
     "cache.valkeyNote": "Valkey adalah kelanjutan open-source dari Redis 7.2 (Linux Foundation). Perintah, port, dan client-nya sama; Redis sendiri tidak lagi menyediakan binary gratis.", "cache.redisNote": "Di Windows ini build Redis komunitas; di Linux dan macOS Veranda memakai Valkey, kelanjutan open-source Redis 7.2 (perintah dan client sama).",
     "ver.fetching": "Mengambil daftar versi dari {source}…",

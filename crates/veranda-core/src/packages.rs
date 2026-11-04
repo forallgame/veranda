@@ -176,6 +176,7 @@ pub async fn install(
     if !fsutil::is_safe_name(&pkg.version.to_ascii_lowercase().replace('.', "-")) {
         bail!("refusing suspicious version string {:?}", pkg.version);
     }
+    download::clear_cancel();
     let client = download::client()?;
     let final_dir = package_dir(layout, pkg.kind, &pkg.version);
     let staging = layout

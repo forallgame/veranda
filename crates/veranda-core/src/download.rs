@@ -33,6 +33,35 @@ pub struct Progress {
 
 pub type ProgressFn = dyn Fn(Progress) + Send + Sync;
 
+/// Cooperative cancellation for the one download that may run at a time: the UI sets the flag,
+/// the chunk loop sees it and aborts with [`Cancelled`]. Reset by [`clear_cancel`] before a
+/// new download starts.
+static CANCEL: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
+
+pub fn request_cancel() {
+    CANCEL.store(true, std::sync::atomic::Ordering::SeqCst);
+}
+
+pub fn clear_cancel() {
+    CANCEL.store(false, std::sync::atomic::Ordering::SeqCst);
+}
+
+fn cancel_requested() -> bool {
+    CANCEL.load(std::sync::atomic::Ordering::SeqCst)
+}
+
+/// The user cancelled a download; not a failure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct Cancelled;
+
+impl std::fmt::Display for Cancelled {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("download cancelled")
+    }
+}
+
+impl std::error::Error for Cancelled {}
+
 /// Install the `ring` crypto provider once (smaller than aws-lc, no extra toolchain needs).
 fn init_tls() {
     static ONCE: std::sync::Once = std::sync::Once::new();
@@ -112,6 +141,11 @@ pub async fn download(
     let mut downloaded: u64 = 0;
     let mut resp = resp;
     while let Some(chunk) = resp.chunk().await? {
+        if cancel_requested() {
+            drop(file);
+            let _ = tokio::fs::remove_file(&part).await;
+            return Err(Cancelled.into());
+        }
         downloaded += chunk.len() as u64;
         if downloaded > MAX_DOWNLOAD_BYTES {
             let _ = tokio::fs::remove_file(&part).await;
