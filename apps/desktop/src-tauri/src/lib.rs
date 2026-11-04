@@ -14,6 +14,15 @@ use veranda_core::{Config, Platform, Veranda};
 
 pub struct AppState {
     pub app: Mutex<Veranda>,
+    /// Unix time of the last `ui_heartbeat`; 0 until the UI has rendered once.
+    pub heartbeat: std::sync::atomic::AtomicU64,
+}
+
+fn now_secs() -> u64 {
+    std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map(|d| d.as_secs())
+        .unwrap_or(0)
 }
 
 type CmdResult<T> = Result<T, String>;
@@ -152,7 +161,7 @@ async fn grant_web_ports(state: State<'_, AppState>) -> CmdResult<()> {
     .map_err(err)
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone)]
 struct ActionReport {
     id: String,
     ok: bool,
@@ -215,9 +224,21 @@ fn perf_report(text: String) {
     tracing::info!("ui-perf {text}");
 }
 
+/// The UI calls this every few seconds. If it stops while the window is shown, the webview's
+/// render process has died (WebKitGTK shows a blank page then); the page is reloaded.
+#[tauri::command]
+fn ui_heartbeat(state: State<'_, AppState>) {
+    state
+        .heartbeat
+        .store(now_secs(), std::sync::atomic::Ordering::Relaxed);
+}
+
 /// Called by the UI after its first render; shows the (initially hidden) main window.
 #[tauri::command]
 fn ui_ready(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
+    state
+        .heartbeat
+        .store(now_secs(), std::sync::atomic::Ordering::Relaxed);
     let core = open_app(&state)?;
     if core.config.general.start_minimized {
         return Ok(());
@@ -961,6 +982,7 @@ async fn update_install(handle: AppHandle, state: State<'_, AppState>) -> CmdRes
     );
     // Stop services before the binary is swapped and the app relaunches.
     let _ = services::stop_all(&core);
+    teardown_webview(&handle);
     handle.restart();
 }
 
@@ -1005,8 +1027,23 @@ fn quit_app(app: AppHandle) {
             });
             let _ = rx.recv_timeout(std::time::Duration::from_secs(15));
         }
+        teardown_webview(&app);
         app.exit(0);
     });
+}
+
+/// Close the webview before the process exits. Ending the process while WebKitGTK's web
+/// process is still attached makes that helper die with a fatal error (a "WebKitWebProcess
+/// crashed" notice on KDE/GNOME); destroying the window first lets it shut down cleanly.
+fn teardown_webview(app: &AppHandle) {
+    if let Some(w) = app.get_webview_window("main") {
+        let _ = w.hide();
+    }
+    #[cfg(target_os = "linux")]
+    {
+        let n = veranda_core::process::kill_children_named("WebKit");
+        tracing::debug!("stopped {n} WebKit helper process(es)");
+    }
 }
 
 fn show_main(app: &AppHandle) {
@@ -1040,6 +1077,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .manage(AppState {
             app: Mutex::new(core),
+            heartbeat: std::sync::atomic::AtomicU64::new(0),
         })
         .setup(move |app| {
             let show = MenuItem::with_id(app, "show", "Show Veranda", true, None::<&str>)?;
@@ -1128,11 +1166,35 @@ pub fn run() {
                 if let Ok(core) = open_app(&state) {
                     std::thread::spawn(move || {
                         let _ = services::prepare_all(&core);
-                        let _ = services::start_all(&core);
+                        let report = to_report(services::start_all(&core));
                         let _ = handle.emit("services-changed", ());
+                        // The UI shows the outcome (and the port dialogs) like a manual Start All.
+                        let _ = handle.emit("autostart-done", report);
                     });
                 }
             }
+            // Watchdog: reload the page when the UI stops sending heartbeats (web process died).
+            let handle_w = app.handle().clone();
+            std::thread::spawn(move || {
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(10));
+                    let state = handle_w.state::<AppState>();
+                    let last = state.heartbeat.load(std::sync::atomic::Ordering::Relaxed);
+                    if last == 0 || now_secs().saturating_sub(last) < 30 {
+                        continue;
+                    }
+                    if let Some(w) = handle_w.get_webview_window("main")
+                        && w.is_visible().unwrap_or(false)
+                        && let Ok(url) = w.url()
+                    {
+                        tracing::warn!("UI heartbeat lost; reloading the page");
+                        state
+                            .heartbeat
+                            .store(now_secs(), std::sync::atomic::Ordering::Relaxed);
+                        let _ = w.navigate(url);
+                    }
+                }
+            });
             // Background: update check on start (signed feed, falls back to the GitHub API).
             let handle_u = app.handle().clone();
             tauri::async_runtime::spawn(async move {
@@ -1207,6 +1269,7 @@ pub fn run() {
             service_action,
             grant_web_ports,
             ui_ready,
+            ui_heartbeat,
             perf_report,
             migrate_detect,
             migrate_run,

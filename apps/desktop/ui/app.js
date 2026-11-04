@@ -234,7 +234,6 @@ async function toggleKind(kind, on) {
     hidden.add(svc);
   }
   cfg.general.hidden_services = [...hidden];
-  if (on) cfg.general.auto_start = true;   // an enabled service also comes up with Veranda
   if (!on && svcStatus(svc)?.running) {
     busy[svc] = "stop"; renderAll();
     try { await invoke("service_action", { id: svc, action: "stop" }); } catch (e) { fail(e); }
@@ -533,6 +532,7 @@ listen("install-progress", (ev) => {
   paintProgress();
 });
 listen("services-changed", () => refresh());
+listen("autostart-done", async (ev) => { await refresh(true); await reportResults(ev.payload, "start"); });
 listen("backup-done", (ev) => toast(t("msg.backup", { path: ev.payload }), "ok"));
 
 /* ---------------- close behaviour ---------------- */
@@ -881,4 +881,5 @@ async function autotest(name) {
   if (state?.ui_perf) setTimeout(perfBenchmark, 1200);
   if (state?.ui_autotest) setTimeout(() => autotest(state.ui_autotest), 1500);
   setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);
+  setInterval(() => invoke("ui_heartbeat").catch(() => {}), 5000);
 })();

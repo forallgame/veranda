@@ -250,6 +250,27 @@ fn pretty_owner(line: &str) -> String {
     short
 }
 
+/// Kill (SIGKILL) direct child processes of this process whose name starts with `prefix`.
+/// Used for WebKitGTK's helper processes at exit: letting them exit normally trips a
+/// use-after-free in libEGL's exit handlers on some Mesa builds, which the desktop reports as a
+/// crash. A hard kill runs no exit handlers, so nothing is reported and nothing is lost (the
+/// helpers hold no user data).
+pub fn kill_children_named(prefix: &str) -> usize {
+    let me = Pid::from_u32(std::process::id());
+    let mut sys = match System::new() {
+        Ok(s) => s,
+        Err(_) => return 0,
+    };
+    sys.refresh_processes(ProcessesToUpdate::All, true);
+    let mut n = 0;
+    for p in sys.processes().values() {
+        if p.parent() == Some(me) && p.name().to_string_lossy().starts_with(prefix) && p.kill() {
+            n += 1;
+        }
+    }
+    n
+}
+
 /// First port at or above `from` that nothing uses and we may bind (at most 200 tried).
 pub fn next_free_port(from: u16) -> Option<u16> {
     (from..from.saturating_add(200)).find(|p| matches!(port_state(*p), PortState::Free))

@@ -10,7 +10,22 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.4.4] - 2026-11-04
+
+### Fixed
+- Linux: WebKitGTK's GPU rasteriser crashed its render process on some Intel/Mesa drivers
+  ("WebKitWebProcess has encountered a fatal error"). Veranda now rasterises on the CPU and keeps
+  GPU compositing (same 60 fps in the scroll benchmark). If the render process still dies, the
+  page reloads itself within 30 seconds instead of staying blank.
+- Linux: every quit produced a "WebKitWebProcess has encountered a fatal error" notification. The
+  core dump shows a use-after-free in libEGL's exit handlers inside WebKit's helper process (a
+  Mesa bug, not reachable from the app). Veranda now ends its WebKit helper processes directly at
+  quit, so no exit handler runs and nothing is reported.
+
 ### Changed
+- Turning a service switch on no longer silently enables "Start services on launch"; that option
+  is only set in Settings. Services started at launch now report their outcome (toast, port
+  dialogs) exactly like a manual Start All, so a failed start is no longer invisible.
 - In-app brand uses the dark and light tiles from the owner's icon showcase sheet (the installer
   icon keeps the higher-resolution source).
 
