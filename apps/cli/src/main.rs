@@ -443,6 +443,9 @@ async fn run(cli: Cli) -> Result<()> {
                     app.config.db.version = version.clone();
                 }
                 Kind::Postgres => app.config.pg.version = version.clone(),
+                Kind::MongoDb => app.config.mongodb.version = version.clone(),
+                Kind::Meilisearch => app.config.meilisearch.version = version.clone(),
+                Kind::Qdrant => app.config.qdrant.version = version.clone(),
                 Kind::Cache => app.config.cache.version = version.clone(),
                 Kind::Mailpit => app.config.mail.version = version.clone(),
                 _ => bail!("{kind} has no active-version setting"),

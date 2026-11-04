@@ -15,6 +15,9 @@ pub struct Config {
     pub php: Php,
     pub db: Db,
     pub pg: Pg,
+    pub mongodb: Extra,
+    pub meilisearch: Extra,
+    pub qdrant: Extra,
     pub cache: Cache,
     pub mail: Mail,
     pub backup: Backup,
@@ -121,6 +124,18 @@ pub struct Db {
     pub data_dir: String,
 }
 
+/// Settings shared by the single-binary services (MongoDB, Meilisearch, Qdrant).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct Extra {
+    pub enabled: bool,
+    pub version: String,
+    /// 0 = the service's conventional port (27017, 7700, 6333).
+    pub port: u16,
+    /// Empty = `<root>/data/<service>`.
+    pub data_dir: String,
+}
+
 /// PostgreSQL runs beside MariaDB/MySQL, not instead of it.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(default, deny_unknown_fields)]
@@ -212,7 +227,7 @@ impl Default for General {
 impl Default for Web {
     fn default() -> Self {
         Self {
-            enabled: true,
+            enabled: false,
             server: WebServer::Caddy,
             http_port: 80,
             https_port: 443,
@@ -226,7 +241,7 @@ impl Default for Web {
 impl Default for Php {
     fn default() -> Self {
         Self {
-            enabled: true,
+            enabled: false,
             version: String::new(),
             fcgi_port: 9000,
             workers: 4,
@@ -242,7 +257,7 @@ impl Default for Php {
 impl Default for Db {
     fn default() -> Self {
         Self {
-            enabled: true,
+            enabled: false,
             engine: DbEngine::MariaDb,
             version: String::new(),
             port: 3306,
@@ -283,7 +298,7 @@ impl Default for Backup {
 }
 
 /// Where official Veranda releases are published.
-pub const DEFAULT_UPDATE_REPO: &str = "forallgame/veranda";
+pub const DEFAULT_UPDATE_REPO: &str = "livrensandi1/veranda";
 
 impl Update {
     /// Configured repository, or the official one when the field is empty.
@@ -353,7 +368,18 @@ impl Config {
             anyhow::bail!("php.workers must be between 1 and 64");
         }
         for id in &self.general.hidden_services {
-            if !matches!(id.as_str(), "web" | "php" | "db" | "pg" | "cache" | "mail") {
+            if !matches!(
+                id.as_str(),
+                "web"
+                    | "php"
+                    | "db"
+                    | "pg"
+                    | "cache"
+                    | "mail"
+                    | "mongodb"
+                    | "meilisearch"
+                    | "qdrant"
+            ) {
                 anyhow::bail!("general.hidden_services contains unknown service `{id}`");
             }
         }

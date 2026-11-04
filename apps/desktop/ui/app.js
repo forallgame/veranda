@@ -4,29 +4,7 @@ try { const saved = localStorage.getItem("veranda.theme"); if (saved === "light"
 const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
-const ICONS = {
-  web: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15 15 0 0 0-1.4-5.6A8 8 0 0 1 19.9 11zM12 4c.9 1 2.1 3.3 2.4 7H9.6C9.9 7.3 11.1 5 12 4zM4.1 13h3c.2 2.1.6 4 1.3 5.6A8 8 0 0 1 4.1 13zm3-2h-3a8 8 0 0 1 4.3-5.6A15 15 0 0 0 7.1 11zM12 20c-.9-1-2.1-3.3-2.4-7h4.8c-.3 3.7-1.5 6-2.4 7zm2.6-1.4c.7-1.6 1.1-3.5 1.3-5.6h3a8 8 0 0 1-4.3 5.6z"/></svg>',
-  php: '<svg viewBox="0 0 24 24"><path d="M4 7h16a2 2 0 0 1 2 2v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm1.5 2.5v5h1.4v-1.6h1c1.3 0 2.1-.7 2.1-1.7s-.8-1.7-2.1-1.7H5.5zm1.4 1.1h.9c.5 0 .8.2.8.6s-.3.6-.8.6h-.9v-1.2zm3.9-1.1v5h1.4v-1.9h1.6v1.9h1.4v-5h-1.4v2h-1.6v-2h-1.4zm5.3 0v5h1.4v-1.6h1c1.3 0 2.1-.7 2.1-1.7s-.8-1.7-2.1-1.7h-2.4zm1.4 1.1h.9c.5 0 .8.2.8.6s-.3.6-.8.6h-.9v-1.2z"/></svg>',
-  db: '<svg viewBox="0 0 24 24"><path d="M12 2C7 2 4 3.8 4 6v12c0 2.2 3 4 8 4s8-1.8 8-4V6c0-2.2-3-4-8-4zm6 16c0 .7-2.1 2-6 2s-6-1.3-6-2v-2.9c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V18zm0-6c0 .7-2.1 2-6 2s-6-1.3-6-2V9.1c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V12zm-6-4C8.1 8 6 6.7 6 6s2.1-2 6-2 6 1.3 6 2-2.1 2-6 2z"/></svg>',
-  cache: '<svg viewBox="0 0 24 24"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>',
-  mail: '<svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.5l8 5 8-5V6H4zm16 3-8 5-8-5v9h16V9z"/></svg>',
-  pkg: '<svg viewBox="0 0 24 24"><path d="M12 2 3 6.5v11L12 22l9-4.5v-11L12 2zm0 2.2 6.6 3.3L12 10.8 5.4 7.5 12 4.2zM5 9.2l6 3v7.3l-6-3V9.2zm8 10.3v-7.3l6-3v7.3l-6 3z"/></svg>',
-  node: '<svg viewBox="0 0 24 24"><path d="M12 2 3 7v10l9 5 9-5V7l-9-5zm0 2.3L18.6 8 12 11.7 5.4 8 12 4.3zM5 9.7l6 3.4v6.6l-6-3.3V9.7zm8 10v-6.6l6-3.4v6.7l-6 3.3z"/></svg>',
-  tool: '<svg viewBox="0 0 24 24"><path d="M21.7 18.3 14.6 11a6 6 0 0 0-7.9-7.4l3.6 3.6-1.4 2.8-2.8 1.4L2.5 7.8A6 6 0 0 0 10 15.6l7.3 7.1a1.5 1.5 0 0 0 2.1 0l2.3-2.3a1.5 1.5 0 0 0 0-2.1z"/></svg>',
-  shield: '<svg viewBox="0 0 24 24"><path d="M12 2 4 5v6c0 5 3.4 9.7 8 11 4.6-1.3 8-6 8-11V5l-8-3zm-1 14-3.5-3.5 1.4-1.4L11 13.2l4.6-4.6 1.4 1.4L11 16z"/></svg>',
-  site: '<svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6zm-6 4v10h16V8H4z"/></svg>',
-  play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
-  spinner: '<svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg>',
-  stop: '<svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg>',
-  refresh: '<svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg>',
-  open: '<svg viewBox="0 0 24 24"><path d="M14 3h7v7h-2V6.4l-9.3 9.3-1.4-1.4L17.6 5H14V3zM5 5h6v2H5v12h12v-6h2v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2z"/></svg>',
-  folder: '<svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6z"/></svg>',
-  edit: '<svg viewBox="0 0 24 24"><path d="M3 17.3V21h3.7L17.8 9.9l-3.7-3.7L3 17.3zm17.7-10.2a1 1 0 0 0 0-1.4l-2.4-2.4a1 1 0 0 0-1.4 0l-1.8 1.8 3.7 3.7 1.9-1.7z"/></svg>',
-  trash: '<svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h-2v-8h2z"/></svg>',
-  x: '<svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4L10.6 12 4.3 5.7l1.4-1.4L12 10.6l6.3-6.3z"/></svg>',
-  info: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>',
-  file: '<svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2z"/></svg>',
-};
+const ICONS = window.VERANDA_ICONS;
 
 // Every downloadable kind. `svc` links a kind to the runtime service it provides (web/php/db/cache/mail);
 // tools have no service. The sidebar and the service pages are generated from this table.
@@ -35,12 +13,19 @@ const KIND_META = {
   nginx:      { label: "Nginx",          svc: "web",   group: "web",   icon: "web" },
   apache:     { label: "Apache",         svc: "web",   group: "web",   icon: "web" },
   php:        { label: "PHP",            svc: "php",   group: "lang",  icon: "php" },
-  python:     { label: "Python",         group: "lang", icon: "pkg" },
-  go:         { label: "Go",             group: "lang", icon: "pkg" },
-  bun:        { label: "Bun",            group: "lang", icon: "node" },
+  python:     { label: "Python",         group: "lang", icon: "lang" },
+  go:         { label: "Go",             group: "lang", icon: "lang" },
+  bun:        { label: "Bun",            group: "lang", icon: "lang" },
+  java:       { label: "Java",           group: "lang", icon: "lang" },
+  deno:       { label: "Deno",           group: "lang", icon: "lang" },
+  zig:        { label: "Zig",            group: "lang", icon: "lang" },
+  dotnet:     { label: ".NET SDK",       group: "lang", icon: "lang" },
   mariadb:    { label: "MariaDB",        svc: "db",    group: "db",    icon: "db" },
   mysql:      { label: "MySQL",          svc: "db",    group: "db",    icon: "db" },
   postgres:   { label: "PostgreSQL",     svc: "pg",    group: "db",    icon: "db" },
+  mongodb:    { label: "MongoDB",        svc: "mongodb", group: "db",  icon: "db" },
+  meilisearch:{ label: "Meilisearch",    svc: "meilisearch", group: "search", icon: "search", open: "meili" },
+  qdrant:     { label: "Qdrant",         svc: "qdrant", group: "search", icon: "vector", open: "qdrant" },
   cache:      { label: "Valkey",         svc: "cache", group: "more",  icon: "cache" },   // "Redis" on Windows (set at boot)
   mailpit:    { label: "Mailpit",        svc: "mail",  group: "more",  icon: "mail" },
   composer:   { label: "Composer",       group: "tools", icon: "pkg" },
@@ -49,8 +34,8 @@ const KIND_META = {
   phpmyadmin: { label: "phpMyAdmin",     group: "tools", icon: "tool", open: "phpmyadmin" },
   cabundle:   { label: "CA bundle",      group: "tools", icon: "shield" },
 };
-const GROUPS = [["web", "group.web"], ["lang", "group.lang"], ["db", "group.db"], ["more", "group.more"], ["tools", "group.tools"]];
-const SVC_SECTION = { web: "web", php: "php", db: "db", pg: "pg", cache: "cache", mail: "mail" };
+const GROUPS = [["web", "group.web"], ["lang", "group.lang"], ["db", "group.db"], ["search", "group.search"], ["more", "group.more"], ["tools", "group.tools"]];
+const SVC_SECTION = { web: "web", php: "php", db: "db", pg: "pg", cache: "cache", mail: "mail", mongodb: "mongodb", meilisearch: "meilisearch", qdrant: "qdrant" };
 const SVC_ROLE = { web: "role.web", db: "role.db" };
 
 let state = null, lang = "en", upstream = null, builtin = null, upstreamLoading = false;
@@ -89,11 +74,10 @@ function renderActivity() {
   if (!ul) return;
   ul.innerHTML = activity.map((a) => `<li class="${a.cls}"><time>${a.t}</time><i></i><span>${esc(a.msg)}</span></li>`).join("") || `<div class="activity-empty">—</div>`;
 }
-const TOAST_ICON = {
-  ok: '<svg viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>',
-  bad: '<svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>',
-  info: ICONS.info,
-};
+const TOAST_ICON = { ok: ICONS.toastOk, bad: ICONS.toastBad, info: ICONS.toastInfo };
+// Static markup (index.html) declares icons as <i class="ic" data-icon="name"></i>; fill them once.
+const applyIcons = () => { $$("i.ic[data-icon]").forEach((el) => { if (!el.firstChild) el.innerHTML = ICONS[el.dataset.icon] || ""; }); };
+applyIcons();
 function toast(msg, cls = "") {
   const box = $("#toasts");
   while (box.children.length >= 3) box.firstChild.remove();
@@ -171,7 +155,7 @@ const installedVersions = (kind) => state.installed.filter((i) => i.kind === kin
 const externalVersions = (kind) => (state.external || []).filter((x) => x.kind === kind);
 const svcStatus = (svc) => state.services.find((s) => s.id === svc);
 function activeKind(svc) {
-  return { web: state.config.web.server, db: state.config.db.engine, pg: "postgres", php: "php", cache: "cache", mail: "mailpit" }[svc];
+  return { web: state.config.web.server, db: state.config.db.engine, pg: "postgres", php: "php", cache: "cache", mail: "mailpit", mongodb: "mongodb", meilisearch: "meilisearch", qdrant: "qdrant" }[svc];
 }
 const isActive = (kind) => !!KIND_META[kind].svc && activeKind(KIND_META[kind].svc) === kind;
 function kindOn(kind) {
@@ -334,10 +318,11 @@ async function reportResults(results, action) {
   if (conflict) await offerPortMove(conflict);
 }
 // Every port a service listens on, as [section, key] in the config.
-const PORT_FIELDS = { web: [["web", "http_port"], ["web", "https_port"]], db: [["db", "port"]], pg: [["pg", "port"]], php: [["php", "fcgi_port"]], cache: [["cache", "port"]], mail: [["mail", "smtp_port"], ["mail", "http_port"]] };
+const PORT_FIELDS = { web: [["web", "http_port"], ["web", "https_port"]], db: [["db", "port"]], pg: [["pg", "port"]], php: [["php", "fcgi_port"]], cache: [["cache", "port"]], mail: [["mail", "smtp_port"], ["mail", "http_port"]], mongodb: [["mongodb", "port"]], meilisearch: [["meilisearch", "port"]], qdrant: [["qdrant", "port"]] };
 async function offerPortMove(r) {
   const c = r.port_in_use, name = serviceName(r.id);
-  const field = (PORT_FIELDS[r.id] || []).find(([sec, key]) => state.config[sec][key] === c.port);
+  const DEFAULT_PORT = { mongodb: 27017, meilisearch: 7700, qdrant: 6333 };
+  const field = (PORT_FIELDS[r.id] || []).find(([sec, key]) => (state.config[sec][key] || DEFAULT_PORT[sec] || 0) === c.port);
   if (!field) { toast(`${name}: ${r.error.split("\n")[0]}`, "bad"); return; }
   $("#confirm-title").textContent = t("ports.busyTitle", { port: c.port });
   const ok = await askConfirm(t("ports.busyBody", { owner: c.owner || "?", name, new: c.suggestion }), t("btn.usePort", { new: c.suggestion }));
@@ -415,6 +400,7 @@ function renderService() {
     if (m.svc === "mail") quick.push(`<button class="btn small" data-open="mail">${ICONS.open}<span>${t("btn.openMail")}</span></button>`);
     if (m.svc === "db") { quick.push(`<button class="btn small" data-open="adminer">${ICONS.open}<span>Adminer</span></button>`); quick.push(`<button class="btn small" data-tab="database">${ICONS.db}<span>${t("nav.database")}</span></button>`); }
     if (m.svc === "pg") quick.push(`<button class="btn small" data-open="adminer-pg">${ICONS.open}<span>Adminer (PostgreSQL)</span></button>`);
+    if (m.open && m.svc) quick.unshift(`<button class="btn small" data-open="${m.open}" ${st?.running ? "" : "disabled"}>${ICONS.open}<span>${t("btn.openUi")}</span></button>`);
     if (m.svc === "cache") notice += `<div class="notice">${ICONS.info}<span>${t(state.platform.startsWith("windows") ? "cache.redisNote" : "cache.valkeyNote")}</span></div>`;
     if (m.svc === "php") quick.push(`<button class="btn small" data-open="phpini">${ICONS.edit}<span>php.ini</span></button>`);
     quick.push(`<button class="btn small" data-open="config">${ICONS.file}<span>${t("btn.configFile")}</span></button>`);
@@ -655,7 +641,8 @@ async function loadLog() {
   view.dataset.empty = t("logs.empty");
   if (!currentLog) { view.textContent = ""; return; }
   try {
-    const text = await invoke("read_log", { name: currentLog, lines: 400 });
+    const raw = await invoke("read_log", { name: currentLog, lines: 400 });
+    const text = raw.replace(/\x1b\[[0-9;]*[A-Za-z]/g, "");   // strip ANSI colour codes some servers print
     view.innerHTML = text.split("\n").map((l) => {
       const cls = /error|fatal|panic|denied|failed/i.test(l) ? "ln-err" : /warn/i.test(l) ? "ln-warn" : "";
       return cls ? `<span class="${cls}">${esc(l)}</span>` : esc(l);

@@ -10,6 +10,32 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-04
+
+### Fixed
+- Logs view strips ANSI colour codes (Meilisearch and others print them).
+- Large downloads on slow connections could fail with "operation timed out" after 30 minutes even
+  though they were still progressing; the deadline is now a 2-minute stall timeout instead.
+
+### Changed
+- The project moved to https://github.com/livrensandi1/veranda; updates are checked there (the old
+  address keeps redirecting, so installed copies continue to update).
+
+### Added
+- A new hand-drawn icon family (24-grid rounded line icons) for every menu, service, action and
+  toast, and a vector app icon drawn to match: dark and light tiles, used for the launcher,
+  installers, tray and in-app brand.
+- Services: **MongoDB** (official archives), **Meilisearch** and **Qdrant** (GitHub releases), each
+  with its own data folder, loopback-only listener and port setting; Meilisearch and Qdrant have an
+  "Open UI" button. MinIO was considered and dropped: the open-source project was archived upstream.
+- Runtimes: **Java** (Eclipse Temurin LTS lines via Adoptium), **Deno**, **Zig** and the **.NET SDK**,
+  all with upstream checksums and added to the terminal PATH.
+
+### Changed
+- Fresh installs start with every service switched off: the Overview stays empty until you turn a
+  service on in the sidebar, and what you turned on stays there across restarts until you turn it
+  off. (Existing installs keep their current switches.)
+
 ## [0.4.4] - 2026-11-04
 
 ### Fixed

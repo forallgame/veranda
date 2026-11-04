@@ -76,7 +76,9 @@ pub fn client() -> Result<reqwest::Client> {
         .user_agent(USER_AGENT)
         .https_only(true)
         .connect_timeout(Duration::from_secs(20))
-        .timeout(Duration::from_secs(60 * 30))
+        // No overall deadline: a big archive on a slow link must not fail while it still makes
+        // progress. Stalls are caught by the read timeout instead.
+        .read_timeout(Duration::from_secs(120))
         .redirect(reqwest::redirect::Policy::limited(5))
         .build()?)
 }

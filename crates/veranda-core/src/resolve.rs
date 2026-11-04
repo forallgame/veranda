@@ -119,6 +119,13 @@ pub async fn versions(kind: Kind, p: Platform) -> Result<Vec<Package>> {
         Kind::Python => python(&c, p).await?,
         Kind::Go => go(&c, p).await?,
         Kind::Bun => bun(&c, p).await?,
+        Kind::MongoDb => mongodb(&c, p).await?,
+        Kind::Meilisearch => meilisearch(&c, p).await?,
+        Kind::Qdrant => qdrant(&c, p).await?,
+        Kind::Java => java(&c, p).await?,
+        Kind::Deno => deno(&c, p).await?,
+        Kind::Zig => zig(&c, p).await?,
+        Kind::DotNet => dotnet(&c, p).await?,
     };
     if v.is_empty() {
         bail!("no {kind} versions found upstream");
@@ -947,6 +954,368 @@ async fn bun(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
             p,
             "github",
             vec![part(asset.browser_download_url.clone(), checksum, 1)],
+        ));
+    }
+    Ok(out)
+}
+
+// ---------------------------------------------------------------- MongoDB / Meilisearch / Qdrant / Java / Deno / Zig / .NET
+
+/// MongoDB publishes `current.json` with every production release and a sha256 per archive.
+async fn mongodb(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    #[derive(Deserialize)]
+    struct Index {
+        versions: Vec<Ver>,
+    }
+    #[derive(Deserialize)]
+    struct Ver {
+        version: String,
+        #[serde(default)]
+        production_release: bool,
+        downloads: Vec<Dl>,
+    }
+    #[derive(Deserialize)]
+    struct Dl {
+        #[serde(default)]
+        target: String,
+        #[serde(default)]
+        arch: String,
+        #[serde(default)]
+        edition: String,
+        archive: Archive,
+    }
+    #[derive(Deserialize)]
+    struct Archive {
+        url: String,
+        #[serde(default)]
+        sha256: String,
+    }
+    // (target, arch, edition) MongoDB uses for this platform
+    let want: (&str, &str, &str) = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => ("ubuntu2404", "x86_64", "targeted"),
+        (Os::Linux, Arch::Aarch64) => ("ubuntu2404", "aarch64", "targeted"),
+        (Os::Macos, Arch::X86_64) => ("macos", "x86_64", "base"),
+        (Os::Macos, Arch::Aarch64) => ("macos", "arm64", "base"),
+        (Os::Windows, Arch::X86_64) => ("windows", "x86_64", "base"),
+        (Os::Windows, Arch::Aarch64) => bail!("no MongoDB build for Windows on ARM"),
+    };
+    let text = fetch_text(c, "https://downloads.mongodb.org/current.json").await?;
+    let idx: Index = serde_json::from_str(&text).context("parsing current.json")?;
+    Ok(idx
+        .versions
+        .into_iter()
+        .filter(|v| v.production_release)
+        .filter_map(|v| {
+            let dl = v
+                .downloads
+                .into_iter()
+                .find(|d| d.target == want.0 && d.arch == want.1 && d.edition == want.2)?;
+            let checksum = if dl.archive.sha256.len() == 64 {
+                Checksum::Sha256 {
+                    hex: dl.archive.sha256,
+                }
+            } else {
+                Checksum::Tofu
+            };
+            Some(pkg(
+                Kind::MongoDb,
+                &v.version,
+                p,
+                "mongodb.com",
+                vec![part(dl.archive.url, checksum, 1)],
+            ))
+        })
+        .collect())
+}
+
+async fn meilisearch(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let (name, file) = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => ("meilisearch-linux-amd64", "meilisearch"),
+        (Os::Linux, Arch::Aarch64) => ("meilisearch-linux-aarch64", "meilisearch"),
+        (Os::Macos, Arch::X86_64) => ("meilisearch-macos-amd64", "meilisearch"),
+        (Os::Macos, Arch::Aarch64) => ("meilisearch-macos-apple-silicon", "meilisearch"),
+        (Os::Windows, Arch::X86_64) => ("meilisearch-windows-amd64.exe", "meilisearch.exe"),
+        (Os::Windows, Arch::Aarch64) => bail!("no Meilisearch build for Windows on ARM"),
+    };
+    let mut out = Vec::new();
+    for rel in github_releases(c, "meilisearch/meilisearch", 12).await? {
+        let v = rel.tag_name.trim_start_matches('v').to_string();
+        if let Some(a) = rel.assets.iter().find(|a| a.name == name) {
+            out.push(pkg(
+                Kind::Meilisearch,
+                &v,
+                p,
+                "github",
+                vec![file_part(
+                    a.browser_download_url.clone(),
+                    gh_checksum(a),
+                    file,
+                )],
+            ));
+        }
+    }
+    Ok(out)
+}
+
+async fn qdrant(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let name = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "qdrant-x86_64-unknown-linux-musl.tar.gz",
+        (Os::Linux, Arch::Aarch64) => "qdrant-aarch64-unknown-linux-musl.tar.gz",
+        (Os::Macos, Arch::X86_64) => "qdrant-x86_64-apple-darwin.tar.gz",
+        (Os::Macos, Arch::Aarch64) => "qdrant-aarch64-apple-darwin.tar.gz",
+        (Os::Windows, Arch::X86_64) => "qdrant-x86_64-pc-windows-msvc.zip",
+        (Os::Windows, Arch::Aarch64) => bail!("no Qdrant build for Windows on ARM"),
+    };
+    let mut out = Vec::new();
+    for rel in github_releases(c, "qdrant/qdrant", 12).await? {
+        let v = rel.tag_name.trim_start_matches('v').to_string();
+        if let Some(a) = rel.assets.iter().find(|a| a.name == name) {
+            out.push(pkg(
+                Kind::Qdrant,
+                &v,
+                p,
+                "github",
+                vec![part(a.browser_download_url.clone(), gh_checksum(a), 0)],
+            ));
+        }
+    }
+    Ok(out)
+}
+
+/// Eclipse Temurin via the Adoptium API: one call per LTS line, sha256 included.
+async fn java(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    #[derive(Deserialize)]
+    struct Rel {
+        binaries: Vec<Bin>,
+        version_data: VersionData,
+    }
+    #[derive(Deserialize)]
+    struct Bin {
+        package: Pkg,
+    }
+    #[derive(Deserialize)]
+    struct Pkg {
+        link: String,
+        checksum: String,
+    }
+    #[derive(Deserialize)]
+    struct VersionData {
+        major: u32,
+        minor: u32,
+        security: u32,
+    }
+    let (os, arch) = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => ("linux", "x64"),
+        (Os::Linux, Arch::Aarch64) => ("linux", "aarch64"),
+        (Os::Macos, Arch::X86_64) => ("mac", "x64"),
+        (Os::Macos, Arch::Aarch64) => ("mac", "aarch64"),
+        (Os::Windows, Arch::X86_64) => ("windows", "x64"),
+        (Os::Windows, Arch::Aarch64) => ("windows", "aarch64"),
+    };
+    let mut out = Vec::new();
+    for lts in [25u32, 21, 17, 11, 8] {
+        let url = format!(
+            "https://api.adoptium.net/v3/assets/feature_releases/{lts}/ga?architecture={arch}&os={os}&image_type=jdk&jvm_impl=hotspot&vendor=eclipse&page_size=1"
+        );
+        let Ok(text) = fetch_text(c, &url).await else {
+            continue;
+        };
+        let Ok(rels) = serde_json::from_str::<Vec<Rel>>(&text) else {
+            continue;
+        };
+        for r in rels {
+            let Some(b) = r.binaries.into_iter().next() else {
+                continue;
+            };
+            let v = format!(
+                "{}.{}.{}",
+                r.version_data.major, r.version_data.minor, r.version_data.security
+            );
+            out.push(pkg(
+                Kind::Java,
+                &v,
+                p,
+                "adoptium.net",
+                vec![part(
+                    b.package.link,
+                    Checksum::Sha256 {
+                        hex: b.package.checksum,
+                    },
+                    1,
+                )],
+            ));
+        }
+    }
+    Ok(out)
+}
+
+/// Deno ships `<asset>.sha256sum` next to every zip.
+async fn deno(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let triple = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "x86_64-unknown-linux-gnu",
+        (Os::Linux, Arch::Aarch64) => "aarch64-unknown-linux-gnu",
+        (Os::Macos, Arch::X86_64) => "x86_64-apple-darwin",
+        (Os::Macos, Arch::Aarch64) => "aarch64-apple-darwin",
+        (Os::Windows, Arch::X86_64) => "x86_64-pc-windows-msvc",
+        (Os::Windows, Arch::Aarch64) => "aarch64-pc-windows-msvc",
+    };
+    let name = format!("deno-{triple}.zip");
+    let mut out = Vec::new();
+    for rel in github_releases(c, "denoland/deno", 12).await? {
+        let v = rel.tag_name.trim_start_matches('v').to_string();
+        let Some(a) = rel.assets.iter().find(|a| a.name == name) else {
+            continue;
+        };
+        let checksum = match rel
+            .assets
+            .iter()
+            .find(|s| s.name == format!("{name}.sha256sum"))
+        {
+            Some(s) => Checksum::Remote {
+                url: s.browser_download_url.clone(),
+                name: name.clone(),
+            },
+            None => gh_checksum(a),
+        };
+        out.push(pkg(
+            Kind::Deno,
+            &v,
+            p,
+            "github",
+            vec![part(a.browser_download_url.clone(), checksum, 0)],
+        ));
+    }
+    Ok(out)
+}
+
+/// ziglang.org/download/index.json: every release with tarball + sha256 per target.
+async fn zig(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let target = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "x86_64-linux",
+        (Os::Linux, Arch::Aarch64) => "aarch64-linux",
+        (Os::Macos, Arch::X86_64) => "x86_64-macos",
+        (Os::Macos, Arch::Aarch64) => "aarch64-macos",
+        (Os::Windows, Arch::X86_64) => "x86_64-windows",
+        (Os::Windows, Arch::Aarch64) => "aarch64-windows",
+    };
+    let text = fetch_text(c, "https://ziglang.org/download/index.json").await?;
+    let idx: serde_json::Value = serde_json::from_str(&text).context("parsing zig index")?;
+    let mut out = Vec::new();
+    if let Some(map) = idx.as_object() {
+        for (ver, entry) in map {
+            if ver == "master" || !ver.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+                continue;
+            }
+            let Some(t) = entry.get(target) else {
+                continue;
+            };
+            let (Some(url), Some(sha)) = (
+                t.get("tarball").and_then(|v| v.as_str()),
+                t.get("shasum").and_then(|v| v.as_str()),
+            ) else {
+                continue;
+            };
+            out.push(pkg(
+                Kind::Zig,
+                ver,
+                p,
+                "ziglang.org",
+                vec![part(
+                    url.to_string(),
+                    Checksum::Sha256 {
+                        hex: sha.to_string(),
+                    },
+                    1,
+                )],
+            ));
+        }
+    }
+    Ok(out)
+}
+
+/// .NET SDK: releases-index lists channels; each channel's releases.json carries file hashes.
+async fn dotnet(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    #[derive(Deserialize)]
+    struct Index {
+        #[serde(rename = "releases-index")]
+        channels: Vec<Channel>,
+    }
+    #[derive(Deserialize)]
+    struct Channel {
+        #[serde(rename = "support-phase")]
+        phase: String,
+        #[serde(rename = "releases.json")]
+        releases: String,
+    }
+    #[derive(Deserialize)]
+    struct Releases {
+        releases: Vec<Rel>,
+    }
+    #[derive(Deserialize)]
+    struct Rel {
+        sdk: Sdk,
+    }
+    #[derive(Deserialize)]
+    struct Sdk {
+        version: String,
+        files: Vec<File>,
+    }
+    #[derive(Deserialize)]
+    struct File {
+        name: String,
+        rid: String,
+        url: String,
+        #[serde(default)]
+        hash: String,
+    }
+    let rid = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "linux-x64",
+        (Os::Linux, Arch::Aarch64) => "linux-arm64",
+        (Os::Macos, Arch::X86_64) => "osx-x64",
+        (Os::Macos, Arch::Aarch64) => "osx-arm64",
+        (Os::Windows, Arch::X86_64) => "win-x64",
+        (Os::Windows, Arch::Aarch64) => "win-arm64",
+    };
+    let text = fetch_text(
+        c,
+        "https://builds.dotnet.microsoft.com/dotnet/release-metadata/releases-index.json",
+    )
+    .await?;
+    let idx: Index = serde_json::from_str(&text).context("parsing releases-index")?;
+    let mut out = Vec::new();
+    for ch in idx
+        .channels
+        .into_iter()
+        .filter(|ch| matches!(ch.phase.as_str(), "active" | "maintenance"))
+        .take(3)
+    {
+        let Ok(text) = fetch_text(c, &ch.releases).await else {
+            continue;
+        };
+        let Ok(rels) = serde_json::from_str::<Releases>(&text) else {
+            continue;
+        };
+        let Some(r) = rels.releases.into_iter().next() else {
+            continue;
+        };
+        let Some(f) =
+            r.sdk.files.into_iter().find(|f| {
+                f.rid == rid && (f.name.ends_with(".tar.gz") || f.name.ends_with(".zip"))
+            })
+        else {
+            continue;
+        };
+        let checksum = match f.hash.len() {
+            128 => Checksum::Sha512 { hex: f.hash },
+            64 => Checksum::Sha256 { hex: f.hash },
+            _ => Checksum::Tofu,
+        };
+        out.push(pkg(
+            Kind::DotNet,
+            &r.sdk.version,
+            p,
+            "microsoft.com",
+            vec![part(f.url, checksum, 0)],
         ));
     }
     Ok(out)

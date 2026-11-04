@@ -335,8 +335,14 @@ fn post_install(kind: Kind, dir: &Path) -> Result<()> {
             fsutil::remove_dir_all_if_exists(&dir.join("META-INF"))?;
             make_bin_executable(&dir.join("bin"))?;
         }
-        Kind::Python | Kind::Go => make_bin_executable(&dir.join("bin"))?,
-        Kind::Bun => make_bin_executable(dir)?,
+        Kind::Python | Kind::Go | Kind::MongoDb => make_bin_executable(&dir.join("bin"))?,
+        Kind::Java => {
+            make_bin_executable(&dir.join("bin"))?;
+            make_bin_executable(&dir.join("Contents").join("Home").join("bin"))?;
+        }
+        Kind::Bun | Kind::Meilisearch | Kind::Qdrant | Kind::Deno | Kind::Zig | Kind::DotNet => {
+            make_bin_executable(dir)?
+        }
         _ => {}
     }
     Ok(())
@@ -490,6 +496,22 @@ impl Binaries {
     pub fn postgres_bin_dir(i: &Installed) -> PathBuf {
         i.path.join("bin")
     }
+    /// Temurin on macOS unpacks to `Contents/Home/bin`; elsewhere to `bin`.
+    pub fn java_bin_dir(i: &Installed) -> PathBuf {
+        let mac = i.path.join("Contents").join("Home").join("bin");
+        if mac.is_dir() {
+            mac
+        } else {
+            i.path.join("bin")
+        }
+    }
+    pub fn mongodb_bin_dir(i: &Installed) -> PathBuf {
+        i.path.join("bin")
+    }
+    /// Single-binary tools unpack at the package root.
+    pub fn root_bin_dir(i: &Installed) -> PathBuf {
+        i.path.clone()
+    }
     pub fn node_bin_dir(i: &Installed) -> PathBuf {
         if Platform::current().is_windows() {
             i.path.clone()
@@ -522,6 +544,17 @@ pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec
     }
     if let Some(i) = reg.active(Kind::Postgres, &cfg.pg.version) {
         v.push(Binaries::postgres_bin_dir(i));
+    }
+    if let Some(i) = reg.newest(Kind::Java) {
+        v.push(Binaries::java_bin_dir(i));
+    }
+    for k in [Kind::Deno, Kind::Zig, Kind::DotNet] {
+        if let Some(i) = reg.newest(k) {
+            v.push(Binaries::root_bin_dir(i));
+        }
+    }
+    if let Some(i) = reg.active(Kind::MongoDb, &cfg.mongodb.version) {
+        v.push(Binaries::mongodb_bin_dir(i));
     }
     let db_kind = match cfg.db.engine {
         DbEngine::MariaDb => Kind::MariaDb,

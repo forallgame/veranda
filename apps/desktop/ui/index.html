@@ -16,19 +16,16 @@
       <span>Veranda</span>
     </div>
     <nav class="nav" id="nav">
-      <button class="nav-item active" data-tab="dashboard"><svg viewBox="0 0 24 24"><path d="M4 13h6V4H4v9zm0 7h6v-5H4v5zm10 0h6v-9h-6v9zm0-16v5h6V4h-6z"/></svg><span data-i18n="nav.overview">Overview</span></button>
-      <button class="nav-item" data-tab="sites"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm6.9 9h-3a15 15 0 0 0-1.3-5.6A8 8 0 0 1 18.9 11zM12 4c.9 1 2.1 3.3 2.4 7H9.6C9.9 7.3 11.1 5 12 4zM5.1 13h3c.2 2.1.6 4 1.3 5.6A8 8 0 0 1 5.1 13zm3-2h-3a8 8 0 0 1 4.3-5.6A15 15 0 0 0 8.1 11zM12 20c-.9-1-2.1-3.3-2.4-7h4.8c-.3 3.7-1.5 6-2.4 7zm2.6-1.4c.7-1.6 1.1-3.5 1.3-5.6h3a8 8 0 0 1-4.3 5.6z"/></svg><span data-i18n="nav.sites">Sites</span></button>
-      <button class="nav-item" data-tab="database"><svg viewBox="0 0 24 24"><path d="M12 2C7 2 4 3.8 4 6v12c0 2.2 3 4 8 4s8-1.8 8-4V6c0-2.2-3-4-8-4zm0 2c3.9 0 6 1.3 6 2s-2.1 2-6 2-6-1.3-6-2 2.1-2 6-2zM6 9.1c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V12c0 .7-2.1 2-6 2s-6-1.3-6-2V9.1zm0 6c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V18c0 .7-2.1 2-6 2s-6-1.3-6-2v-2.9z"/></svg><span data-i18n="nav.database">Database</span></button>
-      <button class="nav-item" data-tab="logs"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2zm0-8h4v2H8V8z"/></svg><span data-i18n="nav.logs">Logs</span></button>
+      <button class="nav-item active" data-tab="dashboard"><i class="ic" data-icon="overview"></i><span data-i18n="nav.overview">Overview</span></button>
+      <button class="nav-item" data-tab="sites"><i class="ic" data-icon="sites"></i><span data-i18n="nav.sites">Sites</span></button>
+      <button class="nav-item" data-tab="database"><i class="ic" data-icon="database"></i><span data-i18n="nav.database">Database</span></button>
+      <button class="nav-item" data-tab="logs"><i class="ic" data-icon="logs"></i><span data-i18n="nav.logs">Logs</span></button>
       <div id="svc-nav"></div>
     </nav>
     <div class="side-foot">
-      <button class="nav-item" data-tab="settings"><svg viewBox="0 0 24 24"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2.1-1.6-2-3.5-2.5 1a7.7 7.7 0 0 0-1.7-1L15 3.2H9l-.4 2.7c-.6.3-1.2.6-1.7 1l-2.5-1-2 3.5L4.6 11a7.6 7.6 0 0 0 0 2l-2.1 1.6 2 3.5 2.5-1c.5.4 1.1.7 1.7 1l.4 2.7h6l.4-2.7c.6-.3 1.2-.6 1.7-1l2.5 1 2-3.5L19.4 13zM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/></svg><span data-i18n="nav.settings">Settings</span></button>
+      <button class="nav-item" data-tab="settings"><i class="ic" data-icon="settings"></i><span data-i18n="nav.settings">Settings</span></button>
       <div class="foot-row">
-        <button class="icon-btn small" id="theme-toggle" title="Theme">
-          <svg class="ic-sun" viewBox="0 0 24 24"><path d="M12 7a5 5 0 1 0 0 10 5 5 0 0 0 0-10zm0-5h0a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0V3a1 1 0 0 1 1-1zm0 18a1 1 0 0 1 1 1v2a1 1 0 1 1-2 0v-2a1 1 0 0 1 1-1zM2 12a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2H3a1 1 0 0 1-1-1zm17 0a1 1 0 0 1 1-1h2a1 1 0 1 1 0 2h-2a1 1 0 0 1-1-1zM4.9 4.9a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4L4.9 6.3a1 1 0 0 1 0-1.4zm11.4 11.4a1 1 0 0 1 1.4 0l1.4 1.4a1 1 0 0 1-1.4 1.4l-1.4-1.4a1 1 0 0 1 0-1.4zm1.4-11.4a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 1 1-1.4-1.4l1.4-1.4zM6.3 16.3a1 1 0 0 1 1.4 1.4l-1.4 1.4a1 1 0 0 1-1.4-1.4l1.4-1.4z"/></svg>
-          <svg class="ic-moon" viewBox="0 0 24 24"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
-        </button>
+        <button class="icon-btn small" id="theme-toggle" title="Theme"><i class="ic ic-sun" data-icon="sun"></i><i class="ic ic-moon" data-icon="moon"></i></button>
         <span class="version" id="version"></span>
       </div>
     </div>
@@ -41,7 +38,7 @@
         <div class="progress mini hidden" id="update-progress"><div class="bar"><div class="fill"></div></div><span class="txt"></span></div>
         <button class="btn small primary" id="btn-update-install" data-i18n="update.install">Update now</button>
         <button class="btn small" id="btn-update-page" data-i18n="update.page">Release page</button>
-        <button class="icon-btn small" id="btn-update-dismiss" title="Dismiss"><svg viewBox="0 0 24 24"><path d="M18.3 5.7 12 12l6.3 6.3-1.4 1.4L12 13.4l-6.3 6.3-1.4-1.4L10.6 12 4.3 5.7l1.4-1.4L12 10.6l6.3-6.3z"/></svg></button>
+        <button class="icon-btn small" id="btn-update-dismiss" title="Dismiss"><i class="ic" data-icon="x"></i></button>
       </div>
     </div>
 
@@ -50,8 +47,8 @@
       <header class="top">
         <div class="status" id="global-status"><span class="dot"></span><span class="txt" data-i18n="status.stopped">Stopped</span></div>
         <div class="spacer"></div>
-        <button class="btn primary" id="btn-start-all"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg><span data-i18n="btn.startAll">Start All</span></button>
-        <button class="btn" id="btn-stop-all"><svg viewBox="0 0 24 24"><path d="M6 6h12v12H6z"/></svg><span data-i18n="btn.stopAll">Stop All</span></button>
+        <button class="btn primary" id="btn-start-all"><i class="ic" data-icon="play"></i><span data-i18n="btn.startAll">Start All</span></button>
+        <button class="btn" id="btn-stop-all"><i class="ic" data-icon="stop"></i><span data-i18n="btn.stopAll">Stop All</span></button>
       </header>
       <div class="banner hidden" id="hosts-notice">
         <span data-i18n="notice.hosts">Hosts file needs an update</span>
@@ -59,12 +56,12 @@
       </div>
       <div class="list" id="services"></div>
       <div class="quick">
-        <button class="tile" data-open="web"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm7.9 9h-3a15 15 0 0 0-1.4-5.6A8 8 0 0 1 19.9 11zM12 4c.9 1 2.1 3.3 2.4 7H9.6C9.9 7.3 11.1 5 12 4zM4.1 13h3c.2 2.1.6 4 1.3 5.6A8 8 0 0 1 4.1 13zm3-2h-3a8 8 0 0 1 4.3-5.6A15 15 0 0 0 7.1 11zM12 20c-.9-1-2.1-3.3-2.4-7h4.8c-.3 3.7-1.5 6-2.4 7zm2.6-1.4c.7-1.6 1.1-3.5 1.3-5.6h3a8 8 0 0 1-4.3 5.6z"/></svg><span data-i18n="quick.web">Web</span></button>
-        <button class="tile" data-open="adminer"><svg viewBox="0 0 24 24"><path d="M12 2C7 2 4 3.8 4 6v12c0 2.2 3 4 8 4s8-1.8 8-4V6c0-2.2-3-4-8-4zm6 16c0 .7-2.1 2-6 2s-6-1.3-6-2v-2.9c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V18zm0-6c0 .7-2.1 2-6 2s-6-1.3-6-2V9.1c1.5.9 3.6 1.4 6 1.4s4.5-.5 6-1.4V12zm-6-4C8.1 8 6 6.7 6 6s2.1-2 6-2 6 1.3 6 2-2.1 2-6 2z"/></svg><span data-i18n="quick.database">Database</span></button>
-        <button class="tile" data-open="mail"><svg viewBox="0 0 24 24"><path d="M4 4h16a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm0 2v.5l8 5 8-5V6H4zm16 3-8 5-8-5v9h16V9z"/></svg><span data-i18n="quick.mail">Mail</span></button>
-        <button class="tile" data-open="terminal"><svg viewBox="0 0 24 24"><path d="M3 4h18a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1zm1 2v12h16V6H4zm2.3 2.3 1.4-1.4L11.4 11l-3.7 3.7-1.4-1.4L8.6 11 6.3 8.3zM12 14h6v2h-6v-2z"/></svg><span data-i18n="quick.terminal">Terminal</span></button>
-        <button class="tile" data-open="www"><svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6zm-6 4v10h16V8H4z"/></svg><span data-i18n="quick.root">Folder</span></button>
-        <button class="tile" data-tab="logs"><svg viewBox="0 0 24 24"><path d="M6 2h9l5 5v15H6V2zm8 1.5V8h4.5L14 3.5zM8 12h8v2H8v-2zm0 4h8v2H8v-2zm0-8h4v2H8V8z"/></svg><span data-i18n="quick.logs">Logs</span></button>
+        <button class="tile" data-open="web"><i class="ic" data-icon="web"></i><span data-i18n="quick.web">Web</span></button>
+        <button class="tile" data-open="adminer"><i class="ic" data-icon="database"></i><span data-i18n="quick.database">Database</span></button>
+        <button class="tile" data-open="mail"><i class="ic" data-icon="mail"></i><span data-i18n="quick.mail">Mail</span></button>
+        <button class="tile" data-open="terminal"><i class="ic" data-icon="terminal"></i><span data-i18n="quick.terminal">Terminal</span></button>
+        <button class="tile" data-open="www"><i class="ic" data-icon="folder"></i><span data-i18n="quick.root">Folder</span></button>
+        <button class="tile" data-tab="logs"><i class="ic" data-icon="logs"></i><span data-i18n="quick.logs">Logs</span></button>
       </div>
     </section>
 
@@ -76,9 +73,9 @@
       <header class="top">
         <h1 data-i18n="nav.sites">Sites</h1>
         <div class="spacer"></div>
-        <button class="btn" id="btn-migrate"><svg viewBox="0 0 24 24"><path d="M12 3 7 8h3v6h4V8h3l-5-5zM4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4h-2v4H6v-4H4z"/></svg><span data-i18n="btn.migrate">Migrate</span></button>
-        <button class="btn" id="btn-sync-sites"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg><span data-i18n="btn.sync">Sync</span></button>
-        <button class="btn primary" id="btn-new-project"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg><span data-i18n="btn.newProject">New project</span></button>
+        <button class="btn" id="btn-migrate"><i class="ic" data-icon="migrate"></i><span data-i18n="btn.migrate">Migrate</span></button>
+        <button class="btn" id="btn-sync-sites"><i class="ic" data-icon="refresh"></i><span data-i18n="btn.sync">Sync</span></button>
+        <button class="btn primary" id="btn-new-project"><i class="ic" data-icon="plus"></i><span data-i18n="btn.newProject">New project</span></button>
       </header>
       <p class="sub" id="sites-hint"></p>
       <div class="list" id="sites"></div>
@@ -100,14 +97,14 @@
         <div class="spacer"></div>
         <button class="btn" data-open="adminer">Adminer</button>
         <button class="btn" data-open="phpmyadmin">phpMyAdmin</button>
-        <button class="btn" id="btn-db-backup"><svg viewBox="0 0 24 24"><path d="M12 3v10.6l3.3-3.3 1.4 1.4L12 17.4l-4.7-4.7 1.4-1.4 3.3 3.3V3h2zM4 19h16v2H4v-2z"/></svg><span data-i18n="db.backup">Backup</span></button>
+        <button class="btn" id="btn-db-backup"><i class="ic" data-icon="backup"></i><span data-i18n="db.backup">Backup</span></button>
       </header>
       <div class="card kv-card">
-        <div class="kv"><span data-i18n="db.host">Host</span><code id="db-host"></code><button class="icon-btn small" data-copy="#db-host" title="Copy"><svg viewBox="0 0 24 24"><path d="M8 3h11a2 2 0 0 1 2 2v11h-2V5H8V3zM5 7h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v11h11V9H5z"/></svg></button></div>
+        <div class="kv"><span data-i18n="db.host">Host</span><code id="db-host"></code><button class="icon-btn small" data-copy="#db-host" title="Copy"><i class="ic" data-icon="copy"></i></button></div>
         <div class="kv"><span data-i18n="db.user">User</span><code>root</code></div>
         <div class="kv"><span data-i18n="db.password">Password</span><code id="db-password" class="secret">••••••••••••</code>
-          <button class="icon-btn small" id="btn-db-show" title="Show"><svg viewBox="0 0 24 24"><path d="M12 5c5 0 9 3.6 10.5 7-1.5 3.4-5.5 7-10.5 7S3 15.4 1.5 12C3 8.6 7 5 12 5zm0 2C8.3 7 5.2 9.4 3.7 12 5.2 14.6 8.3 17 12 17s6.8-2.4 8.3-5C18.8 9.4 15.7 7 12 7zm0 2a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/></svg></button>
-          <button class="icon-btn small" data-copy="#db-password" data-copy-secret="1" title="Copy"><svg viewBox="0 0 24 24"><path d="M8 3h11a2 2 0 0 1 2 2v11h-2V5H8V3zM5 7h11a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2zm0 2v11h11V9H5z"/></svg></button>
+          <button class="icon-btn small" id="btn-db-show" title="Show"><i class="ic" data-icon="eye"></i></button>
+          <button class="icon-btn small" data-copy="#db-password" data-copy-secret="1" title="Copy"><i class="ic" data-icon="copy"></i></button>
           <button class="btn small" id="btn-db-rotate" data-i18n="db.rotate">New password</button></div>
       </div>
       <form id="form-db" class="inline">
@@ -123,9 +120,9 @@
         <h1 data-i18n="nav.logs">Logs</h1>
         <div class="spacer"></div>
         <select id="log-file" class="log-select"></select>
-        <button class="icon-btn" id="btn-log-refresh" title="Refresh"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg></button>
-        <button class="icon-btn" id="btn-log-clear" title="Clear"><svg viewBox="0 0 24 24"><path d="M9 3h6l1 2h4v2H4V5h4l1-2zm-3 6h12l-1 12H7L6 9zm4 2v8h2v-8h-2zm4 0v8h-2v-8h2z"/></svg></button>
-        <button class="icon-btn" data-open="logs" title="Open folder"><svg viewBox="0 0 24 24"><path d="M10 4l2 2h8a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h6z"/></svg></button>
+        <button class="icon-btn" id="btn-log-refresh" title="Refresh"><i class="ic" data-icon="refresh"></i></button>
+        <button class="icon-btn" id="btn-log-clear" title="Clear"><i class="ic" data-icon="trash"></i></button>
+        <button class="icon-btn" data-open="logs" title="Open folder"><i class="ic" data-icon="folder"></i></button>
       </header>
       <div class="card activity" id="activity">
         <div class="activity-head"><span data-i18n="logs.activity">Activity</span><button class="btn small ghost" id="btn-activity-clear" data-i18n="btn.clear">Clear</button></div>
@@ -185,6 +182,9 @@
           <div class="grid">
             <label><span data-i18n="settings.dbPort">Database port</span><input type="number" name="db.port"></label>
             <label><span data-i18n="settings.pgPort">PostgreSQL port</span><input type="number" name="pg.port"></label>
+            <label><span>MongoDB</span><input type="number" name="mongodb.port" placeholder="27017"></label>
+            <label><span>Meilisearch</span><input type="number" name="meilisearch.port" placeholder="7700"></label>
+            <label><span>Qdrant</span><input type="number" name="qdrant.port" placeholder="6333"></label>
             <label><span data-i18n="settings.cachePort">Cache port</span><input type="number" name="cache.port"></label>
             <label><span>SMTP</span><input type="number" name="mail.smtp_port"></label>
             <label><span data-i18n="settings.mailUi">Mail UI</span><input type="number" name="mail.http_port"></label>
@@ -270,6 +270,7 @@
 
 <div id="toasts"></div>
 <script src="i18n.js"></script>
+<script src="icons.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

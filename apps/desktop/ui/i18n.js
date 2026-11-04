@@ -1,6 +1,7 @@
 // UI strings - short labels only.
 window.VERANDA_I18N = {
   en: {
+    "group.search": "Search & vectors", "btn.openUi": "Open UI",
     "pkg.cancelling": "Cancelling…", "msg.cancelled": "{name} download cancelled; nothing was installed",
     "btn.removeNvm": "Remove via nvm", "msg.confirmRemoveExt": "Remove Node {version} from {source}? This runs {source} uninstall.", "msg.removedExt": "Node {version} removed from {source}",
     "btn.installNvm": "Install via nvm", "ver.nvmInstall": "nvm was found, so new versions are installed through nvm (they appear in nvm ls) instead of Veranda's own folder.",
@@ -36,6 +37,7 @@ window.VERANDA_I18N = {
     "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
+    "group.search": "Pencarian & vektor", "btn.openUi": "Buka UI",
     "pkg.cancelling": "Membatalkan…", "msg.cancelled": "Unduhan {name} dibatalkan; tidak ada yang dipasang",
     "btn.removeNvm": "Hapus lewat nvm", "msg.confirmRemoveExt": "Hapus Node {version} dari {source}? Ini menjalankan {source} uninstall.", "msg.removedExt": "Node {version} dihapus dari {source}",
     "btn.installNvm": "Pasang lewat nvm", "ver.nvmInstall": "nvm ditemukan, jadi versi baru dipasang lewat nvm (muncul di nvm ls), bukan ke folder Veranda.",

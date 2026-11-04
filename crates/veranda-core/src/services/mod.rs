@@ -2,6 +2,7 @@
 
 pub mod cache;
 pub mod db;
+pub mod extra;
 pub mod mail;
 pub mod pg;
 pub mod php;
@@ -24,16 +25,22 @@ pub enum ServiceId {
     Pg,
     Cache,
     Mail,
+    Mongo,
+    Meili,
+    Qdrant,
 }
 
 impl ServiceId {
-    pub const ALL: [ServiceId; 6] = [
+    pub const ALL: [ServiceId; 9] = [
         ServiceId::Web,
         ServiceId::Php,
         ServiceId::Db,
         ServiceId::Pg,
         ServiceId::Cache,
         ServiceId::Mail,
+        ServiceId::Mongo,
+        ServiceId::Meili,
+        ServiceId::Qdrant,
     ];
 
     pub const fn id(&self) -> &'static str {
@@ -44,6 +51,9 @@ impl ServiceId {
             ServiceId::Pg => "pg",
             ServiceId::Cache => "cache",
             ServiceId::Mail => "mail",
+            ServiceId::Mongo => "mongodb",
+            ServiceId::Meili => "meilisearch",
+            ServiceId::Qdrant => "qdrant",
         }
     }
 }
@@ -64,7 +74,12 @@ impl std::str::FromStr for ServiceId {
             "pg" | "postgres" | "postgresql" => Ok(ServiceId::Pg),
             "cache" | "redis" | "valkey" => Ok(ServiceId::Cache),
             "mail" | "mailpit" => Ok(ServiceId::Mail),
-            other => bail!("unknown service `{other}` (web, php, db, pg, cache, mail)"),
+            "mongodb" | "mongo" => Ok(ServiceId::Mongo),
+            "meilisearch" | "meili" => Ok(ServiceId::Meili),
+            "qdrant" => Ok(ServiceId::Qdrant),
+            other => bail!(
+                "unknown service `{other}` (web, php, db, pg, cache, mail, mongodb, meilisearch, qdrant)"
+            ),
         }
     }
 }
@@ -120,6 +135,9 @@ fn enabled(app: &Veranda, id: ServiceId) -> bool {
         ServiceId::Pg => c.pg.enabled,
         ServiceId::Cache => c.cache.enabled,
         ServiceId::Mail => c.mail.enabled,
+        ServiceId::Mongo => c.mongodb.enabled,
+        ServiceId::Meili => c.meilisearch.enabled,
+        ServiceId::Qdrant => c.qdrant.enabled,
     }
 }
 
@@ -131,6 +149,9 @@ pub fn status(ctx: &Ctx, id: ServiceId) -> ServiceStatus {
         ServiceId::Pg => pg::status(ctx),
         ServiceId::Cache => cache::status(ctx),
         ServiceId::Mail => mail::status(ctx),
+        ServiceId::Mongo => extra::status(extra::Which::Mongo, ctx),
+        ServiceId::Meili => extra::status(extra::Which::Meili, ctx),
+        ServiceId::Qdrant => extra::status(extra::Which::Qdrant, ctx),
     };
     st.enabled = enabled(ctx.app, id);
     st
@@ -192,6 +213,9 @@ pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
         ServiceId::Pg => pg::start(&ctx),
         ServiceId::Cache => cache::start(&ctx),
         ServiceId::Mail => mail::start(&ctx),
+        ServiceId::Mongo => extra::start(extra::Which::Mongo, &ctx),
+        ServiceId::Meili => extra::start(extra::Which::Meili, &ctx),
+        ServiceId::Qdrant => extra::start(extra::Which::Qdrant, &ctx),
     }
 }
 
@@ -209,6 +233,9 @@ pub fn stop(app: &Veranda, id: ServiceId) -> Result<()> {
         ServiceId::Pg => pg::stop(&ctx),
         ServiceId::Cache => cache::stop(&ctx),
         ServiceId::Mail => mail::stop(&ctx),
+        ServiceId::Mongo => extra::stop(extra::Which::Mongo, &ctx),
+        ServiceId::Meili => extra::stop(extra::Which::Meili, &ctx),
+        ServiceId::Qdrant => extra::stop(extra::Which::Qdrant, &ctx),
     }
 }
 
@@ -243,6 +270,9 @@ pub fn start_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
     let order = [
         ServiceId::Db,
         ServiceId::Pg,
+        ServiceId::Mongo,
+        ServiceId::Meili,
+        ServiceId::Qdrant,
         ServiceId::Cache,
         ServiceId::Mail,
         ServiceId::Php,
@@ -261,6 +291,9 @@ pub fn stop_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
         ServiceId::Php,
         ServiceId::Mail,
         ServiceId::Cache,
+        ServiceId::Qdrant,
+        ServiceId::Meili,
+        ServiceId::Mongo,
         ServiceId::Pg,
         ServiceId::Db,
     ];

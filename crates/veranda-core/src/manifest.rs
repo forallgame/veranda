@@ -35,10 +35,24 @@ pub enum Kind {
     Go,
     /// Bun runtime from GitHub releases.
     Bun,
+    /// MongoDB Community Server (official archives).
+    MongoDb,
+    /// Meilisearch (single binary from GitHub releases).
+    Meilisearch,
+    /// Qdrant vector database (GitHub releases).
+    Qdrant,
+    /// Eclipse Temurin JDK (Adoptium API).
+    Java,
+    /// Deno runtime (GitHub releases).
+    Deno,
+    /// Zig toolchain (ziglang.org).
+    Zig,
+    /// .NET SDK (Microsoft release metadata).
+    DotNet,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 17] = [
+    pub const ALL: [Kind; 24] = [
         Kind::Php,
         Kind::Caddy,
         Kind::Nginx,
@@ -56,6 +70,13 @@ impl Kind {
         Kind::Python,
         Kind::Go,
         Kind::Bun,
+        Kind::MongoDb,
+        Kind::Meilisearch,
+        Kind::Qdrant,
+        Kind::Java,
+        Kind::Deno,
+        Kind::Zig,
+        Kind::DotNet,
     ];
 
     pub const fn id(&self) -> &'static str {
@@ -77,6 +98,13 @@ impl Kind {
             Kind::Python => "python",
             Kind::Go => "go",
             Kind::Bun => "bun",
+            Kind::MongoDb => "mongodb",
+            Kind::Meilisearch => "meilisearch",
+            Kind::Qdrant => "qdrant",
+            Kind::Java => "java",
+            Kind::Deno => "deno",
+            Kind::Zig => "zig",
+            Kind::DotNet => "dotnet",
         }
     }
 
@@ -99,6 +127,13 @@ impl Kind {
             Kind::Python => "Python",
             Kind::Go => "Go",
             Kind::Bun => "Bun",
+            Kind::MongoDb => "MongoDB",
+            Kind::Meilisearch => "Meilisearch",
+            Kind::Qdrant => "Qdrant",
+            Kind::Java => "Java (Temurin)",
+            Kind::Deno => "Deno",
+            Kind::Zig => "Zig",
+            Kind::DotNet => ".NET SDK",
         }
     }
 

@@ -413,6 +413,9 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
             ServiceId::Pg => kind == Kind::Postgres,
             ServiceId::Cache => kind == Kind::Cache,
             ServiceId::Mail => kind == Kind::Mailpit,
+            ServiceId::Mongo => kind == Kind::MongoDb,
+            ServiceId::Meili => kind == Kind::Meilisearch,
+            ServiceId::Qdrant => kind == Kind::Qdrant,
         }
     };
     if let Some(st) = statuses
@@ -721,6 +724,26 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
         "web" => veranda_core::tools::open_url(cfg, &format!("{base}/")),
         "adminer" => veranda_core::tools::open_url(cfg, &format!("{base}/adminer/")),
         "phpmyadmin" => veranda_core::tools::open_url(cfg, &format!("{base}/phpmyadmin/")),
+        "meili" => veranda_core::tools::open_url(
+            cfg,
+            &format!(
+                "http://127.0.0.1:{}/",
+                veranda_core::services::extra::port(
+                    veranda_core::services::extra::Which::Meili,
+                    cfg
+                )
+            ),
+        ),
+        "qdrant" => veranda_core::tools::open_url(
+            cfg,
+            &format!(
+                "http://127.0.0.1:{}/dashboard",
+                veranda_core::services::extra::port(
+                    veranda_core::services::extra::Which::Qdrant,
+                    cfg
+                )
+            ),
+        ),
         "adminer-pg" => veranda_core::tools::open_url(
             cfg,
             &format!(

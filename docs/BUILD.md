@@ -42,7 +42,7 @@ machines, not on your laptop.
 
 ### Icons
 Icons are pre-generated in `apps/desktop/src-tauri/icons/`. To regenerate from the SVG with
-Tauri's tool: `cargo tauri icon assets/icon.png` (1024 px master with transparent corners).
+Icons are rendered from `assets/icon.svg` and `assets/icon-light.svg` with `python3 scripts/render-icons.py` (needs `pip install cairosvg`); the 1024 px PNG master is kept next to them.
 
 ## Auto-update (desktop)
 
@@ -57,7 +57,7 @@ Veranda updates itself through Tauri's signed updater. One-time setup:
    `apps/desktop/src-tauri/tauri.conf.json` -> `plugins.updater.pubkey`.
 3. In the GitHub repository add the secrets `TAURI_SIGNING_PRIVATE_KEY` (contents of
    `~/.tauri/veranda.key`) and `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` (the password you chose, or empty).
-4. Veranda checks `https://github.com/forallgame/veranda/releases/latest/download/latest.json` on start
+4. Veranda checks `https://github.com/livrensandi1/veranda/releases/latest/download/latest.json` on start
    and from *Check for updates* (forks can point `update.repo` in `veranda.toml` elsewhere); it
    verifies the signature, downloads, installs and restarts.
 
