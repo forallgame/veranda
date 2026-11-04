@@ -265,6 +265,72 @@ fn versions_under(
     }
 }
 
+/// The user's nvm installation, if any: `$NVM_DIR` or `~/.nvm` with `nvm.sh` (unix), or
+/// nvm-windows via `$NVM_HOME`/`nvm.exe` on PATH.
+pub fn nvm_dir() -> Option<PathBuf> {
+    if cfg!(windows) {
+        if let Some(h) = std::env::var_os("NVM_HOME").map(PathBuf::from)
+            && h.join("nvm.exe").is_file()
+        {
+            return Some(h);
+        }
+        return which::which("nvm")
+            .ok()
+            .and_then(|p| p.parent().map(Path::to_path_buf));
+    }
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let dir = std::env::var_os("NVM_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".nvm"));
+    dir.join("nvm.sh").is_file().then_some(dir)
+}
+
+/// `nvm install <version>` through the user's own nvm, so the version shows up in `nvm ls`.
+/// Blocks until nvm finishes; its output goes to `on_line` for progress display.
+pub fn nvm_install(version: &str, on_line: &dyn Fn(String)) -> Result<()> {
+    let dir = nvm_dir().context("nvm is not installed")?;
+    if version.is_empty() || !version.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        bail!("invalid Node version {version:?}");
+    }
+    let mut cmd = if cfg!(windows) {
+        let mut c = Command::new(dir.join("nvm.exe"));
+        c.args(["install", version]);
+        c
+    } else {
+        let mut c = Command::new("bash");
+        c.arg("-c")
+            .arg(format!(
+                "source \"$NVM_DIR/nvm.sh\" --no-use && nvm install {version}"
+            ))
+            .env("NVM_DIR", &dir);
+        c
+    };
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
+    let mut child = cmd.spawn().context("starting nvm")?;
+    let out = child.stdout.take().context("nvm output")?;
+    let err_pipe = child.stderr.take().context("nvm output")?;
+    let reader = std::io::BufReader::new(out);
+    use std::io::BufRead;
+    for line in reader.lines().map_while(Result::ok) {
+        let line = line.trim().to_string();
+        if !line.is_empty() {
+            on_line(line);
+        }
+    }
+    let mut err_text = String::new();
+    std::io::Read::read_to_string(&mut std::io::BufReader::new(err_pipe), &mut err_text)?;
+    let status = child.wait()?;
+    if !status.success() {
+        bail!(
+            "nvm install {version} failed: {}",
+            err_text.lines().last().unwrap_or("").trim()
+        );
+    }
+    Ok(())
+}
+
 /// Node.js versions managed by nvm, nvm-windows, fnm or volta. Filesystem only (no processes),
 /// so it is cheap enough to run on every status refresh.
 pub fn external_node_versions() -> Vec<ExternalRuntime> {

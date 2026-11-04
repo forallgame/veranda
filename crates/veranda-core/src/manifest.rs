@@ -88,7 +88,7 @@ impl Kind {
             Kind::Apache => "Apache HTTPD",
             Kind::MariaDb => "MariaDB",
             Kind::MySql => "MySQL",
-            Kind::Cache => "Valkey / Redis",
+            Kind::Cache => "Valkey",
             Kind::Mailpit => "Mailpit",
             Kind::Node => "Node.js",
             Kind::Composer => "Composer",

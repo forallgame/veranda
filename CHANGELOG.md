@@ -10,6 +10,19 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.4.2] - 2026-11-04
+
+### Added
+- Node.js: when nvm (or nvm-windows) is installed, Install runs `nvm install <version>` so the
+  version lands in nvm; without nvm it is installed into Veranda's folder as before.
+
+### Changed
+- In-app brand icon follows the theme: pale glass tile in light mode, dark glass tile in dark mode.
+- Overview lists only services that are switched on (or still running); switched-off ones live in
+  the sidebar until you turn them on.
+- The cache entry is named Valkey on Linux/macOS and Redis on Windows, with a note explaining that
+  Valkey is the open-source continuation of Redis 7.2 (same commands, port and clients).
+
 ### Fixed
 - CI on Windows: the new registry test also wrote a Windows path into hand-made JSON.
 - A registry file that is not valid JSON is backed up as `etc/installed.broken-<time>.json`

@@ -41,6 +41,8 @@ struct UiState {
     installed: Vec<Installed>,
     /// Runtimes managed by other tools (nvm, fnm, volta): shown, never touched.
     external: Vec<veranda_core::tools::ExternalRuntime>,
+    /// nvm is installed: Node versions are installed through it instead of into `bin/node`.
+    nvm_available: bool,
     hosts_in_sync: bool,
     db_password_known: bool,
     scheme: String,
@@ -88,6 +90,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         sites,
         installed: reg.items,
         external: veranda_core::tools::external_node_versions(),
+        nvm_available: veranda_core::tools::nvm_dir().is_some(),
         hosts_in_sync,
         db_password_known,
         scheme: scheme.into(),
@@ -244,6 +247,9 @@ struct InstallProgress {
     kind: String,
     downloaded: u64,
     total: Option<u64>,
+    /// Free text shown instead of byte counts (e.g. nvm output).
+    #[serde(skip_serializing_if = "Option::is_none")]
+    note: Option<String>,
 }
 
 #[tauri::command]
@@ -259,6 +265,48 @@ async fn install_package(
     let p = Platform::current();
     let builtin = Manifest::builtin().map_err(err)?;
     let version = version.filter(|v| !v.trim().is_empty());
+    // Node with nvm present: let nvm own the version so `nvm ls` / `nvm use` see it.
+    if kind == Kind::Node && veranda_core::tools::nvm_dir().is_some() {
+        let v = match &version {
+            Some(v) => v.clone(),
+            None => {
+                veranda_core::resolve::latest(kind, p)
+                    .await
+                    .map_err(err)?
+                    .version
+            }
+        };
+        let h = handle.clone();
+        let vv = v.clone();
+        tauri::async_runtime::spawn_blocking(move || {
+            let on_line = |line: String| {
+                let _ = h.emit(
+                    "install-progress",
+                    InstallProgress {
+                        kind: "node".into(),
+                        downloaded: 0,
+                        total: None,
+                        note: Some(line),
+                    },
+                );
+            };
+            veranda_core::tools::nvm_install(&vv, &on_line)
+        })
+        .await
+        .map_err(err)?
+        .map_err(err)?;
+        let found = veranda_core::tools::external_node_versions()
+            .into_iter()
+            .find(|x| x.version == v);
+        return Ok(Installed {
+            kind: Kind::Node,
+            version: v,
+            path: found.map(|x| x.bin_dir).unwrap_or_default(),
+            source: "nvm".into(),
+            installed_at: veranda_core::fsutil::timestamp(),
+            digests: Vec::new(),
+        });
+    }
     let pkg = match version {
         // Explicit version: built-in list first, then the upstream resolver (newer than built-in).
         Some(v) => match builtin
@@ -295,6 +343,7 @@ async fn install_package(
                 kind: kind_id.clone(),
                 downloaded: pr.downloaded,
                 total: pr.total,
+                note: None,
             },
         );
     };

@@ -56,6 +56,10 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .side { position: sticky; top: 0; height: 100vh; background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; padding: 14px 10px 10px; min-height: 0; }
 .brand { display: flex; align-items: center; gap: 10px; padding: 2px 8px 12px; font-weight: 700; font-size: 17px; letter-spacing: -.01em; }
 .brand img { width: 30px; height: 30px; flex: none; }
+/* light theme shows the pale tile, dark theme the glass tile */
+.brand .brand-dark { display: none; } .brand .brand-light { display: block; }
+:root[data-theme="dark"] .brand .brand-dark { display: block; } :root[data-theme="dark"] .brand .brand-light { display: none; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .brand .brand-dark { display: block; } :root:not([data-theme="light"]) .brand .brand-light { display: none; } }
 .nav { display: flex; flex-direction: column; gap: 2px; overflow-y: auto; overflow-anchor: none; min-height: 0; flex: 1; padding-right: 2px; scrollbar-width: thin; }
 .nav-item { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 0; background: transparent; border-radius: 9px; color: var(--muted); text-align: left; cursor: pointer; font-weight: 500; position: relative; transition: background .12s ease, color .12s ease; width: 100%; }
 .nav-item:hover { background: var(--surface-2); color: var(--text); }

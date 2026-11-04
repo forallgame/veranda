@@ -41,7 +41,7 @@ const KIND_META = {
   mariadb:    { label: "MariaDB",        svc: "db",    group: "db",    icon: "db" },
   mysql:      { label: "MySQL",          svc: "db",    group: "db",    icon: "db" },
   postgres:   { label: "PostgreSQL",     svc: "pg",    group: "db",    icon: "db" },
-  cache:      { label: "Valkey / Redis", svc: "cache", group: "more",  icon: "cache" },
+  cache:      { label: "Valkey",         svc: "cache", group: "more",  icon: "cache" },   // "Redis" on Windows (set at boot)
   mailpit:    { label: "Mailpit",        svc: "mail",  group: "more",  icon: "mail" },
   composer:   { label: "Composer",       group: "tools", icon: "pkg" },
   node:       { label: "Node.js",        group: "tools", icon: "node" },
@@ -247,7 +247,7 @@ async function toggleKind(kind, on) {
 
 /* ---------------- overview ---------------- */
 function renderServices() {
-  const visible = state.services.filter((s) => !isHidden(s.id));
+  const visible = state.services.filter((s) => !isHidden(s.id) && (s.enabled || s.running));
   const enabled = visible.filter((s) => s.enabled && s.installed);
   const running = enabled.filter((s) => s.running).length;
   const pill = $("#global-status");
@@ -416,6 +416,7 @@ function renderService() {
     if (m.svc === "mail") quick.push(`<button class="btn small" data-open="mail">${ICONS.open}<span>${t("btn.openMail")}</span></button>`);
     if (m.svc === "db") { quick.push(`<button class="btn small" data-open="adminer">${ICONS.open}<span>Adminer</span></button>`); quick.push(`<button class="btn small" data-tab="database">${ICONS.db}<span>${t("nav.database")}</span></button>`); }
     if (m.svc === "pg") quick.push(`<button class="btn small" data-open="adminer-pg">${ICONS.open}<span>Adminer (PostgreSQL)</span></button>`);
+    if (m.svc === "cache") notice += `<div class="notice">${ICONS.info}<span>${t(state.platform.startsWith("windows") ? "cache.redisNote" : "cache.valkeyNote")}</span></div>`;
     if (m.svc === "php") quick.push(`<button class="btn small" data-open="phpini">${ICONS.edit}<span>php.ini</span></button>`);
     quick.push(`<button class="btn small" data-open="config">${ICONS.file}<span>${t("btn.configFile")}</span></button>`);
     quick.push(`<button class="btn small" data-open="logs">${ICONS.folder}<span>${t("btn.logsFolder")}</span></button>`);
@@ -446,14 +447,14 @@ function renderService() {
       const action = isInstalling ? progressMarkup(installing)
         : isRemoving ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
         : isInst ? `<button class="btn small subtle" data-remove="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.remove")}</span></button>`
-        : `<button class="btn small primary" data-install="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${t("btn.install")}</button>`;
+        : `<button class="btn small primary" data-install="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${kind === "node" && state.nvm_available ? t("btn.installNvm") : t("btn.install")}</button>`;
       return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""} ${upstreamFresh && !isInst ? "fresh" : ""}" data-row="${kind}:${esc(v)}">
         <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${action}</span></div>`;
     }).join("");
     const skeleton = upstreamLoading
       ? [0, 1, 2].map(() => `<div class="vrow skeleton"><span class="sk w1"></span><span class="sk w2"></span><span class="sk w3"></span><span class="act"><span class="sk w4"></span></span></div>`).join("")
       : "";
-    body = `${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}
+    body = `${kind === "node" && state.nvm_available ? `<div class="notice">${ICONS.info}<span>${t("ver.nvmInstall")}</span></div>` : ""}${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}
       <div class="vhead ${upstreamLoading ? "loading" : ""}"><span>${upstreamLoading ? `${ICONS.spinner}${t("ver.fetching", { source: source || "—" })}` : t("ver.hint", { source: source || "—" })}</span>
         <button class="btn small ${upstreamLoading ? "busy" : ""}" id="btn-check-upstream" ${upstreamLoading ? "disabled" : ""}>${ICONS.refresh}<span>${t("btn.refresh")}</span></button></div>
       <div class="vtable ${upstreamLoading ? "loading" : ""}">${upstreamLoading ? `<div class="loadbar"><div class="fill"></div></div>` : ""}<div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
@@ -478,6 +479,7 @@ async function loadUpstream() {
 
 /* ---------------- install / remove ---------------- */
 function progressText(p) {
+  if (p.note) return p.note.length > 48 ? `…${p.note.slice(-46)}` : p.note;
   if (p.phase === "extract") return t("pkg.extracting");
   const mb = (p.downloaded / 1048576).toFixed(1);
   return p.total ? `${(100 * p.downloaded / p.total).toFixed(0)}% · ${mb}/${(p.total / 1048576).toFixed(1)} MiB` : `${mb} MiB`;
@@ -517,8 +519,8 @@ async function removePackage(kind, version) {
 listen("install-progress", (ev) => {
   const p = ev.payload;
   if (!installing || installing.kind !== p.kind) return;
-  installing.downloaded = p.downloaded; installing.total = p.total ?? installing.total;
-  installing.phase = installing.total && installing.downloaded >= installing.total ? "extract" : "download";
+  installing.downloaded = p.downloaded; installing.total = p.total ?? installing.total; installing.note = p.note || null;
+  installing.phase = p.note ? "extract" : installing.total && installing.downloaded >= installing.total ? "extract" : "download";
   paintProgress();
 });
 listen("services-changed", () => refresh());
@@ -836,6 +838,7 @@ async function perfBenchmark() {
 /* ---------------- boot ---------------- */
 (async () => {
   await refresh();
+  if (state?.platform.startsWith("windows")) { KIND_META.cache.label = "Redis"; renderAll(); }
   if (state?.ui_theme === "light" || state?.ui_theme === "dark") setTheme(state.ui_theme);
   if (state?.ui_tab) {
     const [tab, sub] = state.ui_tab.split(":");   // e.g. "php:versions" (screenshot helper)

@@ -1,6 +1,8 @@
 // UI strings - short labels only.
 window.VERANDA_I18N = {
   en: {
+    "btn.installNvm": "Install via nvm", "ver.nvmInstall": "nvm was found, so new versions are installed through nvm (they appear in nvm ls) instead of Veranda's own folder.",
+    "cache.valkeyNote": "Valkey is the open-source continuation of Redis 7.2 (Linux Foundation). Same commands, same port, same clients; Redis itself no longer publishes free binaries.", "cache.redisNote": "On Windows this is the community Redis build; on Linux and macOS Veranda uses Valkey, the open-source continuation of Redis 7.2 (same commands and clients).",
     "ver.fetching": "Fetching the version list from {source}…",
     "settings.pgPort": "PostgreSQL port",
     "ports.busyTitle": "Port {port} is busy", "ports.busyBody": "It is used by {owner}. {name} can move to port {new}; your sites keep working, only the port in the address changes. You can change it again in Settings.", "btn.usePort": "Use port {new}", "msg.portMoved": "{name} now uses port {new}",
@@ -32,6 +34,8 @@ window.VERANDA_I18N = {
     "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
+    "btn.installNvm": "Pasang lewat nvm", "ver.nvmInstall": "nvm ditemukan, jadi versi baru dipasang lewat nvm (muncul di nvm ls), bukan ke folder Veranda.",
+    "cache.valkeyNote": "Valkey adalah kelanjutan open-source dari Redis 7.2 (Linux Foundation). Perintah, port, dan client-nya sama; Redis sendiri tidak lagi menyediakan binary gratis.", "cache.redisNote": "Di Windows ini build Redis komunitas; di Linux dan macOS Veranda memakai Valkey, kelanjutan open-source Redis 7.2 (perintah dan client sama).",
     "ver.fetching": "Mengambil daftar versi dari {source}…",
     "settings.pgPort": "Port PostgreSQL",
     "ports.busyTitle": "Port {port} sedang dipakai", "ports.busyBody": "Dipakai oleh {owner}. {name} bisa pindah ke port {new}; situs tetap jalan, hanya port di alamatnya yang berubah. Bisa diubah lagi di Pengaturan.", "btn.usePort": "Pakai port {new}", "msg.portMoved": "{name} sekarang memakai port {new}",
