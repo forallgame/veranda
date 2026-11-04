@@ -10,6 +10,11 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+### Fixed
+- CI on Windows: the new registry test also wrote a Windows path into hand-made JSON.
+- A registry file that is not valid JSON is backed up as `etc/installed.broken-<time>.json`
+  before the registry is rebuilt from the package folders.
+
 ## [0.4.1] - 2026-11-04
 
 ### Fixed

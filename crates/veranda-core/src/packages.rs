@@ -40,7 +40,15 @@ impl Registry {
     /// anything.
     pub fn load(layout: &Layout) -> Result<Self> {
         let raw: serde_json::Value = match std::fs::read_to_string(layout.installed_file()) {
-            Ok(t) => serde_json::from_str(&t).unwrap_or(serde_json::Value::Null),
+            Ok(t) => serde_json::from_str(&t).unwrap_or_else(|e| {
+                // Keep a copy of the damaged file; the folders below rebuild the registry.
+                tracing::warn!("installed.json is not valid JSON ({e}); backing it up");
+                let backup = layout
+                    .etc()
+                    .join(format!("installed.broken-{}.json", fsutil::timestamp()));
+                let _ = std::fs::copy(layout.installed_file(), backup);
+                serde_json::Value::Null
+            }),
             Err(e) if e.kind() == std::io::ErrorKind::NotFound => serde_json::Value::Null,
             Err(e) => return Err(e.into()),
         };
@@ -564,12 +572,14 @@ mod tests {
         // an entry written by a future build with a kind we do not know
         let future = layout.bin_kind("rustfs").join("1.0.0");
         std::fs::create_dir_all(&future).unwrap();
+        // serde builds the JSON so Windows paths (backslashes) are escaped correctly
+        let file = serde_json::json!({ "items": [{
+            "kind": "rustfs", "version": "1.0.0", "path": future.display().to_string(),
+            "source": "x", "installed_at": "now"
+        }] });
         std::fs::write(
             layout.installed_file(),
-            format!(
-                r#"{{"items":[{{"kind":"rustfs","version":"1.0.0","path":"{}","source":"x","installed_at":"now"}}]}}"#,
-                future.display()
-            ),
+            serde_json::to_string(&file).unwrap(),
         )
         .unwrap();
         let reg = Registry::load(&layout).unwrap();
