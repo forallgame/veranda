@@ -10,6 +10,10 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+### Changed
+- In-app brand uses the dark and light tiles from the owner's icon showcase sheet (the installer
+  icon keeps the higher-resolution source).
+
 ## [0.4.3] - 2026-11-04
 
 ### Added
