@@ -10,6 +10,18 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-04
+
+### Added
+- **Migrate** (Sites page): import projects from Laragon, XAMPP, FlyEnv or any folder, linked in
+  place or copied into the document root, and optionally copy databases from the source server
+  through Veranda's own `mysqldump`/client (the source stack must be running).
+
+### Changed
+- Scrolling is handled by the window again instead of an inner pane, which the compositor
+  accelerates; the sidebar is sticky.
+- Version tables use fixed status/action columns so rows line up; service-page actions align right.
+
 ## [0.2.0] - 2026-11-03
 
 ### Changed

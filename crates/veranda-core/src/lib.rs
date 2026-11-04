@@ -12,6 +12,7 @@ pub mod download;
 pub mod fsutil;
 pub mod hosts;
 pub mod manifest;
+pub mod migrate;
 pub mod packages;
 pub mod paths;
 pub mod platform;

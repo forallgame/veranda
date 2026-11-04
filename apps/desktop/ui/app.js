@@ -158,7 +158,7 @@ function showTab(id) {
   $$(".tab").forEach((x) => x.classList.toggle("active", x.id === `tab-${id}`));
   $$(".svc-item").forEach((x) => x.classList.toggle("active", id === "service" && x.dataset.svc === currentKind));
   if (id === "logs") loadLogList();
-  $(".main").scrollTop = 0;
+  window.scrollTo(0, 0);
 }
 
 /* ---------------- helpers over state ---------------- */
@@ -514,6 +514,67 @@ async function syncSites() {
   refresh();
 }
 
+/* ---------------- migrate from another stack ---------------- */
+let migrateSources = [];
+async function openMigrate() {
+  const dlg = $("#dlg-migrate"), f = $("#form-migrate");
+  try { migrateSources = await invoke("migrate_detect"); } catch (e) { fail(e); return; }
+  const sel = $("#migrate-platform");
+  sel.innerHTML = migrateSources.map((s) => `<option value="${s.platform}">${esc(s.label)}${s.found ? " ✓" : ""}</option>`).join("");
+  const first = migrateSources.find((s) => s.found) || migrateSources[0];
+  sel.value = first.platform;
+  $("#migrate-report").classList.add("hidden"); $("#migrate-report").innerHTML = "";
+  $("#migrate-progress").classList.add("hidden");
+  $("#btn-migrate-run").disabled = false;
+  f.elements.databases.checked = false; $("#migrate-db").classList.add("hidden");
+  applyMigrateSource();
+  dlg.showModal();
+}
+function applyMigrateSource() {
+  const f = $("#form-migrate");
+  const s = migrateSources.find((x) => x.platform === f.elements.platform.value);
+  if (!s) return;
+  f.elements.path.value = s.path || "";
+  f.elements.path.placeholder = s.platform === "flyenv" ? "…/FlyEnv/server/host.json" : "/path/to/www";
+  $("#migrate-detected").textContent = s.found ? t("migrate.found", { path: s.path }) : t("migrate.notFound");
+  f.elements.db_port.value = s.db_port; f.elements.db_user.value = s.db_user; f.elements.db_password.value = s.db_password;
+}
+$("#btn-migrate").onclick = openMigrate;
+$("#migrate-platform").onchange = applyMigrateSource;
+$("#btn-migrate-cancel").onclick = () => $("#dlg-migrate").close();
+$("#form-migrate").elements.databases.onchange = (ev) => $("#migrate-db").classList.toggle("hidden", !ev.target.checked);
+$("#btn-migrate-browse").onclick = async () => {
+  const f = $("#form-migrate");
+  const isFile = f.elements.platform.value === "flyenv";
+  try {
+    const picked = await window.__TAURI__.dialog.open({ directory: !isFile, multiple: false, title: t("migrate.folder") });
+    if (picked) f.elements.path.value = typeof picked === "string" ? picked : picked.path || "";
+  } catch (e) { toast(t("migrate.noPicker"), "info"); }
+};
+listen("migrate-progress", (ev) => { $("#migrate-progress .txt").textContent = ev.payload; });
+$("#form-migrate").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  const req = {
+    platform: f.elements.platform.value, path: f.elements.path.value.trim(), mode: f.elements.mode.value,
+    databases: f.elements.databases.checked, db_host: f.elements.db_host.value.trim(), db_port: Number(f.elements.db_port.value) || 3306,
+    db_user: f.elements.db_user.value.trim(), db_password: f.elements.db_password.value,
+  };
+  const btn = $("#btn-migrate-run"); btn.disabled = true;
+  const prog = $("#migrate-progress"); prog.classList.remove("hidden"); $(".txt", prog).textContent = t("migrate.working");
+  $("#migrate-report").classList.add("hidden");
+  try {
+    const r = await invoke("migrate_run", { req });
+    const line = (cls, label, items) => items.length ? `<div class="rep ${cls}"><b>${label} (${items.length})</b><ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+    $("#migrate-report").innerHTML = line("ok", t("migrate.sites"), r.sites) + line("ok", t("migrate.databases"), r.databases) + line("", t("migrate.skipped"), r.skipped) + line("bad", t("migrate.errors"), r.errors)
+      || `<div class="rep">${t("migrate.nothing")}</div>`;
+    $("#migrate-report").classList.remove("hidden");
+    if (r.sites.length) { try { const s = await invoke("sync_sites"); if (s.missing_hosts.length) await invoke("hosts_sync"); } catch (e) { fail(e); } }
+    toast(t("migrate.done", { sites: r.sites.length, dbs: r.databases.length }), r.errors.length ? "info" : "ok");
+  } catch (e) { fail(e); }
+  prog.classList.add("hidden"); btn.disabled = false;
+  refresh(true);
+};
+
 /* ---------------- database ---------------- */
 function renderDatabase() {
   $("#db-host").textContent = `127.0.0.1:${state.config.db.port}`;
@@ -701,7 +762,7 @@ $("#form-project").onsubmit = async (ev) => {
   if (state?.ui_theme === "light" || state?.ui_theme === "dark") setTheme(state.ui_theme);
   if (state?.ui_tab) {
     const [tab, sub] = state.ui_tab.split(":");   // e.g. "php:versions" (screenshot helper)
-    if (KIND_META[tab]) { if (sub) svcTab = sub; openService(tab); } else showTab(tab);
+    if (KIND_META[tab]) { if (sub) svcTab = sub; openService(tab); } else { showTab(tab); if (sub === "migrate") openMigrate(); }
   }
   try { builtin = await invoke("builtin_versions"); renderService(); } catch (e) { fail(e); }
   setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);

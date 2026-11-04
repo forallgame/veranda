@@ -80,6 +80,7 @@
       <header class="top">
         <h1 data-i18n="nav.sites">Sites</h1>
         <div class="spacer"></div>
+        <button class="btn" id="btn-migrate"><svg viewBox="0 0 24 24"><path d="M12 3 7 8h3v6h4V8h3l-5-5zM4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4h-2v4H6v-4H4z"/></svg><span data-i18n="btn.migrate">Migrate</span></button>
         <button class="btn" id="btn-sync-sites"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 0 1 7.5 5.2l1.9-.7A10 10 0 0 0 3.1 7.9L1.5 6.5V12h5.5L4.8 9.8A8 8 0 0 1 12 4zm7 8-2.2 2.2A8 8 0 0 1 4.5 14.8l-1.9.7A10 10 0 0 0 20.9 16.1l1.6 1.4V12H17z"/></svg><span data-i18n="btn.sync">Sync</span></button>
         <button class="btn primary" id="btn-new-project"><svg viewBox="0 0 24 24"><path d="M11 5h2v6h6v2h-6v6h-2v-6H5v-2h6z"/></svg><span data-i18n="btn.newProject">New project</span></button>
       </header>
@@ -217,6 +218,32 @@
     <div class="actions-row">
       <button type="button" class="btn" id="btn-project-cancel" data-i18n="btn.cancel">Cancel</button>
       <button type="submit" class="btn primary" data-i18n="btn.create">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-migrate" class="wide">
+  <form method="dialog" id="form-migrate">
+    <h2 data-i18n="migrate.title">Migrate from another stack</h2>
+    <p class="sub" data-i18n="migrate.hint">Projects become Veranda sites. Databases are copied through your running database server.</p>
+    <label><span data-i18n="migrate.from">From</span><select name="platform" id="migrate-platform"></select></label>
+    <p class="sub mono" id="migrate-detected"></p>
+    <label><span data-i18n="migrate.folder">Folder</span><input name="path" placeholder="/path/to/www" required><button type="button" class="btn small" id="btn-migrate-browse" data-i18n="btn.browse">Browse</button></label>
+    <div class="radio-row">
+      <label class="check"><input type="radio" name="mode" value="link" checked><span data-i18n="migrate.link">Link in place (no copy)</span></label>
+      <label class="check"><input type="radio" name="mode" value="copy"><span data-i18n="migrate.copy">Copy into document root</span></label>
+    </div>
+    <label class="check"><input type="checkbox" name="databases"><span data-i18n="migrate.db">Also import databases (source server must be running)</span></label>
+    <div id="migrate-db" class="hidden">
+      <div class="two"><label><span data-i18n="db.host">Host</span><input name="db_host" value="127.0.0.1"></label><label><span>Port</span><input type="number" name="db_port" value="3306"></label></div>
+      <div class="two"><label><span data-i18n="db.user">User</span><input name="db_user" value="root"></label><label><span data-i18n="db.password">Password</span><input type="password" name="db_password" autocomplete="off"></label></div>
+      <p class="sub" data-i18n="migrate.dbNote">Databases with the same name in Veranda are overwritten.</p>
+    </div>
+    <div class="progress hidden" id="migrate-progress"><svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg><span class="txt"></span></div>
+    <div id="migrate-report" class="report hidden"></div>
+    <div class="actions-row">
+      <button type="button" class="btn" id="btn-migrate-cancel" data-i18n="btn.close">Close</button>
+      <button type="submit" class="btn primary" id="btn-migrate-run" data-i18n="btn.migrateNow">Migrate now</button>
     </div>
   </form>
 </dialog>

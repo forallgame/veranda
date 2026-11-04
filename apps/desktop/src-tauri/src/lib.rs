@@ -326,6 +326,31 @@ struct SyncResult {
 }
 
 #[tauri::command]
+fn migrate_detect() -> Vec<veranda_core::migrate::Source> {
+    veranda_core::migrate::detect()
+}
+
+/// Import projects (and optionally databases) from another stack. Progress lines are emitted
+/// as `migrate-progress`; the final report lists what was imported, skipped or failed.
+#[tauri::command]
+async fn migrate_run(
+    handle: AppHandle,
+    state: State<'_, AppState>,
+    req: veranda_core::migrate::Request,
+) -> CmdResult<veranda_core::migrate::Report> {
+    let app = open_app(&state)?;
+    tauri::async_runtime::spawn_blocking(move || {
+        let progress = |msg: String| {
+            let _ = handle.emit("migrate-progress", msg);
+        };
+        veranda_core::migrate::run(&app, &req, &progress)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)
+}
+
+#[tauri::command]
 async fn sync_sites(state: State<'_, AppState>) -> CmdResult<SyncResult> {
     let app = open_app(&state)?;
     tauri::async_runtime::spawn_blocking(move || -> anyhow::Result<SyncResult> {
@@ -1055,6 +1080,8 @@ pub fn run() {
             service_action,
             grant_web_ports,
             ui_ready,
+            migrate_detect,
+            migrate_run,
             start_all,
             stop_all,
             install_package,
