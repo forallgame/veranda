@@ -210,7 +210,49 @@ pub fn port_owner(port: u16) -> Option<String> {
             || l.contains(&format!(":{port}\t"))
             || l.contains(&format!(":{port}"))
     })?;
-    Some(line.trim().to_string())
+    Some(pretty_owner(line.trim()))
+}
+
+/// Turn a raw `ss` / `lsof` / `netstat` line into "name (pid N)" when possible.
+fn pretty_owner(line: &str) -> String {
+    // ss: ... users:(("apache2",pid=1234,fd=4))
+    if let Some(i) = line.find("users:((\"") {
+        let rest = &line[i + 9..];
+        let name = rest.split('"').next().unwrap_or("");
+        let pid = rest
+            .split("pid=")
+            .nth(1)
+            .and_then(|p| p.split(|c: char| !c.is_ascii_digit()).next())
+            .unwrap_or("");
+        if !name.is_empty() {
+            return if pid.is_empty() {
+                name.to_string()
+            } else {
+                format!("{name} (pid {pid})")
+            };
+        }
+    }
+    let cols: Vec<&str> = line.split_whitespace().collect();
+    if cfg!(target_os = "macos") && cols.len() >= 2 {
+        return format!("{} (pid {})", cols[0], cols[1]);
+    }
+    if cfg!(target_os = "windows")
+        && let Some(pid) = cols.last()
+        && pid.chars().all(|c| c.is_ascii_digit())
+    {
+        return format!("pid {pid}");
+    }
+    let mut short = line.to_string();
+    if short.len() > 80 {
+        short.truncate(80);
+        short.push('…');
+    }
+    short
+}
+
+/// First port at or above `from` that nothing uses and we may bind (at most 200 tried).
+pub fn next_free_port(from: u16) -> Option<u16> {
+    (from..from.saturating_add(200)).find(|p| matches!(port_state(*p), PortState::Free))
 }
 
 /// Build a `Command` for an executable with `PATH` prefixed by our runtime dirs.

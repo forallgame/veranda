@@ -14,6 +14,7 @@ pub struct Config {
     pub web: Web,
     pub php: Php,
     pub db: Db,
+    pub pg: Pg,
     pub cache: Cache,
     pub mail: Mail,
     pub backup: Backup,
@@ -118,6 +119,28 @@ pub struct Db {
     pub port: u16,
     /// Empty = `<root>/data/<engine>`.
     pub data_dir: String,
+}
+
+/// PostgreSQL runs beside MariaDB/MySQL, not instead of it.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(default, deny_unknown_fields)]
+pub struct Pg {
+    pub enabled: bool,
+    pub version: String,
+    pub port: u16,
+    /// Empty = `<root>/data/postgres`.
+    pub data_dir: String,
+}
+
+impl Default for Pg {
+    fn default() -> Self {
+        Self {
+            enabled: false,
+            version: String::new(),
+            port: 5432,
+            data_dir: String::new(),
+        }
+    }
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Hash)]
@@ -330,7 +353,7 @@ impl Config {
             anyhow::bail!("php.workers must be between 1 and 64");
         }
         for id in &self.general.hidden_services {
-            if !matches!(id.as_str(), "web" | "php" | "db" | "cache" | "mail") {
+            if !matches!(id.as_str(), "web" | "php" | "db" | "pg" | "cache" | "mail") {
                 anyhow::bail!("general.hidden_services contains unknown service `{id}`");
             }
         }
@@ -356,6 +379,14 @@ impl Config {
             layout.data().join(self.db.engine.id())
         } else {
             PathBuf::from(self.db.data_dir.trim())
+        }
+    }
+
+    pub fn pg_data_dir(&self, layout: &Layout) -> PathBuf {
+        if self.pg.data_dir.trim().is_empty() {
+            layout.data().join("postgres")
+        } else {
+            PathBuf::from(self.pg.data_dir.trim())
         }
     }
 

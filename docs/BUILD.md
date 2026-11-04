@@ -42,7 +42,7 @@ machines, not on your laptop.
 
 ### Icons
 Icons are pre-generated in `apps/desktop/src-tauri/icons/`. To regenerate from the SVG with
-Tauri's tool: `cargo tauri icon assets/icon.svg`.
+Tauri's tool: `cargo tauri icon assets/icon.png` (1024 px master with transparent corners).
 
 ## Auto-update (desktop)
 

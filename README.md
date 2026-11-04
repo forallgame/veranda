@@ -28,9 +28,9 @@ only the parts you need; nothing is forced on you and nothing runs that you did 
 ## What you get
 
 - **Everything you usually need, nothing you don't.** PHP (8.1 to the newest 8.5), a web server
-  (Caddy by default, or Nginx/Apache), MariaDB or MySQL, Valkey/Redis, Mailpit for catching
-  outgoing email, Node.js, Composer, Adminer and phpMyAdmin. Each one is optional and you choose
-  the version from a list. Several versions can live side by side.
+  (Caddy by default, or Nginx/Apache), MariaDB or MySQL, PostgreSQL, Valkey/Redis, Mailpit for
+  catching outgoing email, Node.js, Python, Go, Bun, Composer, Adminer and phpMyAdmin. Each one is
+  optional and you choose the version from a list. Several versions can live side by side.
 - **Folders become websites.** Put a project folder in `www/` and it is served at
   `https://folder-name.test` with a certificate your browser trusts. Works for static sites,
   PHP apps and anything with an `index.html` or `index.php`; Laravel and Symfony's `public/` is
@@ -55,20 +55,20 @@ Download the file for your system from the **[latest release](../../releases/lat
 
 **Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
 ```sh
-sudo apt install ./Veranda_0.3.0_amd64.deb
+sudo apt install ./Veranda_0.4.0_amd64.deb
 ```
 Veranda appears in your application menu. Updates: Veranda shows a banner and opens the release page;
 download the new `.deb` and run the same command.
 
 **Fedora, openSUSE, RHEL** (`.rpm`):
 ```sh
-sudo dnf install ./Veranda-0.3.0-1.x86_64.rpm     # or: sudo zypper install ./Veranda-*.rpm
+sudo dnf install ./Veranda-0.4.0-1.x86_64.rpm     # or: sudo zypper install ./Veranda-*.rpm
 ```
 
 **Any distribution** (`.AppImage`, no installation):
 ```sh
-chmod +x Veranda_0.3.0_amd64.AppImage
-./Veranda_0.3.0_amd64.AppImage
+chmod +x Veranda_0.4.0_amd64.AppImage
+./Veranda_0.4.0_amd64.AppImage
 ```
 The AppImage can update itself from inside the app. Move it to a folder like `~/Applications`
 if you want to keep it around.
@@ -78,18 +78,18 @@ hint, or run `veranda doctor --fix-ports` from the CLI. You can also use 8080/84
 
 ### Windows 10 / 11
 
-1. Download `Veranda_0.3.0_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
+1. Download `Veranda_0.4.0_x64-setup.exe` and run it. If SmartScreen says "Windows protected your
    PC", click **More info → Run anyway** (the installer is new and not yet widely downloaded;
    that is all the warning means).
 2. Follow the installer. Veranda is added to the Start menu. The Microsoft WebView2 runtime is
    installed automatically if your PC does not have it.
-3. Prefer MSI for company deployment? `Veranda_0.3.0_x64_en-US.msi` is in the same release.
+3. Prefer MSI for company deployment? `Veranda_0.4.0_x64_en-US.msi` is in the same release.
 
 Updates install in place from the app.
 
 ### macOS (Apple Silicon and Intel)
 
-1. Download `Veranda_0.3.0_universal.dmg`, open it and drag **Veranda** into **Applications**.
+1. Download `Veranda_0.4.0_universal.dmg`, open it and drag **Veranda** into **Applications**.
 2. First launch: right-click (or Control-click) Veranda → **Open** → **Open**. macOS asks this once
    because the app is not signed with an Apple Developer certificate.
 3. Updates install in place from the app.

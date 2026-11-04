@@ -204,6 +204,120 @@ pub fn grant_bind_capability(_binary: &Path) -> Result<()> {
     Ok(())
 }
 
+/// Linux: does the binary carry `cap_net_bind_service` (granted by `setcap`)?
+#[cfg(target_os = "linux")]
+pub fn has_bind_capability(binary: &Path) -> bool {
+    let Ok(getcap) = which::which("getcap") else {
+        return false;
+    };
+    Command::new(getcap)
+        .arg(binary)
+        .stdin(Stdio::null())
+        .output()
+        .map(|o| String::from_utf8_lossy(&o.stdout).contains("cap_net_bind_service"))
+        .unwrap_or(false)
+}
+
+#[cfg(not(target_os = "linux"))]
+pub fn has_bind_capability(_binary: &Path) -> bool {
+    true
+}
+
+/// A runtime installed by another tool (nvm, fnm, volta, the system package manager).
+#[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
+pub struct ExternalRuntime {
+    pub kind: String,
+    pub version: String,
+    /// Folder that holds the executable (for "open folder" and PATH).
+    pub bin_dir: PathBuf,
+    pub source: String,
+}
+
+fn versions_under(
+    dir: &Path,
+    bin_rel: &str,
+    exe: &str,
+    source: &str,
+    out: &mut Vec<ExternalRuntime>,
+) {
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return;
+    };
+    for e in rd.flatten() {
+        let name = e.file_name().to_string_lossy().to_string();
+        let version = name.trim_start_matches('v').to_string();
+        if version.is_empty() || !version.chars().next().is_some_and(|c| c.is_ascii_digit()) {
+            continue;
+        }
+        let bin_dir = if bin_rel.is_empty() {
+            e.path()
+        } else {
+            e.path().join(bin_rel)
+        };
+        if bin_dir.join(exe).is_file() {
+            out.push(ExternalRuntime {
+                kind: "node".into(),
+                version,
+                bin_dir,
+                source: source.into(),
+            });
+        }
+    }
+}
+
+/// Node.js versions managed by nvm, nvm-windows, fnm or volta. Filesystem only (no processes),
+/// so it is cheap enough to run on every status refresh.
+pub fn external_node_versions() -> Vec<ExternalRuntime> {
+    let mut out = Vec::new();
+    let home = dirs::home_dir().unwrap_or_else(|| PathBuf::from("."));
+    let (bin_rel, exe) = if cfg!(windows) {
+        ("", "node.exe")
+    } else {
+        ("bin", "node")
+    };
+    let nvm_dir = std::env::var_os("NVM_DIR")
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".nvm"));
+    versions_under(
+        &nvm_dir.join("versions").join("node"),
+        bin_rel,
+        exe,
+        "nvm",
+        &mut out,
+    );
+    if cfg!(windows) {
+        let nvm_home = std::env::var_os("NVM_HOME")
+            .map(PathBuf::from)
+            .or_else(|| dirs::data_dir().map(|d| d.join("nvm")));
+        if let Some(d) = nvm_home {
+            versions_under(&d, "", exe, "nvm", &mut out);
+        }
+    }
+    let fnm_dir = std::env::var_os("FNM_DIR")
+        .map(PathBuf::from)
+        .or_else(|| dirs::data_dir().map(|d| d.join("fnm")));
+    if let Some(d) = fnm_dir {
+        let rel = if cfg!(windows) {
+            "installation"
+        } else {
+            "installation/bin"
+        };
+        versions_under(&d.join("node-versions"), rel, exe, "fnm", &mut out);
+    }
+    versions_under(
+        &home.join(".volta").join("tools").join("image").join("node"),
+        bin_rel,
+        exe,
+        "volta",
+        &mut out,
+    );
+    out.sort_by(|a, b| {
+        crate::manifest::parse_version(&b.version).cmp(&crate::manifest::parse_version(&a.version))
+    });
+    out.dedup_by(|a, b| a.version == b.version && a.source == b.source);
+    out
+}
+
 /// Our own executable, for re-invoking as an elevated helper.
 pub fn current_exe() -> Result<PathBuf> {
     Ok(std::env::current_exe()?)

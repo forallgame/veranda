@@ -255,7 +255,35 @@ fn post_install(kind: Kind, dir: &Path) -> Result<()> {
             std::fs::write(dir.join("config.inc.php"), cfg)?;
             std::fs::create_dir_all(dir.join("tmp"))?;
         }
+        Kind::Postgres => {
+            // The Maven jar is a zip holding one `postgres-<os>-<arch>.txz`; unpack it in place.
+            let txz: Vec<PathBuf> = std::fs::read_dir(dir)?
+                .filter_map(|e| e.ok())
+                .map(|e| e.path())
+                .filter(|p| p.extension().is_some_and(|x| x == "txz"))
+                .collect();
+            for t in txz {
+                archive::extract(&t, ArchiveType::TarXz, dir, 0)?;
+                let _ = std::fs::remove_file(&t);
+            }
+            fsutil::remove_dir_all_if_exists(&dir.join("META-INF"))?;
+            make_bin_executable(&dir.join("bin"))?;
+        }
+        Kind::Python | Kind::Go => make_bin_executable(&dir.join("bin"))?,
+        Kind::Bun => make_bin_executable(dir)?,
         _ => {}
+    }
+    Ok(())
+}
+
+/// Tar/zip extraction does not always keep the mode bits: mark every file in `dir` runnable.
+fn make_bin_executable(dir: &Path) -> Result<()> {
+    if let Ok(rd) = std::fs::read_dir(dir) {
+        for e in rd.flatten() {
+            if e.path().is_file() {
+                fsutil::make_executable(&e.path())?;
+            }
+        }
     }
     Ok(())
 }
@@ -379,6 +407,23 @@ impl Binaries {
         }
         Self::exe(&i.path.join("bin"), "valkey-cli")
     }
+    /// Folder with `python3` / `python.exe` (the standalone build keeps the exe at the root on Windows).
+    pub fn python_bin_dir(i: &Installed) -> PathBuf {
+        if Platform::current().is_windows() {
+            i.path.clone()
+        } else {
+            i.path.join("bin")
+        }
+    }
+    pub fn go_bin_dir(i: &Installed) -> PathBuf {
+        i.path.join("bin")
+    }
+    pub fn bun_bin_dir(i: &Installed) -> PathBuf {
+        i.path.clone()
+    }
+    pub fn postgres_bin_dir(i: &Installed) -> PathBuf {
+        i.path.join("bin")
+    }
     pub fn node_bin_dir(i: &Installed) -> PathBuf {
         if Platform::current().is_windows() {
             i.path.clone()
@@ -399,6 +444,18 @@ pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec
     }
     if let Some(i) = reg.newest(Kind::Node) {
         v.push(Binaries::node_bin_dir(i));
+    }
+    if let Some(i) = reg.newest(Kind::Python) {
+        v.push(Binaries::python_bin_dir(i));
+    }
+    if let Some(i) = reg.newest(Kind::Go) {
+        v.push(Binaries::go_bin_dir(i));
+    }
+    if let Some(i) = reg.newest(Kind::Bun) {
+        v.push(Binaries::bun_bin_dir(i));
+    }
+    if let Some(i) = reg.active(Kind::Postgres, &cfg.pg.version) {
+        v.push(Binaries::postgres_bin_dir(i));
     }
     let db_kind = match cfg.db.engine {
         DbEngine::MariaDb => Kind::MariaDb,

@@ -39,6 +39,8 @@ struct UiState {
     services: Vec<ServiceStatus>,
     sites: Vec<Site>,
     installed: Vec<Installed>,
+    /// Runtimes managed by other tools (nvm, fnm, volta): shown, never touched.
+    external: Vec<veranda_core::tools::ExternalRuntime>,
     hosts_in_sync: bool,
     db_password_known: bool,
     scheme: String,
@@ -47,6 +49,8 @@ struct UiState {
     /// Optional UI hints for automated screenshots: VERANDA_UI_TAB / VERANDA_UI_THEME.
     ui_tab: Option<String>,
     ui_theme: Option<String>,
+    /// VERANDA_UI_PERF=1 makes the UI run a scroll benchmark and report it via `perf_report`.
+    ui_perf: bool,
 }
 
 #[tauri::command]
@@ -83,6 +87,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         services,
         sites,
         installed: reg.items,
+        external: veranda_core::tools::external_node_versions(),
         hosts_in_sync,
         db_password_known,
         scheme: scheme.into(),
@@ -93,6 +98,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
             .collect(),
         ui_tab: std::env::var("VERANDA_UI_TAB").ok(),
         ui_theme: std::env::var("VERANDA_UI_THEME").ok(),
+        ui_perf: std::env::var("VERANDA_UI_PERF").is_ok(),
     })
 }
 
@@ -147,6 +153,25 @@ struct ActionReport {
     error: String,
     /// Set when the OS refused a privileged port; the UI offers the one-time permission fix.
     port_permission: Option<u16>,
+    /// Set when another program holds the port; the UI offers to move to `suggestion`.
+    port_in_use: Option<PortConflict>,
+}
+
+#[derive(Serialize, Clone)]
+struct PortConflict {
+    port: u16,
+    owner: String,
+    suggestion: u16,
+}
+
+fn suggest_port(port: u16) -> u16 {
+    let from = match port {
+        80 => 8080,
+        443 => 8443,
+        p if p < 1024 => p + 8000,
+        p => p + 1,
+    };
+    veranda_core::process::next_free_port(from).unwrap_or(from)
 }
 
 fn to_report(results: Vec<(ServiceId, anyhow::Result<()>)>) -> Vec<ActionReport> {
@@ -158,14 +183,30 @@ fn to_report(results: Vec<(ServiceId, anyhow::Result<()>)>) -> Vec<ActionReport>
                     .find_map(|c| c.downcast_ref::<services::PortPermission>())
                     .map(|p| p.port)
             });
+            let port_in_use = r.as_ref().err().and_then(|e| {
+                e.chain()
+                    .find_map(|c| c.downcast_ref::<services::PortInUse>())
+                    .map(|p| PortConflict {
+                        port: p.port,
+                        owner: p.owner.clone(),
+                        suggestion: suggest_port(p.port),
+                    })
+            });
             ActionReport {
                 id: id.to_string(),
                 ok: r.is_ok(),
                 error: r.err().map(|e| format!("{e:#}")).unwrap_or_default(),
                 port_permission,
+                port_in_use,
             }
         })
         .collect()
+}
+
+/// Developer aid: the UI's scroll benchmark result (VERANDA_UI_PERF=1) goes to the log.
+#[tauri::command]
+fn perf_report(text: String) {
+    tracing::info!("ui-perf {text}");
 }
 
 /// Called by the UI after its first render; shows the (initially hidden) main window.
@@ -296,6 +337,7 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
                 (app.config.db.engine, kind),
                 (DbEngine::MariaDb, Kind::MariaDb) | (DbEngine::MySql, Kind::MySql)
             ),
+            ServiceId::Pg => kind == Kind::Postgres,
             ServiceId::Cache => kind == Kind::Cache,
             ServiceId::Mail => kind == Kind::Mailpit,
         }
@@ -323,6 +365,12 @@ fn save_config(state: State<'_, AppState>, config: Config) -> CmdResult<()> {
 #[derive(Serialize)]
 struct SyncResult {
     missing_hosts: Vec<String>,
+}
+
+#[tauri::command]
+fn pg_password(state: State<'_, AppState>) -> CmdResult<Option<String>> {
+    let app = open_app(&state)?;
+    veranda_core::services::pg::password(&app.layout).map_err(err)
 }
 
 #[tauri::command]
@@ -580,6 +628,13 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
         "web" => veranda_core::tools::open_url(cfg, &format!("{base}/")),
         "adminer" => veranda_core::tools::open_url(cfg, &format!("{base}/adminer/")),
         "phpmyadmin" => veranda_core::tools::open_url(cfg, &format!("{base}/phpmyadmin/")),
+        "adminer-pg" => veranda_core::tools::open_url(
+            cfg,
+            &format!(
+                "{base}/adminer/?pgsql=127.0.0.1%3A{}&username=postgres",
+                cfg.pg.port
+            ),
+        ),
         "mail" => {
             veranda_core::tools::open_url(cfg, &format!("http://127.0.0.1:{}/", cfg.mail.http_port))
         }
@@ -1080,8 +1135,10 @@ pub fn run() {
             service_action,
             grant_web_ports,
             ui_ready,
+            perf_report,
             migrate_detect,
             migrate_run,
+            pg_password,
             start_all,
             stop_all,
             install_package,

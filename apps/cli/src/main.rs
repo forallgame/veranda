@@ -442,6 +442,7 @@ async fn run(cli: Cli) -> Result<()> {
                     };
                     app.config.db.version = version.clone();
                 }
+                Kind::Postgres => app.config.pg.version = version.clone(),
                 Kind::Cache => app.config.cache.version = version.clone(),
                 Kind::Mailpit => app.config.mail.version = version.clone(),
                 _ => bail!("{kind} has no active-version setting"),

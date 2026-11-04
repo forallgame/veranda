@@ -115,6 +115,10 @@ pub async fn versions(kind: Kind, p: Platform) -> Result<Vec<Package>> {
         Kind::Apache => apache(&c, p).await?,
         Kind::Cache => cache(&c, p).await?,
         Kind::CaBundle => vec![cabundle(&c, p).await?],
+        Kind::Postgres => postgres(&c, p).await?,
+        Kind::Python => python(&c, p).await?,
+        Kind::Go => go(&c, p).await?,
+        Kind::Bun => bun(&c, p).await?,
     };
     if v.is_empty() {
         bail!("no {kind} versions found upstream");
@@ -773,4 +777,177 @@ async fn cabundle(c: &reqwest::Client, p: Platform) -> Result<Package> {
             "cacert.pem",
         )],
     ))
+}
+
+// ---------------------------------------------------------------- PostgreSQL / Python / Go / Bun
+
+/// zonky.io publishes the official PostgreSQL binaries as Maven artifacts (jar = zip holding one
+/// `.txz`), with a `.sha256` next to every jar.
+async fn postgres(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let artifact = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "linux-amd64",
+        (Os::Linux, Arch::Aarch64) => "linux-arm64v8",
+        (Os::Macos, Arch::X86_64) => "darwin-amd64",
+        (Os::Macos, Arch::Aarch64) => "darwin-arm64v8",
+        (Os::Windows, Arch::X86_64) => "windows-amd64",
+        (Os::Windows, Arch::Aarch64) => bail!("no PostgreSQL build for Windows on ARM"),
+    };
+    let base = format!(
+        "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-{artifact}"
+    );
+    let text = fetch_text(c, &format!("{base}/maven-metadata.xml")).await?;
+    let re = regex::Regex::new(r"<version>(\d+)\.(\d+)\.(\d+)</version>")?;
+    let mut versions: Vec<String> = re
+        .captures_iter(&text)
+        .filter(|m| m[1].parse::<u32>().unwrap_or(0) >= 13)
+        .map(|m| format!("{}.{}.{}", &m[1], &m[2], &m[3]))
+        .collect();
+    versions.sort_by_key(|v| std::cmp::Reverse(parse_version(v)));
+    versions.dedup();
+    Ok(versions
+        .into_iter()
+        .take(MAX_VERSIONS)
+        .map(|v| {
+            let url = format!("{base}/{v}/embedded-postgres-binaries-{artifact}-{v}.jar");
+            let mut pt = part(
+                url.clone(),
+                Checksum::Remote {
+                    url: format!("{url}.sha256"),
+                    name: String::new(),
+                },
+                0,
+            );
+            pt.archive = ArchiveType::Zip;
+            pkg(Kind::Postgres, &v, p, "zonky.io / maven central", vec![pt])
+        })
+        .collect())
+}
+
+/// python-build-standalone: one release holds every CPython version; SHA256SUMS lists them all.
+async fn python(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let triple = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "x86_64-unknown-linux-gnu",
+        (Os::Linux, Arch::Aarch64) => "aarch64-unknown-linux-gnu",
+        (Os::Macos, Arch::X86_64) => "x86_64-apple-darwin",
+        (Os::Macos, Arch::Aarch64) => "aarch64-apple-darwin",
+        (Os::Windows, Arch::X86_64) => "x86_64-pc-windows-msvc",
+        (Os::Windows, Arch::Aarch64) => "aarch64-pc-windows-msvc",
+    };
+    let mut out = Vec::new();
+    let re = regex::Regex::new(&format!(
+        r"^cpython-(\d+\.\d+\.\d+)\+(\d+)-{}-install_only_stripped\.tar\.gz$",
+        regex::escape(triple)
+    ))?;
+    for rel in github_releases(c, "astral-sh/python-build-standalone", 2).await? {
+        let Some(sums) = rel.assets.iter().find(|a| a.name == "SHA256SUMS") else {
+            continue;
+        };
+        for a in &rel.assets {
+            let Some(m) = re.captures(&a.name) else {
+                continue;
+            };
+            out.push(pkg(
+                Kind::Python,
+                &m[1],
+                p,
+                "python-build-standalone",
+                vec![part(
+                    a.browser_download_url.clone(),
+                    Checksum::Remote {
+                        url: sums.browser_download_url.clone(),
+                        name: a.name.clone(),
+                    },
+                    1,
+                )],
+            ));
+        }
+        if !out.is_empty() {
+            break;
+        }
+    }
+    Ok(out)
+}
+
+/// go.dev publishes a JSON index with a sha256 for every archive.
+async fn go(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    #[derive(Deserialize)]
+    struct Release {
+        version: String,
+        stable: bool,
+        files: Vec<File>,
+    }
+    #[derive(Deserialize)]
+    struct File {
+        filename: String,
+        os: String,
+        arch: String,
+        sha256: String,
+        kind: String,
+    }
+    let (os, arch) = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => ("linux", "amd64"),
+        (Os::Linux, Arch::Aarch64) => ("linux", "arm64"),
+        (Os::Macos, Arch::X86_64) => ("darwin", "amd64"),
+        (Os::Macos, Arch::Aarch64) => ("darwin", "arm64"),
+        (Os::Windows, Arch::X86_64) => ("windows", "amd64"),
+        (Os::Windows, Arch::Aarch64) => ("windows", "arm64"),
+    };
+    let text = fetch_text(c, "https://go.dev/dl/?mode=json&include=all").await?;
+    let rels: Vec<Release> = serde_json::from_str(&text).context("parsing go.dev index")?;
+    Ok(rels
+        .into_iter()
+        .filter(|r| r.stable)
+        .take(16)
+        .filter_map(|r| {
+            let f = r
+                .files
+                .into_iter()
+                .find(|f| f.kind == "archive" && f.os == os && f.arch == arch)?;
+            let v = r.version.trim_start_matches("go").to_string();
+            Some(pkg(
+                Kind::Go,
+                &v,
+                p,
+                "go.dev",
+                vec![part(
+                    format!("https://go.dev/dl/{}", f.filename),
+                    Checksum::Sha256 { hex: f.sha256 },
+                    1,
+                )],
+            ))
+        })
+        .collect())
+}
+
+async fn bun(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let name = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => "bun-linux-x64.zip",
+        (Os::Linux, Arch::Aarch64) => "bun-linux-aarch64.zip",
+        (Os::Macos, Arch::X86_64) => "bun-darwin-x64.zip",
+        (Os::Macos, Arch::Aarch64) => "bun-darwin-aarch64.zip",
+        (Os::Windows, Arch::X86_64) => "bun-windows-x64.zip",
+        (Os::Windows, Arch::Aarch64) => bail!("no Bun build for Windows on ARM"),
+    };
+    let mut out = Vec::new();
+    for rel in github_releases(c, "oven-sh/bun", 12).await? {
+        let v = rel.tag_name.trim_start_matches("bun-v").to_string();
+        let Some(asset) = rel.assets.iter().find(|a| a.name == name) else {
+            continue;
+        };
+        let checksum = match rel.assets.iter().find(|a| a.name == "SHASUMS256.txt") {
+            Some(s) => Checksum::Remote {
+                url: s.browser_download_url.clone(),
+                name: name.to_string(),
+            },
+            None => gh_checksum(asset),
+        };
+        out.push(pkg(
+            Kind::Bun,
+            &v,
+            p,
+            "github",
+            vec![part(asset.browser_download_url.clone(), checksum, 1)],
+        ));
+    }
+    Ok(out)
 }

@@ -27,10 +27,18 @@ pub enum Kind {
     PhpMyAdmin,
     /// Mozilla CA bundle for PHP's curl/openssl.
     CaBundle,
+    /// PostgreSQL server (zonky.io repackaging of the official binaries).
+    Postgres,
+    /// CPython from python-build-standalone (astral-sh).
+    Python,
+    /// Go toolchain from go.dev.
+    Go,
+    /// Bun runtime from GitHub releases.
+    Bun,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 13] = [
+    pub const ALL: [Kind; 17] = [
         Kind::Php,
         Kind::Caddy,
         Kind::Nginx,
@@ -44,6 +52,10 @@ impl Kind {
         Kind::Adminer,
         Kind::PhpMyAdmin,
         Kind::CaBundle,
+        Kind::Postgres,
+        Kind::Python,
+        Kind::Go,
+        Kind::Bun,
     ];
 
     pub const fn id(&self) -> &'static str {
@@ -61,6 +73,10 @@ impl Kind {
             Kind::Adminer => "adminer",
             Kind::PhpMyAdmin => "phpmyadmin",
             Kind::CaBundle => "cabundle",
+            Kind::Postgres => "postgres",
+            Kind::Python => "python",
+            Kind::Go => "go",
+            Kind::Bun => "bun",
         }
     }
 
@@ -79,6 +95,10 @@ impl Kind {
             Kind::Adminer => "Adminer",
             Kind::PhpMyAdmin => "phpMyAdmin",
             Kind::CaBundle => "CA bundle",
+            Kind::Postgres => "PostgreSQL",
+            Kind::Python => "Python",
+            Kind::Go => "Go",
+            Kind::Bun => "Bun",
         }
     }
 

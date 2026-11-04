@@ -29,9 +29,9 @@ berjalan tanpa Anda nyalakan.
 ## Apa yang Anda dapat
 
 - **Semua yang biasa dibutuhkan, tanpa yang tidak perlu.** PHP (8.1 sampai 8.5 terbaru), server
-  web (bawaan Caddy, atau Nginx/Apache), MariaDB atau MySQL, Valkey/Redis, Mailpit untuk
-  menangkap email keluar, Node.js, Composer, Adminer, dan phpMyAdmin. Semuanya opsional dan
-  versinya Anda pilih dari daftar. Beberapa versi bisa terpasang berdampingan.
+  web (bawaan Caddy, atau Nginx/Apache), MariaDB atau MySQL, PostgreSQL, Valkey/Redis, Mailpit
+  untuk menangkap email keluar, Node.js, Python, Go, Bun, Composer, Adminer, dan phpMyAdmin.
+  Semuanya opsional dan versinya Anda pilih dari daftar. Beberapa versi bisa terpasang berdampingan.
 - **Folder menjadi situs.** Taruh folder proyek di `www/`, maka ia dilayani di
   `https://nama-folder.test` dengan sertifikat yang dipercaya browser. Berlaku untuk situs
   statis, aplikasi PHP, dan apa pun yang punya `index.html` atau `index.php`; folder `public/`
@@ -56,20 +56,20 @@ Unduh berkas untuk sistem Anda dari **[rilis terbaru](../../releases/latest)**.
 
 **Debian, Ubuntu, Kubuntu, Linux Mint, Pop!_OS** (`.deb`):
 ```sh
-sudo apt install ./Veranda_0.3.0_amd64.deb
+sudo apt install ./Veranda_0.4.0_amd64.deb
 ```
 Veranda muncul di menu aplikasi. Pembaruan: Veranda menampilkan pemberitahuan dan membuka halaman
 rilis; unduh `.deb` baru lalu jalankan perintah yang sama.
 
 **Fedora, openSUSE, RHEL** (`.rpm`):
 ```sh
-sudo dnf install ./Veranda-0.3.0-1.x86_64.rpm     # atau: sudo zypper install ./Veranda-*.rpm
+sudo dnf install ./Veranda-0.4.0-1.x86_64.rpm     # atau: sudo zypper install ./Veranda-*.rpm
 ```
 
 **Distribusi apa pun** (`.AppImage`, tanpa pemasangan):
 ```sh
-chmod +x Veranda_0.3.0_amd64.AppImage
-./Veranda_0.3.0_amd64.AppImage
+chmod +x Veranda_0.4.0_amd64.AppImage
+./Veranda_0.4.0_amd64.AppImage
 ```
 AppImage bisa memperbarui dirinya dari dalam aplikasi. Pindahkan ke folder seperti
 `~/Applications` agar rapi.
@@ -80,18 +80,18 @@ Settings.
 
 ### Windows 10 / 11
 
-1. Unduh `Veranda_0.3.0_x64-setup.exe` lalu jalankan. Jika SmartScreen berkata "Windows protected
+1. Unduh `Veranda_0.4.0_x64-setup.exe` lalu jalankan. Jika SmartScreen berkata "Windows protected
    your PC", klik **More info → Run anyway** (pemasangnya masih baru dan belum banyak diunduh;
    hanya itu arti peringatannya).
 2. Ikuti pemasangnya. Veranda ditambahkan ke menu Start. Runtime Microsoft WebView2 dipasang
    otomatis jika komputer Anda belum punya.
-3. Perlu MSI untuk pemasangan di perusahaan? `Veranda_0.3.0_x64_en-US.msi` ada di rilis yang sama.
+3. Perlu MSI untuk pemasangan di perusahaan? `Veranda_0.4.0_x64_en-US.msi` ada di rilis yang sama.
 
 Pembaruan dipasang langsung dari dalam aplikasi.
 
 ### macOS (Apple Silicon dan Intel)
 
-1. Unduh `Veranda_0.3.0_universal.dmg`, buka, lalu seret **Veranda** ke **Applications**.
+1. Unduh `Veranda_0.4.0_universal.dmg`, buka, lalu seret **Veranda** ke **Applications**.
 2. Peluncuran pertama: klik kanan (atau Control-klik) Veranda → **Open** → **Open**. macOS bertanya
    sekali karena aplikasi belum ditandatangani sertifikat Apple Developer.
 3. Pembaruan dipasang langsung dari dalam aplikasi.

@@ -3,6 +3,7 @@
 pub mod cache;
 pub mod db;
 pub mod mail;
+pub mod pg;
 pub mod php;
 pub mod web;
 
@@ -20,15 +21,17 @@ pub enum ServiceId {
     Web,
     Php,
     Db,
+    Pg,
     Cache,
     Mail,
 }
 
 impl ServiceId {
-    pub const ALL: [ServiceId; 5] = [
+    pub const ALL: [ServiceId; 6] = [
         ServiceId::Web,
         ServiceId::Php,
         ServiceId::Db,
+        ServiceId::Pg,
         ServiceId::Cache,
         ServiceId::Mail,
     ];
@@ -38,6 +41,7 @@ impl ServiceId {
             ServiceId::Web => "web",
             ServiceId::Php => "php",
             ServiceId::Db => "db",
+            ServiceId::Pg => "pg",
             ServiceId::Cache => "cache",
             ServiceId::Mail => "mail",
         }
@@ -57,9 +61,10 @@ impl std::str::FromStr for ServiceId {
             "web" | "caddy" | "nginx" | "apache" | "httpd" => Ok(ServiceId::Web),
             "php" | "php-fpm" => Ok(ServiceId::Php),
             "db" | "mysql" | "mariadb" | "database" => Ok(ServiceId::Db),
+            "pg" | "postgres" | "postgresql" => Ok(ServiceId::Pg),
             "cache" | "redis" | "valkey" => Ok(ServiceId::Cache),
             "mail" | "mailpit" => Ok(ServiceId::Mail),
-            other => bail!("unknown service `{other}` (web, php, db, cache, mail)"),
+            other => bail!("unknown service `{other}` (web, php, db, pg, cache, mail)"),
         }
     }
 }
@@ -112,6 +117,7 @@ fn enabled(app: &Veranda, id: ServiceId) -> bool {
         ServiceId::Web => c.web.enabled,
         ServiceId::Php => c.php.enabled,
         ServiceId::Db => c.db.enabled,
+        ServiceId::Pg => c.pg.enabled,
         ServiceId::Cache => c.cache.enabled,
         ServiceId::Mail => c.mail.enabled,
     }
@@ -122,6 +128,7 @@ pub fn status(ctx: &Ctx, id: ServiceId) -> ServiceStatus {
         ServiceId::Web => web::status(ctx),
         ServiceId::Php => php::status(ctx),
         ServiceId::Db => db::status(ctx),
+        ServiceId::Pg => pg::status(ctx),
         ServiceId::Cache => cache::status(ctx),
         ServiceId::Mail => mail::status(ctx),
     };
@@ -156,6 +163,7 @@ pub fn prepare_all(app: &Veranda) -> Result<Vec<String>> {
     php::prepare(&ctx)?;
     web::prepare(&ctx)?;
     db::prepare(&ctx)?;
+    pg::prepare(&ctx)?;
     cache::prepare(&ctx)?;
     let hosts = crate::sites::hostnames(&sites);
     let hosts_file = app.platform().hosts_file();
@@ -181,6 +189,7 @@ pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
         ServiceId::Web => web::start(&ctx),
         ServiceId::Php => php::start(&ctx),
         ServiceId::Db => db::start(&ctx),
+        ServiceId::Pg => pg::start(&ctx),
         ServiceId::Cache => cache::start(&ctx),
         ServiceId::Mail => mail::start(&ctx),
     }
@@ -197,6 +206,7 @@ pub fn stop(app: &Veranda, id: ServiceId) -> Result<()> {
         ServiceId::Web => web::stop(&ctx),
         ServiceId::Php => php::stop(&ctx),
         ServiceId::Db => db::stop(&ctx),
+        ServiceId::Pg => pg::stop(&ctx),
         ServiceId::Cache => cache::stop(&ctx),
         ServiceId::Mail => mail::stop(&ctx),
     }
@@ -232,6 +242,7 @@ pub fn reload(app: &Veranda, id: ServiceId) -> Result<()> {
 pub fn start_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
     let order = [
         ServiceId::Db,
+        ServiceId::Pg,
         ServiceId::Cache,
         ServiceId::Mail,
         ServiceId::Php,
@@ -250,6 +261,7 @@ pub fn stop_all(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
         ServiceId::Php,
         ServiceId::Mail,
         ServiceId::Cache,
+        ServiceId::Pg,
         ServiceId::Db,
     ];
     order.iter().map(|id| (*id, stop(app, *id))).collect()
@@ -285,13 +297,68 @@ impl fmt::Display for PortPermission {
 
 impl std::error::Error for PortPermission {}
 
+/// Like [`ensure_port_free`], but for a server binary that may hold `cap_net_bind_service`:
+/// Veranda itself can never bind a privileged port, so when the OS refuses the probe we only
+/// fail if something already listens or the binary has not been granted the capability.
+/// Something else already listens on a port a service needs. Front-ends offer to move the
+/// service to the next free port.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PortInUse {
+    pub port: u16,
+    pub what: String,
+    pub owner: String,
+}
+
+impl fmt::Display for PortInUse {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        if self.owner.is_empty() {
+            write!(
+                f,
+                "port {} needed by {} is already in use",
+                self.port, self.what
+            )
+        } else {
+            write!(
+                f,
+                "port {} needed by {} is already in use by {}",
+                self.port, self.what, self.owner
+            )
+        }
+    }
+}
+
+impl std::error::Error for PortInUse {}
+
+fn in_use(port: u16, what: &str) -> anyhow::Error {
+    PortInUse {
+        port,
+        what: what.to_string(),
+        owner: crate::process::port_owner(port).unwrap_or_default(),
+    }
+    .into()
+}
+
+pub fn ensure_port_free_for(port: u16, what: &str, binary: &std::path::Path) -> Result<()> {
+    match crate::process::port_state(port) {
+        crate::process::PortState::Free => Ok(()),
+        crate::process::PortState::InUse => Err(in_use(port, what)),
+        crate::process::PortState::Denied => {
+            if crate::process::port_accepting(port) {
+                return Err(in_use(port, what));
+            }
+            if crate::tools::has_bind_capability(binary) {
+                Ok(())
+            } else {
+                Err(PortPermission { port }.into())
+            }
+        }
+    }
+}
+
 pub fn ensure_port_free(port: u16, what: &str) -> Result<()> {
     match crate::process::port_state(port) {
         crate::process::PortState::Free => Ok(()),
         crate::process::PortState::Denied => Err(PortPermission { port }.into()),
-        crate::process::PortState::InUse => {
-            let owner = crate::process::port_owner(port).unwrap_or_default();
-            bail!("port {port} needed by {what} is already in use. {owner}");
-        }
+        crate::process::PortState::InUse => Err(in_use(port, what)),
     }
 }

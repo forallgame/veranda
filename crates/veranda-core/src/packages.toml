@@ -481,3 +481,167 @@ os = "windows"
 arch = "x86_64"
 source = "curl.se"
 parts = [{ url = "https://curl.se/ca/cacert.pem", archive = "file", file_name = "cacert.pem", checksum = { algo = "sha256", hex = "796f1389bfea13c0ed78f663b765baaff54a508e5483786bd6ece73c5e3e3cbe" } }]
+
+# ---------------------------------------------------------------- PostgreSQL (zonky.io repackaging of the official binaries; jar = zip with a .txz inside)
+[[packages]]
+kind = "postgres"
+version = "18.6.0"
+os = "linux"
+arch = "x86_64"
+source = "zonky.io / maven central"
+parts = [{ url = "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-linux-amd64/18.6.0/embedded-postgres-binaries-linux-amd64-18.6.0.jar", archive = "zip", checksum = { algo = "sha256", hex = "008ee189eaa7ca2b58bd01dd950291e638b998392cf982297acd4779ec898ac1" } }]
+
+[[packages]]
+kind = "postgres"
+version = "18.6.0"
+os = "linux"
+arch = "aarch64"
+source = "zonky.io / maven central"
+parts = [{ url = "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-linux-arm64v8/18.6.0/embedded-postgres-binaries-linux-arm64v8-18.6.0.jar", archive = "zip", checksum = { algo = "sha256", hex = "5f54e016723afa6213925a8acb939bac52944b1d348f65c7a20f0cd2928c31be" } }]
+
+[[packages]]
+kind = "postgres"
+version = "18.6.0"
+os = "macos"
+arch = "x86_64"
+source = "zonky.io / maven central"
+parts = [{ url = "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-darwin-amd64/18.6.0/embedded-postgres-binaries-darwin-amd64-18.6.0.jar", archive = "zip", checksum = { algo = "sha256", hex = "690941008aac9ee360820fde9bb7870a4f3dcac5e9e2f9e45e42333a436ad0f9" } }]
+
+[[packages]]
+kind = "postgres"
+version = "18.6.0"
+os = "macos"
+arch = "aarch64"
+source = "zonky.io / maven central"
+parts = [{ url = "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-darwin-arm64v8/18.6.0/embedded-postgres-binaries-darwin-arm64v8-18.6.0.jar", archive = "zip", checksum = { algo = "sha256", hex = "8f6ed6f38195b50a40712ada8b2a12060b6193c1a6977a6eb5cff053bb5a1b89" } }]
+
+[[packages]]
+kind = "postgres"
+version = "18.6.0"
+os = "windows"
+arch = "x86_64"
+source = "zonky.io / maven central"
+parts = [{ url = "https://repo1.maven.org/maven2/io/zonky/test/postgres/embedded-postgres-binaries-windows-amd64/18.6.0/embedded-postgres-binaries-windows-amd64-18.6.0.jar", archive = "zip", checksum = { algo = "sha256", hex = "b7ef2d03588e0439f0d0a2250f43905f7464f1e96ace47703ceaf79094198150" } }]
+
+# ---------------------------------------------------------------- Python (python-build-standalone, install_only_stripped)
+[[packages]]
+kind = "python"
+version = "3.14.10"
+os = "linux"
+arch = "x86_64"
+source = "python-build-standalone"
+parts = [{ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-x86_64-unknown-linux-gnu-install_only_stripped.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "4d3c16c59ed0802a3d1d34d8bce504b15ceeaff39d62dadecc6a9fa803412aed" } }]
+
+[[packages]]
+kind = "python"
+version = "3.14.10"
+os = "linux"
+arch = "aarch64"
+source = "python-build-standalone"
+parts = [{ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-aarch64-unknown-linux-gnu-install_only_stripped.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "90f48337bc3dd4ae6eda81e001e4c981236d403b6b5a07778bbdf94ee423dc00" } }]
+
+[[packages]]
+kind = "python"
+version = "3.14.10"
+os = "macos"
+arch = "x86_64"
+source = "python-build-standalone"
+parts = [{ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-x86_64-apple-darwin-install_only_stripped.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "2fd8becd48cf0ff5f0a15df3c0db7cae7aa708dcaacf901bd30d6cdd6229370b" } }]
+
+[[packages]]
+kind = "python"
+version = "3.14.10"
+os = "macos"
+arch = "aarch64"
+source = "python-build-standalone"
+parts = [{ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-aarch64-apple-darwin-install_only_stripped.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "95eb8c87d16af37c54e9765e31d8c56c0d8ffa9968ea0f704f73a9b83f84e9f9" } }]
+
+[[packages]]
+kind = "python"
+version = "3.14.10"
+os = "windows"
+arch = "x86_64"
+source = "python-build-standalone"
+parts = [{ url = "https://github.com/astral-sh/python-build-standalone/releases/download/20261026/cpython-3.14.10+20261026-x86_64-pc-windows-msvc-install_only_stripped.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "c1876a9795d3a94ee49a1499a69cd91e26ca3e2829593f93fa6e4db90d05402b" } }]
+
+# ---------------------------------------------------------------- Go (go.dev)
+[[packages]]
+kind = "go"
+version = "1.27.3"
+os = "linux"
+arch = "x86_64"
+source = "go.dev"
+parts = [{ url = "https://go.dev/dl/go1.27.3.linux-amd64.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "65efbc80fdc1fa2cd2631cad5b481777a68e8725f34e89f50fc6ac714e379b40" } }]
+
+[[packages]]
+kind = "go"
+version = "1.27.3"
+os = "linux"
+arch = "aarch64"
+source = "go.dev"
+parts = [{ url = "https://go.dev/dl/go1.27.3.linux-arm64.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "a06e99309dbcbdca1a8ccd2282c3ee146e55930886e26b4f1193269587165f49" } }]
+
+[[packages]]
+kind = "go"
+version = "1.27.3"
+os = "macos"
+arch = "x86_64"
+source = "go.dev"
+parts = [{ url = "https://go.dev/dl/go1.27.3.darwin-amd64.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "b6f8e931e4ab497fcde6da8ae4499a58f9d258e55c8a80824a516eae5950a750" } }]
+
+[[packages]]
+kind = "go"
+version = "1.27.3"
+os = "macos"
+arch = "aarch64"
+source = "go.dev"
+parts = [{ url = "https://go.dev/dl/go1.27.3.darwin-arm64.tar.gz", archive = "targz", strip = 1, checksum = { algo = "sha256", hex = "dd3908cf20959d798c1e06ebe5b72213f0505ce01373b40ce3110975a6cd99c2" } }]
+
+[[packages]]
+kind = "go"
+version = "1.27.3"
+os = "windows"
+arch = "x86_64"
+source = "go.dev"
+parts = [{ url = "https://go.dev/dl/go1.27.3.windows-amd64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "f26081f438319757f8a1b46d7d0b2c5ec7583d4038e485e0aa725cfde7885fff" } }]
+
+# ---------------------------------------------------------------- Bun (GitHub releases)
+[[packages]]
+kind = "bun"
+version = "1.4.4"
+os = "linux"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-x64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "bf8ccbfb2b0b80159e0f9a6d15c55317add8077534dbc6130a3edb52fccb395c" } }]
+
+[[packages]]
+kind = "bun"
+version = "1.4.4"
+os = "linux"
+arch = "aarch64"
+source = "github"
+parts = [{ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-linux-aarch64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "baa6bb36f51d6e58561e02bbea825038a9df454f673d6d776e8bbf86f8c7850e" } }]
+
+[[packages]]
+kind = "bun"
+version = "1.4.4"
+os = "macos"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-x64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "50a3491f73abc2fe81673171a85762d3bc2cc1680ccecadd983de99adf77977e" } }]
+
+[[packages]]
+kind = "bun"
+version = "1.4.4"
+os = "macos"
+arch = "aarch64"
+source = "github"
+parts = [{ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-darwin-aarch64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "c240d7f0ccb90c263a849fcdb09b7ee62630d921348ed6aafda86b9d577bc510" } }]
+
+[[packages]]
+kind = "bun"
+version = "1.4.4"
+os = "windows"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/oven-sh/bun/releases/download/bun-v1.4.4/bun-windows-x64.zip", archive = "zip", strip = 1, checksum = { algo = "sha256", hex = "cd2c0fccc78f3ede1f50ca827a15f063eda13d4d150a3d0674f4f6e323d864a5" } }]

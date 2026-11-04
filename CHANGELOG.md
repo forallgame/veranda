@@ -10,6 +10,32 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-04
+
+### Added
+- **PostgreSQL** as a second database service (runs beside MariaDB/MySQL): official binaries via
+  the zonky.io Maven packages with SHA-256 checks, data in `data/postgres`, superuser `postgres`
+  with a generated password, loopback only, Adminer link with the PostgreSQL driver preselected.
+- **Python** (python-build-standalone), **Go** (go.dev) and **Bun** (GitHub) as downloadable
+  runtimes with upstream checksums; they are added to the terminal PATH.
+
+### Fixed
+- Linux: after granting port 80/443 permission, the web server still refused to start because
+  Veranda probed the port from its own (unprivileged) process. The probe now trusts a binary that
+  carries `cap_net_bind_service`, so "Allow" works in one go.
+
+### Added
+- When another program holds a port a service needs, Veranda names the program and offers to
+  move the service to the next free port (80 -> 8080, 443 -> 8443, others +1) in one click.
+
+### Changed
+- New app icon: a glass tile with a house roof over a server stack (artwork supplied by the
+  project owner), used for the window, tray, installers and the in-app brand.
+- Sidebar and dashboard switches now start or stop the service immediately (as in FlyEnv) and
+  mark it to come up when Veranda launches. Hint texts updated.
+- Node.js: versions installed by nvm, nvm-windows, fnm or volta are detected and listed on the
+  Node.js page (with their folder) instead of being offered for download again.
+
 ## [0.3.0] - 2026-11-04
 
 ### Added
@@ -19,7 +45,8 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ### Changed
 - Scrolling is handled by the window again instead of an inner pane, which the compositor
-  accelerates; the sidebar is sticky.
+  accelerates; the sidebar is sticky. Measured with the built-in benchmark (`VERANDA_UI_PERF=1`):
+  60 fps with GPU rendering on, 19 fps with it off, so GPU rendering stays the default.
 - Version tables use fixed status/action columns so rows line up; service-page actions align right.
 
 ## [0.2.0] - 2026-11-03

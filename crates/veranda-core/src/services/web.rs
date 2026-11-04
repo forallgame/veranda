@@ -530,13 +530,13 @@ pub fn start(ctx: &Ctx) -> Result<()> {
         return reload(ctx);
     }
     process::clear_pid(layout, PID);
-    super::ensure_port_free(cfg.web.http_port, "the web server")?;
-    if cfg.web.ssl {
-        super::ensure_port_free(cfg.web.https_port, "the web server (https)")?;
-    }
     let bin = server.binary(ctx);
     if !bin.is_file() {
         bail!("web server binary not found: {}", bin.display());
+    }
+    super::ensure_port_free_for(cfg.web.http_port, "the web server", &bin)?;
+    if cfg.web.ssl {
+        super::ensure_port_free_for(cfg.web.https_port, "the web server (https)", &bin)?;
     }
     let conf = config_file(ctx);
     let mut cmd = process::command(&bin, &ctx.path_entries());
@@ -574,6 +574,15 @@ pub fn start(ctx: &Ctx) -> Result<()> {
     }
     process::spawn_detached(layout, PID, cmd)?;
     if !process::wait_for_port(cfg.web.http_port, std::time::Duration::from_secs(10)) {
+        if cfg!(target_os = "linux")
+            && cfg.web.http_port < 1024
+            && !crate::tools::has_bind_capability(&bin)
+        {
+            return Err(super::PortPermission {
+                port: cfg.web.http_port,
+            }
+            .into());
+        }
         let hint = if cfg!(target_os = "linux") && cfg.web.http_port < 1024 {
             " On Linux, ports below 1024 need a one-time permission (veranda doctor --fix-ports) or use ports 8080/8443 in Settings."
         } else {

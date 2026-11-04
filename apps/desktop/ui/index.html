@@ -11,12 +11,7 @@
 <div id="app">
   <aside class="side">
     <div class="brand">
-      <svg viewBox="0 0 64 64" width="30" height="30" aria-hidden="true">
-        <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#0ea5e9"/><stop offset="1" stop-color="#6366f1"/></linearGradient></defs>
-        <rect width="64" height="64" rx="14.5" fill="url(#bg)"/>
-        <path d="M16.4 29.3 32 18.8l15.6 10.5M20.6 29.4V44M43.4 29.4V44M15.8 45.3h32.5" fill="none" stroke="#fff" stroke-width="5.75" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="32" cy="37" r="4" fill="#fbbf24"/>
-      </svg>
+      <img src="brand.png" width="30" height="30" alt="" aria-hidden="true">
       <span>Veranda</span>
     </div>
     <nav class="nav" id="nav">
@@ -188,6 +183,7 @@
           <h2 data-i18n="settings.other">Database, cache, mail, backups, updates</h2>
           <div class="grid">
             <label><span data-i18n="settings.dbPort">Database port</span><input type="number" name="db.port"></label>
+            <label><span data-i18n="settings.pgPort">PostgreSQL port</span><input type="number" name="pg.port"></label>
             <label><span data-i18n="settings.cachePort">Cache port</span><input type="number" name="cache.port"></label>
             <label><span>SMTP</span><input type="number" name="mail.smtp_port"></label>
             <label><span data-i18n="settings.mailUi">Mail UI</span><input type="number" name="mail.http_port"></label>

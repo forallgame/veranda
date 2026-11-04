@@ -35,8 +35,12 @@ const KIND_META = {
   nginx:      { label: "Nginx",          svc: "web",   group: "web",   icon: "web" },
   apache:     { label: "Apache",         svc: "web",   group: "web",   icon: "web" },
   php:        { label: "PHP",            svc: "php",   group: "lang",  icon: "php" },
+  python:     { label: "Python",         group: "lang", icon: "pkg" },
+  go:         { label: "Go",             group: "lang", icon: "pkg" },
+  bun:        { label: "Bun",            group: "lang", icon: "node" },
   mariadb:    { label: "MariaDB",        svc: "db",    group: "db",    icon: "db" },
   mysql:      { label: "MySQL",          svc: "db",    group: "db",    icon: "db" },
+  postgres:   { label: "PostgreSQL",     svc: "pg",    group: "db",    icon: "db" },
   cache:      { label: "Valkey / Redis", svc: "cache", group: "more",  icon: "cache" },
   mailpit:    { label: "Mailpit",        svc: "mail",  group: "more",  icon: "mail" },
   composer:   { label: "Composer",       group: "tools", icon: "pkg" },
@@ -46,7 +50,7 @@ const KIND_META = {
   cabundle:   { label: "CA bundle",      group: "tools", icon: "shield" },
 };
 const GROUPS = [["web", "group.web"], ["lang", "group.lang"], ["db", "group.db"], ["more", "group.more"], ["tools", "group.tools"]];
-const SVC_SECTION = { web: "web", php: "php", db: "db", cache: "cache", mail: "mail" };
+const SVC_SECTION = { web: "web", php: "php", db: "db", pg: "pg", cache: "cache", mail: "mail" };
 const SVC_ROLE = { web: "role.web", db: "role.db" };
 
 let state = null, lang = "en", upstream = null, builtin = null, upstreamLoading = false;
@@ -164,9 +168,10 @@ function showTab(id) {
 /* ---------------- helpers over state ---------------- */
 const isHidden = (id) => (state.config.general.hidden_services || []).includes(id);
 const installedVersions = (kind) => state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
+const externalVersions = (kind) => (state.external || []).filter((x) => x.kind === kind);
 const svcStatus = (svc) => state.services.find((s) => s.id === svc);
 function activeKind(svc) {
-  return { web: state.config.web.server, db: state.config.db.engine, php: "php", cache: "cache", mail: "mailpit" }[svc];
+  return { web: state.config.web.server, db: state.config.db.engine, pg: "postgres", php: "php", cache: "cache", mail: "mailpit" }[svc];
 }
 const isActive = (kind) => !!KIND_META[kind].svc && activeKind(KIND_META[kind].svc) === kind;
 function kindOn(kind) {
@@ -198,7 +203,7 @@ function renderNav() {
       const m = KIND_META[kind];
       const st = m.svc && isActive(kind) ? svcStatus(m.svc) : null;
       const act = st ? busyOf(m.svc) : null;
-      const dot = act ? "busy" : st?.running ? "run" : installedVersions(kind).length ? "inst" : "";
+      const dot = act ? "busy" : st?.running ? "run" : installedVersions(kind).length || externalVersions(kind).length ? "inst" : "";
       const on = kindOn(kind);
       return `<div class="svc-item ${currentTab === "service" && currentKind === kind ? "active" : ""}" data-svc="${kind}" role="button" tabindex="0">
         <span class="sico">${ICONS[m.icon]}</span><span class="sname">${m.label}</span><i class="sdot ${dot}" title="${st?.running ? t("status.running") : ""}"></i>
@@ -229,8 +234,15 @@ async function toggleKind(kind, on) {
     hidden.add(svc);
   }
   cfg.general.hidden_services = [...hidden];
+  if (on) cfg.general.auto_start = true;   // an enabled service also comes up with Veranda
+  if (!on && svcStatus(svc)?.running) {
+    busy[svc] = "stop"; renderAll();
+    try { await invoke("service_action", { id: svc, action: "stop" }); } catch (e) { fail(e); }
+    delete busy[svc];
+  }
   try { await invoke("save_config", { config: cfg }); } catch (e) { fail(e); }
   await refresh(true);
+  if (on && svcStatus(svc)?.installed && !svcStatus(svc)?.running) await serviceAction(svc, "start");
 }
 
 /* ---------------- overview ---------------- */
@@ -305,7 +317,8 @@ async function reportResults(results, action) {
   }
   bad.forEach((r) => logActivity(`${serviceName(r.id)}: ${r.error}`, "bad"));
   const perm = bad.find((r) => r.port_permission);
-  const rest = bad.filter((r) => r !== perm);
+  const conflict = bad.find((r) => r.port_in_use && r !== perm);
+  const rest = bad.filter((r) => r !== perm && r !== conflict);
   if (rest.length) {
     const allMissing = rest.every((r) => /not installed/i.test(r.error));
     const head = t(action === "stop" ? "msg.stopFailed" : "msg.startFailed");
@@ -319,6 +332,23 @@ async function reportResults(results, action) {
     try { await invoke("grant_web_ports"); toast(t("msg.portsGranted"), "ok"); } catch (e) { fail(e); return; }
     await serviceAction(perm.id, "start");
   }
+  if (conflict) await offerPortMove(conflict);
+}
+// Every port a service listens on, as [section, key] in the config.
+const PORT_FIELDS = { web: [["web", "http_port"], ["web", "https_port"]], db: [["db", "port"]], pg: [["pg", "port"]], php: [["php", "fcgi_port"]], cache: [["cache", "port"]], mail: [["mail", "smtp_port"], ["mail", "http_port"]] };
+async function offerPortMove(r) {
+  const c = r.port_in_use, name = serviceName(r.id);
+  const field = (PORT_FIELDS[r.id] || []).find(([sec, key]) => state.config[sec][key] === c.port);
+  if (!field) { toast(`${name}: ${r.error.split("\n")[0]}`, "bad"); return; }
+  $("#confirm-title").textContent = t("ports.busyTitle", { port: c.port });
+  const ok = await askConfirm(t("ports.busyBody", { owner: c.owner || "?", name, new: c.suggestion }), t("btn.usePort", { new: c.suggestion }));
+  $("#confirm-title").textContent = t("confirm.title");
+  if (!ok) return;
+  const cfg = clone(state.config);
+  cfg[field[0]][field[1]] = c.suggestion;
+  try { await invoke("save_config", { config: cfg }); toast(t("msg.portMoved", { name, new: c.suggestion }), "ok"); } catch (e) { fail(e); return; }
+  await refresh(true);
+  await serviceAction(r.id, "start");
 }
 
 /* ---------------- service / tool page ---------------- */
@@ -334,9 +364,11 @@ function versionsFor(kind) {
   const ups = upstream ? upstream.filter((p) => p.kind === kind) : [];
   const built = builtin ? builtin.filter((p) => p.kind === kind) : [];
   const inst = installedVersions(kind);
-  const all = [...new Set([...ups.map((p) => p.version), ...built.map((p) => p.version), ...inst])].sort(cmpVer).reverse();
+  const ext = externalVersions(kind);
+  const all = [...new Set([...ups.map((p) => p.version), ...built.map((p) => p.version), ...inst, ...ext.map((x) => x.version)])].sort(cmpVer).reverse();
   const source = ups[0]?.source || built[0]?.source || "";
-  return { all, inst, source, newest: all[0] || "" };
+  const newest = [...new Set([...ups.map((p) => p.version), ...built.map((p) => p.version)])].sort(cmpVer).reverse()[0] || all[0] || "";
+  return { all, inst, ext, source, newest };
 }
 function renderService() {
   const box = $("#service-page");
@@ -345,7 +377,7 @@ function renderService() {
   const st = m.svc && isActive(kind) ? svcStatus(m.svc) : null;
   const act = st ? busyOf(m.svc) : null;
   const on = kindOn(kind);
-  const { all, inst, source, newest } = versionsFor(kind);
+  const { all, inst, ext, source, newest } = versionsFor(kind);
   const headCls = act ? "busy" : st?.running ? "on" : "";
 
   // header actions: enable switch + start/stop for services, Open for web tools
@@ -383,6 +415,7 @@ function renderService() {
     if (m.svc === "web") quick.push(`<button class="btn small" data-open="web">${ICONS.open}<span>${t("btn.openWeb")}</span></button>`);
     if (m.svc === "mail") quick.push(`<button class="btn small" data-open="mail">${ICONS.open}<span>${t("btn.openMail")}</span></button>`);
     if (m.svc === "db") { quick.push(`<button class="btn small" data-open="adminer">${ICONS.open}<span>Adminer</span></button>`); quick.push(`<button class="btn small" data-tab="database">${ICONS.db}<span>${t("nav.database")}</span></button>`); }
+    if (m.svc === "pg") quick.push(`<button class="btn small" data-open="adminer-pg">${ICONS.open}<span>Adminer (PostgreSQL)</span></button>`);
     if (m.svc === "php") quick.push(`<button class="btn small" data-open="phpini">${ICONS.edit}<span>php.ini</span></button>`);
     quick.push(`<button class="btn small" data-open="config">${ICONS.file}<span>${t("btn.configFile")}</span></button>`);
     quick.push(`<button class="btn small" data-open="logs">${ICONS.folder}<span>${t("btn.logsFolder")}</span></button>`);
@@ -393,6 +426,7 @@ function renderService() {
         <div class="kv"><span>${t("svc.versionInUse")}</span>${ver}</div>
         <div class="kv"><span>${t("svc.ports")}</span>${ports}</div>
         <div class="kv"><span>${t("svc.pids")}</span>${pids}</div>
+        ${m.svc === "pg" ? `<div class="kv"><span>${t("db.user")}</span><code>postgres</code></div><div class="kv"><span>${t("db.password")}</span><code id="pg-password" class="secret">••••••••••••</code><button type="button" class="icon-btn small" id="btn-pg-show" title="${t("db.password")}">${ICONS.open}</button></div>` : ""}
         ${st?.message && st.installed ? `<div class="kv"><span></span><span class="sub" style="margin:0">${esc(st.message)}</span></div>` : ""}
       </section>
       <section class="card"><h2>${t("svc.files")}</h2><div class="btn-row">${quick.join("")}</div></section>
@@ -400,6 +434,11 @@ function renderService() {
   } else {
     const rows = all.map((v) => {
       const isInst = inst.includes(v);
+      const x = ext.find((e) => e.version === v);
+      if (x && !isInst) {
+        return `<div class="vrow" data-row="${kind}:${esc(v)}"><span class="v">${esc(v)}</span><span class="src">${esc(x.bin_dir)}</span><span><span class="pill ok">${esc(x.source)}</span></span>
+          <span class="act"><button class="btn small subtle" data-open="path:${esc(x.bin_dir)}" title="${esc(x.bin_dir)}">${ICONS.folder}<span>${t("quick.root")}</span></button></span></div>`;
+      }
       const inUse = !!st && st.installed && st.version === v;
       const isInstalling = installing && installing.kind === kind && installing.version === v;
       const isRemoving = removing && removing.kind === kind && removing.version === v;
@@ -411,7 +450,7 @@ function renderService() {
       return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""}" data-row="${kind}:${esc(v)}">
         <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${action}</span></div>`;
     }).join("");
-    body = `<div class="vhead"><span>${upstreamLoading ? t("btn.checking") : t("ver.hint", { source: source || "—" })}</span>
+    body = `${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}<div class="vhead"><span>${upstreamLoading ? t("btn.checking") : t("ver.hint", { source: source || "—" })}</span>
         <button class="btn small ${upstreamLoading ? "busy" : ""}" id="btn-check-upstream" ${upstreamLoading ? "disabled" : ""}>${ICONS.refresh}<span>${t("btn.refresh")}</span></button></div>
       <div class="vtable"><div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
       ${rows || `<div class="vrow"><span class="sub" style="margin:0">${upstreamLoading ? t("btn.checking") : t("ver.empty")}</span></div>`}</div>`;
@@ -419,7 +458,7 @@ function renderService() {
 
   box.innerHTML = `<header class="top svc-head ${headCls}">
       <div class="ico">${ICONS[m.icon]}</div>
-      <div class="titles"><h1>${esc(m.label)}</h1><div class="meta">${m.svc ? stateBadge(st, act) : inst.length ? `<span class="pill ok">${t("ver.installed")} ${esc(inst[0])}</span>` : `<span class="state"><i></i>${t("pkg.notInstalled")}</span>`}${source ? `<span class="pill">${esc(source)}</span>` : ""}</div></div>
+      <div class="titles"><h1>${esc(m.label)}</h1><div class="meta">${m.svc ? stateBadge(st, act) : inst.length ? `<span class="pill ok">${t("ver.installed")} ${esc(inst[0])}</span>` : ext.length ? `<span class="pill ok">${esc(ext[0].source)} ${esc(ext[0].version)}</span>` : `<span class="state"><i></i>${t("pkg.notInstalled")}</span>`}${source ? `<span class="pill">${esc(source)}</span>` : ""}</div></div>
       <div class="spacer"></div>
       <div class="acts">${actions}</div>
     </header>${tabs}${body}`;
@@ -642,6 +681,12 @@ document.addEventListener("click", async (ev) => {
   if (b.dataset.svctab) { svcTab = b.dataset.svctab; renderService(); return; }
   if (b.dataset.tab) { showTab(b.dataset.tab); return; }
   if (b.id === "btn-check-upstream") { loadUpstream(); return; }
+  if (b.id === "btn-pg-show") {
+    const el = $("#pg-password");
+    if (el.classList.contains("secret")) { try { el.textContent = (await invoke("pg_password")) || t("db.unknownPassword"); el.classList.remove("secret"); } catch (e) { fail(e); } }
+    else { el.textContent = "••••••••••••"; el.classList.add("secret"); }
+    return;
+  }
   if (b.dataset.open) { try { await invoke("open_target", { what: b.dataset.open }); } catch (e) { fail(e); } return; }
   if (b.dataset.copy) {
     let text = $(b.dataset.copy).textContent;
@@ -756,6 +801,32 @@ $("#form-project").onsubmit = async (ev) => {
   btn.disabled = false;
 };
 
+/* ---------------- scroll benchmark (VERANDA_UI_PERF=1, dev only) ---------------- */
+async function perfBenchmark() {
+  showTab("settings");
+  await new Promise((r) => setTimeout(r, 800));
+  const doc = document.documentElement;
+  const frames = [];
+  let last = performance.now(), dir = 1, start = last;
+  await new Promise((done) => {
+    const step = (now) => {
+      frames.push(now - last); last = now;
+      if (doc.scrollTop + window.innerHeight >= doc.scrollHeight - 2) dir = -1;
+      if (doc.scrollTop <= 0) dir = 1;
+      window.scrollBy(0, 8 * dir);
+      if (now - start < 4000) requestAnimationFrame(step); else done();
+    };
+    requestAnimationFrame(step);
+  });
+  frames.shift();
+  const sorted = [...frames].sort((a, b) => a - b);
+  const avg = frames.reduce((a, b) => a + b, 0) / frames.length;
+  const p95 = sorted[Math.floor(sorted.length * 0.95)];
+  const long = frames.filter((f) => f > 20).length;
+  const text = `frames=${frames.length} fps=${(1000 / avg).toFixed(1)} avg=${avg.toFixed(2)}ms p95=${p95.toFixed(2)}ms long(>20ms)=${long} max=${sorted[sorted.length - 1].toFixed(1)}ms scrollHeight=${doc.scrollHeight}`;
+  invoke("perf_report", { text }).catch(() => {});
+}
+
 /* ---------------- boot ---------------- */
 (async () => {
   await refresh();
@@ -765,5 +836,6 @@ $("#form-project").onsubmit = async (ev) => {
     if (KIND_META[tab]) { if (sub) svcTab = sub; openService(tab); } else { showTab(tab); if (sub === "migrate") openMigrate(); }
   }
   try { builtin = await invoke("builtin_versions"); renderService(); } catch (e) { fail(e); }
+  if (state?.ui_perf) setTimeout(perfBenchmark, 1200);
   setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);
 })();
