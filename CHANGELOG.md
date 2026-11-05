@@ -10,6 +10,21 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-11-05
+
+### Added
+- Node.js: a **Use as default** button on every installed version (Veranda's own and nvm's).
+  The chosen version goes first on the PATH of Veranda's terminals and project commands; for an
+  nvm version it also becomes nvm's `default` alias, so your own shells follow. Stored as
+  `[node] default` in `veranda.toml`.
+
+### Fixed
+- Services still bound to an older port setting are restarted automatically: once after the
+  app starts (for example after an update) and whenever Settings are saved. The result shows as
+  a normal start notification.
+- Migrate report: the group headings ("Databases imported", "Errors") stay visible while the
+  list scrolls.
+
 ## [0.6.3] - 2026-11-05
 
 ### Added

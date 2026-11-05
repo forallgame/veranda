@@ -154,6 +154,13 @@ function showTab(id) {
 const isHidden = (id) => (state.config.general.hidden_services || []).includes(id);
 const installedVersions = (kind) => state.installed.filter((i) => i.kind === kind).map((i) => i.version).sort(cmpVer).reverse();
 const externalVersions = (kind) => (state.external || []).filter((x) => x.kind === kind);
+// The Node.js that goes first on the PATH: the configured choice, else the newest Veranda version.
+const nodeDefault = () => {
+  if (state.config.node?.default) return state.config.node.default;
+  const own = installedVersions("node")[0]; if (own) return own;
+  const ext = externalVersions("node").slice().sort((a, b) => cmpVer(b.version, a.version))[0];
+  return ext ? `${ext.source}:${ext.version}` : "";
+};
 const svcStatus = (svc) => state.services.find((s) => s.id === svc);
 function activeKind(svc) {
   return { web: state.config.web.server, db: state.config.db.engine, pg: "postgres", php: "php", cache: "cache", mail: "mailpit", mongodb: "mongodb", meilisearch: "meilisearch", qdrant: "qdrant" }[svc];
@@ -428,19 +435,23 @@ function renderService() {
           ? isRemovingExt ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
             : `<button class="btn small subtle" data-remove-ext="${kind}" data-version="${esc(v)}" data-source="${esc(x.source)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.removeNvm")}</span></button>`
           : "";
-        return `<div class="vrow ${isRemovingExt ? "removing" : ""}" data-row="${kind}:${esc(v)}"><span class="v">${esc(v)}</span><span class="src">${esc(x.bin_dir)}</span><span><span class="pill ok">${esc(x.source)}</span></span>
-          <span class="act"><button class="icon-btn small" data-open="path:${esc(x.bin_dir)}" title="${esc(x.bin_dir)}">${ICONS.folder}</button>${removeBtn}</span></div>`;
+        const isDef = kind === "node" && nodeDefault() === `${x.source}:${v}`;
+        const defBtn = kind !== "node" ? "" : isDef ? "" : `<button class="btn small" data-node-default="${esc(x.source)}:${esc(v)}" title="${t("ver.defaultHint")}">${ICONS.check}<span>${t("btn.setDefault")}</span></button>`;
+        return `<div class="vrow ${isRemovingExt ? "removing" : ""} ${isDef ? "inuse" : ""}" data-row="${kind}:${esc(v)}"><span class="v">${esc(v)}</span><span class="src">${esc(x.bin_dir)}</span><span>${isDef ? `<span class="state on"><i></i>${t("ver.default")}</span>` : `<span class="pill ok">${esc(x.source)}</span>`}</span>
+          <span class="act">${defBtn}<button class="icon-btn small" data-open="path:${esc(x.bin_dir)}" title="${esc(x.bin_dir)}">${ICONS.folder}</button>${removeBtn}</span></div>`;
       }
       const inUse = !!st && st.installed && st.version === v;
       const isInstalling = installing && installing.kind === kind && installing.version === v;
       const isRemoving = removing && removing.kind === kind && removing.version === v;
-      const status = inUse ? `<span class="state on"><i></i>${t("ver.inUse")}</span>` : isInst ? `<span class="pill ok">${t("ver.installed")}</span>` : v === newest ? `<span class="pill accent">${t("ver.newest")}</span>` : "";
+      const isNodeDef = kind === "node" && isInst && nodeDefault() === v;
+      const status = inUse ? `<span class="state on"><i></i>${t("ver.inUse")}</span>` : isNodeDef ? `<span class="state on"><i></i>${t("ver.default")}</span>` : isInst ? `<span class="pill ok">${t("ver.installed")}</span>` : v === newest ? `<span class="pill accent">${t("ver.newest")}</span>` : "";
+      const nodeDefBtn = kind === "node" && isInst && !isNodeDef && !isInstalling && !isRemoving ? `<button class="btn small" data-node-default="${esc(v)}" title="${t("ver.defaultHint")}">${ICONS.check}<span>${t("btn.setDefault")}</span></button>` : "";
       const action = isInstalling ? progressMarkup(installing)
         : isRemoving ? `<span class="state busy">${ICONS.spinner}${t("pkg.removing")}</span>`
         : isInst ? `<button class="btn small subtle" data-remove="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${ICONS.trash}<span>${t("btn.remove")}</span></button>`
         : `<button class="btn small primary" data-install="${kind}" data-version="${esc(v)}" ${installing || removing ? "disabled" : ""}>${kind === "node" && state.nvm_available ? t("btn.installNvm") : t("btn.install")}</button>`;
       return `<div class="vrow ${inUse ? "inuse" : ""} ${isInstalling ? "installing" : ""} ${isRemoving ? "removing" : ""} ${upstreamFresh && !isInst ? "fresh" : ""}" data-row="${kind}:${esc(v)}">
-        <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${action}</span></div>`;
+        <span class="v">${esc(v)}</span><span class="src">${esc(source)}</span><span>${status}</span><span class="act">${nodeDefBtn}${action}</span></div>`;
     }).join("");
     const skeleton = upstreamLoading
       ? [0, 1, 2].map(() => `<div class="vrow skeleton"><span class="sk w1"></span><span class="sk w2"></span><span class="sk w3"></span><span class="act"><span class="sk w4"></span></span></div>`).join("")
@@ -448,7 +459,7 @@ function renderService() {
     body = `${kind === "node" && state.nvm_available ? `<div class="notice">${ICONS.info}<span>${t("ver.nvmInstall")}</span></div>` : ""}${ext.length ? `<div class="notice">${ICONS.info}<span>${t("ver.external", { n: ext.length, source: [...new Set(ext.map((e) => e.source))].join(", ") })}</span></div>` : ""}
       <div class="vhead ${upstreamLoading ? "loading" : ""}"><span>${upstreamLoading ? `${ICONS.spinner}${t("ver.fetching", { source: source || "—" })}` : t("ver.hint", { source: source || "—" })}</span>
         <button class="btn small ${upstreamLoading ? "busy" : ""}" id="btn-check-upstream" ${upstreamLoading ? "disabled" : ""}>${ICONS.refresh}<span>${t("btn.refresh")}</span></button></div>
-      <div class="vtable ${upstreamLoading ? "loading" : ""}">${upstreamLoading ? `<div class="loadbar"><div class="fill"></div></div>` : ""}<div class="vrow head"><span>${t("ver.version")}</span><span>${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
+      <div class="vtable ${upstreamLoading ? "loading" : ""}">${upstreamLoading ? `<div class="loadbar"><div class="fill"></div></div>` : ""}<div class="vrow head"><span>${t("ver.version")}</span><span class="src">${t("ver.source")}</span><span>${t("ver.status")}</span><span class="act">${t("ver.action")}</span></div>
       ${rows}${skeleton}${!rows && !upstreamLoading ? `<div class="vrow"><span class="sub" style="margin:0">${t("ver.empty")}</span></div>` : ""}</div>`;
   }
 
@@ -702,6 +713,11 @@ document.addEventListener("click", async (ev) => {
   if (b.dataset.install) { await installPackage(b.dataset.install, !!b.dataset.latest, b.dataset.version || null); return; }
   if (b.dataset.cancelInstall) { if (installing) { installing.cancelling = true; paintProgress(); } try { await invoke("cancel_install"); } catch (e) { fail(e); } return; }
   if (b.dataset.remove) { await removePackage(b.dataset.remove, b.dataset.version); return; }
+  if (b.dataset.nodeDefault !== undefined) {
+    b.disabled = true;
+    try { const label = await invoke("node_set_default", { selector: b.dataset.nodeDefault }); toast(t("msg.nodeDefault", { version: label }), "ok"); } catch (e) { fail(e); }
+    await refresh(true); return;
+  }
   if (b.dataset.removeExt) {
     const kind = b.dataset.removeExt, version = b.dataset.version, source = b.dataset.source;
     if (!(await askConfirm(t("msg.confirmRemoveExt", { version, source })))) return;

@@ -22,6 +22,7 @@ pub struct Config {
     pub mail: Mail,
     pub backup: Backup,
     pub update: Update,
+    pub node: Node,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -94,6 +95,15 @@ pub enum WebServer {
     Caddy,
     Nginx,
     Apache,
+}
+
+/// Which Node.js goes first on the `PATH` of terminals and project commands.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default, deny_unknown_fields)]
+pub struct Node {
+    /// `""` = newest version installed by Veranda; `26.13.0` = that Veranda version;
+    /// `nvm:24.22.2` (or `fnm:`/`volta:`) = a version managed by that tool.
+    pub default: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

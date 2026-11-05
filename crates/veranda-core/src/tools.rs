@@ -332,6 +332,42 @@ pub fn nvm_install(version: &str, on_line: &dyn Fn(String)) -> Result<()> {
 }
 
 /// `nvm uninstall <version>` through the user's own nvm.
+/// Make `version` nvm's default (`nvm alias default`, or `nvm use` on nvm-windows), so the
+/// user's own shells pick it too.
+pub fn nvm_set_default(version: &str) -> Result<()> {
+    let dir = nvm_dir().context("nvm is not installed")?;
+    if version.is_empty() || !version.chars().all(|c| c.is_ascii_digit() || c == '.') {
+        bail!("invalid Node version {version:?}");
+    }
+    let mut cmd = if cfg!(windows) {
+        let mut c = Command::new(dir.join("nvm.exe"));
+        c.args(["use", version]);
+        c
+    } else {
+        let mut c = Command::new("bash");
+        c.arg("-c")
+            .arg(format!(
+                "source \"$NVM_DIR/nvm.sh\" --no-use && nvm alias default {version}"
+            ))
+            .env("NVM_DIR", &dir);
+        c
+    };
+    cmd.stdin(Stdio::null());
+    let out = cmd.output().context("starting nvm")?;
+    if !out.status.success() {
+        let text = format!(
+            "{}{}",
+            String::from_utf8_lossy(&out.stdout),
+            String::from_utf8_lossy(&out.stderr)
+        );
+        bail!(
+            "nvm alias default {version} failed: {}",
+            text.lines().last().unwrap_or("").trim()
+        );
+    }
+    Ok(())
+}
+
 pub fn nvm_uninstall(version: &str) -> Result<()> {
     let dir = nvm_dir().context("nvm is not installed")?;
     if version.is_empty() || !version.chars().all(|c| c.is_ascii_digit() || c == '.') {

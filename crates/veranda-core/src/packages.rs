@@ -522,6 +522,32 @@ impl Binaries {
 }
 
 /// Directories to prepend to PATH for terminals and child processes.
+/// The `bin` folder of the Node.js selected by `[node] default` (see `config::Node`).
+pub fn node_bin_dir_for(reg: &Registry, selector: &str) -> Option<PathBuf> {
+    let sel = selector.trim();
+    if let Some((source, version)) = sel.split_once(':') {
+        return crate::tools::external_node_versions()
+            .into_iter()
+            .find(|x| x.source == source && x.version == version)
+            .map(|x| x.bin_dir);
+    }
+    if !sel.is_empty()
+        && let Some(i) = reg.find(Kind::Node, sel)
+    {
+        return Some(Binaries::node_bin_dir(i));
+    }
+    if let Some(i) = reg.newest(Kind::Node) {
+        return Some(Binaries::node_bin_dir(i));
+    }
+    // nothing installed by Veranda: the newest version nvm/fnm/volta manage
+    let mut ext: Vec<_> = crate::tools::external_node_versions()
+        .into_iter()
+        .filter(|x| x.kind == "node")
+        .collect();
+    ext.sort_by_key(|x| std::cmp::Reverse(crate::manifest::parse_version(&x.version)));
+    ext.into_iter().next().map(|x| x.bin_dir)
+}
+
 pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec<PathBuf> {
     let mut v = Vec::new();
     if let Some(i) = reg.active(Kind::Php, &cfg.php.version) {
@@ -530,8 +556,8 @@ pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec
     if let Some(i) = reg.newest(Kind::Composer) {
         v.push(i.path.clone());
     }
-    if let Some(i) = reg.newest(Kind::Node) {
-        v.push(Binaries::node_bin_dir(i));
+    if let Some(dir) = node_bin_dir_for(reg, &cfg.node.default) {
+        v.push(dir);
     }
     if let Some(i) = reg.newest(Kind::Python) {
         v.push(Binaries::python_bin_dir(i));

@@ -234,6 +234,29 @@ pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
     }
 }
 
+/// Restart every running service whose configured port is not accepting connections: it is
+/// still bound to an older port setting (ports moved while it ran, app updated in between...).
+/// Returns what was restarted and how it went.
+pub fn heal_stale_ports(app: &Veranda) -> Vec<(ServiceId, Result<()>)> {
+    let Ok(statuses) = status_all(app) else {
+        return vec![];
+    };
+    statuses
+        .into_iter()
+        .filter(|s| {
+            s.running
+                && s.installed
+                && s.ports
+                    .first()
+                    .is_some_and(|p| !crate::process::port_accepting(*p))
+        })
+        .map(|s| {
+            let r = stop(app, s.id).and_then(|_| start(app, s.id));
+            (s.id, r)
+        })
+        .collect()
+}
+
 pub fn stop(app: &Veranda, id: ServiceId) -> Result<()> {
     let reg = Registry::load(&app.layout)?;
     let ctx = Ctx {

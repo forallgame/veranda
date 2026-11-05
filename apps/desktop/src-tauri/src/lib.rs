@@ -452,11 +452,34 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
 }
 
 #[tauri::command]
-fn save_config(state: State<'_, AppState>, config: Config) -> CmdResult<()> {
-    let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
-    config.validate().map_err(err)?;
-    guard.config = config;
-    guard.save_config().map_err(err)
+fn save_config(handle: AppHandle, state: State<'_, AppState>, config: Config) -> CmdResult<()> {
+    let core = {
+        let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
+        config.validate().map_err(err)?;
+        guard.config = config;
+        guard.save_config().map_err(err)?;
+        guard.clone()
+    };
+    // Ports may have moved: services still bound to the old ones are restarted in the background.
+    std::thread::spawn(move || heal_stale(&handle, &core));
+    Ok(())
+}
+
+/// Restart services running on outdated port settings and tell the UI about it.
+fn heal_stale(handle: &AppHandle, core: &Veranda) {
+    let healed = services::heal_stale_ports(core);
+    if healed.is_empty() {
+        return;
+    }
+    for (id, r) in &healed {
+        match r {
+            Ok(()) => tracing::info!("{id}: restarted to apply the new port settings"),
+            Err(e) => tracing::warn!("{id}: restart for new ports failed: {e:#}"),
+        }
+    }
+    let _ = handle.emit("services-changed", ());
+    let _ = handle.emit("autostart-done", to_report(healed));
+    refresh_tray(handle);
 }
 
 #[derive(Serialize)]
@@ -471,6 +494,42 @@ fn cancel_install() {
 }
 
 /// Remove a Node version that nvm manages (the only external manager with a remove command).
+/// Choose the Node.js that goes first on the PATH: `""` (newest Veranda version), a Veranda
+/// version, or `nvm:<version>` (also made nvm's own default).
+#[tauri::command]
+async fn node_set_default(state: State<'_, AppState>, selector: String) -> CmdResult<String> {
+    let app = open_app(&state)?;
+    let sel = selector.trim().to_string();
+    let label = if let Some((source, version)) = sel.split_once(':') {
+        let known = veranda_core::tools::external_node_versions()
+            .into_iter()
+            .any(|x| x.kind == "node" && x.source == source && x.version == version);
+        if !known {
+            return Err(format!("Node {version} from {source} was not found"));
+        }
+        if source == "nvm" {
+            let v = version.to_string();
+            tauri::async_runtime::spawn_blocking(move || veranda_core::tools::nvm_set_default(&v))
+                .await
+                .map_err(err)?
+                .map_err(err)?;
+        }
+        format!("{version} ({source})")
+    } else if sel.is_empty() {
+        "newest".into()
+    } else {
+        let reg = Registry::load(&app.layout).map_err(err)?;
+        if reg.find(Kind::Node, &sel).is_none() {
+            return Err(format!("Node {sel} is not installed"));
+        }
+        sel.clone()
+    };
+    let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
+    guard.config.node.default = sel;
+    guard.save_config().map_err(err)?;
+    Ok(label)
+}
+
 #[tauri::command]
 async fn remove_external(kind: String, version: String, source: String) -> CmdResult<()> {
     if kind != "node" || source != "nvm" {
@@ -1312,6 +1371,15 @@ pub fn run() {
                     });
                 }
             }
+            // Services left running by a previous app version may still use old ports: heal once.
+            let handle_h = app.handle().clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(std::time::Duration::from_secs(4));
+                let state = handle_h.state::<AppState>();
+                if let Ok(core) = open_app(&state) {
+                    heal_stale(&handle_h, &core);
+                }
+            });
             // Tray menu: keep the service list current even when nothing is clicked.
             let handle_t = app.handle().clone();
             std::thread::spawn(move || {
@@ -1422,6 +1490,7 @@ pub fn run() {
             migrate_run,
             pg_password,
             remove_external,
+            node_set_default,
             cancel_install,
             start_all,
             stop_all,
