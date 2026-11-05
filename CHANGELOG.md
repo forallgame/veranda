@@ -16,6 +16,8 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
   installed but has no sites, instead of "not found". The FlyEnv folder itself can be given as the
   source, and sites are also read from its Apache/Nginx vhost files. The folder picker always
   picks folders, and the dialog preselects an installed stack.
+- Migrate: Laragon and XAMPP are looked for on every drive letter (C: to Z:), in Program Files,
+  and in the user's home folder, not only on C: and D:.
 
 ## [0.6.1] - 2026-11-05
 

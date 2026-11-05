@@ -70,17 +70,35 @@ fn first_existing(candidates: &[PathBuf]) -> Option<PathBuf> {
 /// Known stacks with their default locations on this OS.
 pub fn detect() -> Vec<Source> {
     let h = home();
-    let mut laragon = vec![
-        PathBuf::from("C:\\laragon\\www"),
-        PathBuf::from("D:\\laragon\\www"),
-    ];
+    // Laragon (Windows only) and XAMPP: every drive letter plus the usual folders.
+    let mut laragon: Vec<PathBuf> = Vec::new();
+    let mut xampp: Vec<PathBuf> = Vec::new();
+    if cfg!(windows) {
+        for letter in b'C'..=b'Z' {
+            let d = format!("{}:\\", letter as char);
+            laragon.push(PathBuf::from(format!("{d}laragon\\www")));
+            xampp.push(PathBuf::from(format!("{d}xampp\\htdocs")));
+        }
+        for base in [
+            "C:\\Program Files",
+            "C:\\Program Files (x86)",
+            "C:\\ProgramData",
+        ] {
+            laragon.push(PathBuf::from(format!("{base}\\laragon\\www")));
+            xampp.push(PathBuf::from(format!("{base}\\xampp\\htdocs")));
+        }
+        if let Ok(pf) = std::env::var("ProgramFiles") {
+            laragon.push(PathBuf::from(&pf).join("laragon").join("www"));
+            xampp.push(PathBuf::from(&pf).join("xampp").join("htdocs"));
+        }
+    }
     laragon.push(h.join("laragon").join("www"));
-    let xampp = vec![
-        PathBuf::from("C:\\xampp\\htdocs"),
-        PathBuf::from("D:\\xampp\\htdocs"),
-        PathBuf::from("/opt/lampp/htdocs"),
-        PathBuf::from("/Applications/XAMPP/xamppfiles/htdocs"),
-    ];
+    laragon.push(h.join("Laragon").join("www"));
+    xampp.push(PathBuf::from("/opt/lampp/htdocs"));
+    xampp.push(h.join("lampp").join("htdocs"));
+    xampp.push(h.join("xampp").join("htdocs"));
+    xampp.push(PathBuf::from("/Applications/XAMPP/xamppfiles/htdocs"));
+    xampp.push(PathBuf::from("/Applications/XAMPP/htdocs"));
     let flyenv_dirs = flyenv_config_dirs(&h);
     let flyenv_installed = flyenv_dirs.iter().find(|d| d.is_dir()).cloned();
     let flyenv = flyenv_installed
