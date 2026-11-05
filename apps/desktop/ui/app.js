@@ -5,6 +5,9 @@ const { invoke } = window.__TAURI__.core;
 const { listen } = window.__TAURI__.event;
 
 const ICONS = window.VERANDA_ICONS;
+const BRANDS = window.VERANDA_BRANDS || {};
+// Vendor logo when we have one (brands.js), else Veranda's own line icon.
+const kindIcon = (kind) => BRANDS[kind] || (kind === "cache" && state?.platform.startsWith("windows") ? BRANDS.redis : null) || ICONS[KIND_META[kind].icon];
 
 // Every downloadable kind. `svc` links a kind to the runtime service it provides (web/php/db/cache/mail);
 // tools have no service. The sidebar and the service pages are generated from this table.
@@ -198,7 +201,7 @@ function renderNav() {
       const dot = act ? "busy" : st?.running ? "run" : installedVersions(kind).length || externalVersions(kind).length ? "inst" : "";
       const on = kindOn(kind);
       return `<div class="svc-item ${currentTab === "service" && currentKind === kind ? "active" : ""}" data-svc="${kind}" role="button" tabindex="0">
-        <span class="sico">${ICONS[m.icon]}</span><span class="sname">${m.label}</span><i class="sdot ${dot}" title="${st?.running ? t("status.running") : ""}"></i>
+        <span class="sico">${kindIcon(kind)}</span><span class="sname">${m.label}</span><i class="sdot ${dot}" title="${st?.running ? t("status.running") : ""}"></i>
         ${m.svc ? `<input type="checkbox" class="switch mini" data-sw="${kind}" ${on ? "checked" : ""} title="${t("svc.enable")}">` : ""}
       </div>`;
     }).join("")}</div>`;
@@ -273,7 +276,7 @@ function renderServices() {
          <button class="icon-btn danger" data-action="stop" data-id="${s.id}" title="${t("btn.stop")}" ${dis}>${ICONS.stop}</button>`
       : `<button class="icon-btn go" data-action="start" data-id="${s.id}" title="${t("btn.start")}" ${s.installed && !act ? "" : "disabled"}>${ICONS.play}</button>`;
     return `<div class="row ${cls}">
-      <div class="ico">${ICONS[KIND_META[kind].icon]}</div>
+      <div class="ico">${kindIcon(kind)}</div>
       <div><div class="name"><button class="linkish" data-svc="${kind}">${esc(KIND_META[kind].label)}</button> ${version}</div><div class="meta">${stateBadge(s, act)}${ports}${s.message && s.installed ? `<span>${esc(s.message)}</span>` : ""}</div></div>
       <div class="act"><input type="checkbox" class="switch" data-sw="${kind}" ${s.enabled && s.installed ? "checked" : ""} ${s.installed ? "" : "disabled"} title="${s.installed ? t("svc.enable") : t("pkg.notInstalled")}">${action}</div>
     </div>`;
@@ -464,7 +467,7 @@ function renderService() {
   }
 
   box.innerHTML = `<header class="top svc-head ${headCls}">
-      <div class="ico">${ICONS[m.icon]}</div>
+      <div class="ico">${kindIcon(kind)}</div>
       <div class="titles"><h1>${esc(m.label)}</h1><div class="meta">${m.svc ? stateBadge(st, act) : inst.length ? `<span class="pill ok">${t("ver.installed")} ${esc(inst[0])}</span>` : ext.length ? `<span class="pill ok">${esc(ext[0].source)} ${esc(ext[0].version)}</span>` : `<span class="state"><i></i>${t("pkg.notInstalled")}</span>`}${source ? `<span class="pill">${esc(source)}</span>` : ""}</div></div>
       <div class="spacer"></div>
       <div class="acts">${actions}</div>

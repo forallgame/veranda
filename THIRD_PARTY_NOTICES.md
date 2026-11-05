@@ -561,6 +561,20 @@ package on crates.io. This list is regenerated at release time from `cargo metad
 | zvariant_derive | 5.15.1 | MIT | https://github.com/z-galaxy/zbus/ |
 | zvariant_utils | 4.2.0 | MIT | https://github.com/z-galaxy/zbus/ |
 
+## Bundled UI assets
+
+| Component | Version | License | Source |
+| --- | --- | --- | --- |
+| xterm.js (`@xterm/xterm` + fit, web-links, search, unicode11 addons) | 6.0.0 / 0.11.0 / 0.12.0 / 0.16.0 / 0.9.0 | MIT | https://github.com/xtermjs/xterm.js (`apps/desktop/ui/vendor/xterm/`) |
+| Simple Icons (vendor logos in the sidebar) | 16.36.0 | CC0 1.0 | https://simpleicons.org (`apps/desktop/ui/brands.js`) |
+
+The logos are trademarks of their respective owners (Caddy, F5/NGINX, Apache Software Foundation,
+PHP Group, Python Software Foundation, Google/Go, Oven/Bun, Oracle/OpenJDK, Deno Land, Zig
+Software Foundation, Microsoft/.NET, MariaDB Foundation, Oracle/MySQL, PostgreSQL Global
+Development Group, MongoDB, Meilisearch, Qdrant, Redis, Composer, OpenJS Foundation/Node.js,
+Adminer, phpMyAdmin). They identify the software Veranda can download; Veranda is not affiliated
+with or endorsed by any of them.
+
 ## Runtimes downloaded on demand
 
 The following programs are downloaded from their official servers only when the user asks for them.

@@ -10,6 +10,15 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.5] - 2026-11-05
+
+### Changed
+- The sidebar, Overview rows and service headers show each runtime's own logo (Caddy, Nginx,
+  Apache, PHP, Python, Go, Bun, OpenJDK, Deno, Zig, .NET, MariaDB, MySQL, PostgreSQL, MongoDB,
+  Meilisearch, Qdrant, Redis on Windows, Composer, Node.js, Adminer, phpMyAdmin) from Simple
+  Icons (CC0), in the current text colour so both themes stay consistent. Valkey, Mailpit and
+  the CA bundle keep Veranda's own icons.
+
 ## [0.6.4] - 2026-11-05
 
 ### Added
