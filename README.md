@@ -116,6 +116,8 @@ The first launch creates a `veranda` folder in your home directory (`~/veranda`,
 `C:\Users\you\veranda`) for projects (`www/`), settings, downloaded runtimes, databases and logs.
 Nothing else on your system is touched. Uninstalling the app leaves that folder for you.
 
+Full walkthrough of every screen: [docs/USAGE.md](docs/USAGE.md).
+
 ## First five minutes
 
 1. Open Veranda → click **PHP**, **Caddy** and **MariaDB** in the sidebar → **Versions** tab → **Install** (and Mailpit if you send email).

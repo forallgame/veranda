@@ -271,7 +271,7 @@
     const term = new Terminal(xtermOptions());
     const fit = new FitAddon.FitAddon(), search = new SearchAddon.SearchAddon();
     term.loadAddon(fit); term.loadAddon(search);
-    term.loadAddon(new WebLinksAddon.WebLinksAddon((ev, uri) => invoke("open_url_external", { url: uri }).catch(fail)));
+    term.loadAddon(new WebLinksAddon.WebLinksAddon((ev, uri) => invoke("remote_open_link", { url: uri }).catch(fail)));
     try { term.loadAddon(new Unicode11Addon.Unicode11Addon()); term.unicode.activeVersion = "11"; } catch (e) {}
     const x = { id, term, fit, search, el, title: "", info: { state: "connecting", label: opts.label || hostById(opts.hostId)?.label || (opts.local ? t("rm.local") : ""), target: opts.quick || (hostById(opts.hostId) ? hostSummary(hostById(opts.hostId)) : "") }, hostId: opts.hostId || null, quick: opts.quick || null, local: !!opts.local, closed: false };
     R.terms.set(id, x);
@@ -677,6 +677,7 @@
   $("#form-forward").onsubmit = async (ev) => {
     ev.preventDefault(); const e = ev.target.elements;
     const rule = { id: e.id.value, label: e.label.value.trim(), kind: e.kind.value, host_id: e.host_id.value, bind_address: e.bind_address.value.trim() || "127.0.0.1", bind_port: Number(e.bind_port.value) || 0, dest_host: e.dest_host.value.trim(), dest_port: Number(e.dest_port.value) || 0 };
+    if (rule.kind !== "remote" && !["127.0.0.1", "localhost", "::1"].includes(rule.bind_address) && !(await askConfirm(t("rm.bindWarn", { addr: rule.bind_address }), t("btn.save")))) return;
     try { await invoke("remote_save_forward", { rule }); $("#dlg-forward").close(); } catch (x) { fail(x); }
     refresh();
   };
@@ -956,7 +957,9 @@
       const l = await invoke("local_list", { path: null }); out.push(`local_list=${l.entries.length}`);
       const kh = await invoke("remote_known_hosts"); await refresh(); out.push(`known=${kh.length} history=${R.view.store.history.length} ok=${R.view.store.history.filter((h) => h.ok).length}`);
       if (tab === "sftp") { await loadPane("local", ""); }
-      if (tab) { showTab(tab); if (tab === "terminal") activateTerminal(tid); }
+      const dialogs = { hostdlg: () => { showTab("hosts"); openHostDialog(hostsOf()[0]); }, fwddlg: () => { showTab("forward"); openForwardDialog(R.view.store.forwards[0]); }, keydlg: () => { showTab("keychain"); openKeyDialog("import"); }, settingsdlg: () => { showTab("terminal"); activateTerminal(tid); openTermSettings(); }, promptdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "hostkey", title: "Example", host: "example.com", port: 22, algorithm: "ssh-ed25519", fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefg", status: "changed" }); showNextPrompt(); } };
+      if (dialogs[tab]) dialogs[tab]();
+      else if (tab) { showTab(tab); if (tab === "terminal") activateTerminal(tid); }
     } catch (e) { out.push(`ERROR ${e?.message || e}`); }
     report(out.join(" | "));
     return true;

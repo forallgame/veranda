@@ -119,6 +119,8 @@ Peluncuran pertama membuat folder `veranda` di direktori home Anda (`~/veranda`,
 Tidak ada bagian lain dari sistem yang disentuh. Mencopot aplikasi tetap menyisakan folder itu
 untuk Anda.
 
+Panduan lengkap tiap layar: [docs/USAGE.id.md](docs/USAGE.id.md).
+
 ## Lima menit pertama
 
 1. Buka Veranda → klik **PHP**, **Caddy**, dan **MariaDB** di sidebar → tab **Versi** → **Install** (serta Mailpit jika mengirim email).

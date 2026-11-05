@@ -1722,6 +1722,17 @@ pub fn remote_import_apply(
     .map_err(err)
 }
 
+/// Open an http(s) link clicked inside a terminal in the system browser.
+#[tauri::command]
+pub fn remote_open_link(app: AppHandle, url: String) -> CmdResult<()> {
+    let core = core_of(&app)?;
+    let u = url.trim();
+    if !(u.starts_with("https://") || u.starts_with("http://")) || u.len() > 2048 {
+        return Err("only http(s) links are opened".into());
+    }
+    veranda_core::tools::open_url(&core.config, u).map_err(err)
+}
+
 /// Close every live session (app quit).
 pub fn shutdown(app: &AppHandle) {
     let rs = app.state::<RemoteState>();

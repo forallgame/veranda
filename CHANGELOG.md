@@ -10,6 +10,27 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.1] - 2026-11-05
+
+### Fixed
+- Dialogs (New host, rules, keys, settings) no longer overflow small windows: columns shrink,
+  labels stack below 560 px, and tall dialogs scroll inside the window.
+- Narrow windows: host, key and snippet actions wrap to a second line, the terminal bar wraps,
+  the quick-connect field shrinks, the SFTP browser stacks its panes, and the collapsed sidebar
+  hides counters.
+- Links clicked inside a terminal open in the browser (any http/https URL, not only GitHub).
+- Starting a tunnel or SOCKS proxy bound to anything but loopback now asks for confirmation.
+- SFTP listings ignore entry names containing path separators (a hostile server could otherwise
+  steer a download outside the chosen folder).
+- Credential-store calls (KWallet, GNOME Keyring...) run with a 45 s limit and fall back to the
+  private secrets file instead of freezing the app when the consent dialog never answers.
+- Dependencies refreshed (`cargo update`), including a yanked `async-executor` release.
+
+### Added
+- `docs/USAGE.md` and `docs/USAGE.id.md`: a walkthrough of every screen, linked from the READMEs.
+- CI accepts RUSTSEC-2023-0071 (`rsa` Marvin timing side channel, no fixed release) with the
+  reasoning recorded in `.cargo/audit.toml` and `docs/SECURITY.md`.
+
 ## [0.6.0] - 2026-11-04
 
 ### Added

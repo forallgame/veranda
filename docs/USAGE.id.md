@@ -1,0 +1,173 @@
+# Cara memakai Veranda
+
+Panduan setiap layar. English: [USAGE.md](USAGE.md).
+
+Veranda punya dua bagian. **Stack lokal** (Overview, Sites, Database, Logs, dan halaman tiap
+layanan) menjalankan web server, bahasa, dan database di komputer Anda sendiri. Grup **Remote**
+adalah klien SSH untuk server yang Anda kelola di tempat lain. Tidak ada data yang keluar dari
+komputer kecuali Anda sendiri menghubungkan ke server pilihan Anda; tanpa akun, tanpa telemetri.
+
+## 1. Pertama kali
+
+1. Pasang Veranda ([README.id](../README.id.md#pemasangan)) lalu buka. Jendela dibuka di
+   **Overview**, yang kosong pada pemasangan baru.
+2. Di sidebar, klik layanan yang Anda butuhkan (misalnya **PHP**, **Caddy**, **MariaDB**). Setiap
+   halaman layanan punya dua tab: **Service** (status, port, tombol) dan **Versions** (daftar
+   versi yang bisa diunduh). Pilih versi lalu klik **Install**. Unduhan diperiksa dengan checksum
+   dari vendor.
+3. Nyalakan saklar di samping layanan. Layanan langsung berjalan dan tampil di Overview.
+4. Buka <http://localhost/> (atau **Start All** di Overview untuk menjalankan semua yang aktif).
+
+Semua data stack lokal ada di satu folder, **root Veranda** (`~/veranda` secara default, tampil
+di Settings). Menghapus folder itu menghapus semua runtime, situs, dan data.
+
+## 2. Overview
+
+- Pil status menunjukkan apakah semua layanan yang aktif sedang berjalan.
+- **Start All / Stop All** bekerja pada semua layanan yang saklarnya menyala.
+- Tiap baris menampilkan versi yang dipakai (menu pilihan jika ada beberapa), port, dan tombol
+  start/stop/restart. Saklar mematikan layanan: dihentikan dan disembunyikan dari Overview sampai
+  dinyalakan lagi dari sidebar.
+- Ubin membuka web root, Adminer, penampil email, terminal di document root, folder `www`, dan
+  Logs.
+
+Jika port sudah dipakai, Veranda menyebut program pemakainya dan menawarkan port bebas berikutnya.
+Di Linux, port di bawah 1024 butuh izin sekali; Veranda meminta kata sandi Anda satu kali dan
+memberi izin itu hanya ke binari web server (atau ganti ke 8080/8443 di Settings).
+
+## 3. Sites
+
+Setiap folder di dalam `www/` otomatis menjadi `https://nama-folder.test`. Folder `public/` gaya
+Laravel dan Symfony terdeteksi sendiri. Untuk proyek di tempat lain, pakai **Add external folder**
+(ditautkan di tempat) atau **Migrate** untuk memindahkan proyek dan database dari Laragon, XAMPP,
+atau FlyEnv. **New project** membuat folder dari templat (polos, paket Composer, Git clone) dan,
+jika dicentang, database. **Sync** menulis ulang virtual host dan berkas hosts (minta izin
+elevasi sekali).
+
+## 4. Database
+
+Host, pengguna, dan kata sandi server MariaDB/MySQL lokal, **New password** sekali klik, buat
+database, buka Adminer atau phpMyAdmin, dan **Backup** (dump semua database ke `backups/`; backup
+otomatis diatur di Settings). PostgreSQL punya kartu yang sama di halamannya sendiri.
+
+## 5. Logs
+
+Kotak **Activity** mencatat apa yang Veranda lakukan (start, stop, pasang, error). Menu pilihan
+membuka berkas log tiap layanan; error dan peringatan diberi warna.
+
+## 6. Settings
+
+Umum (bahasa, TLD, document root, editor, jalan saat dibuka, mulai diminimalkan, perilaku tombol
+tutup, rendering GPU di Linux), port web dan HTTPS, batas PHP, port database/cache/mail, backup,
+dan pembaruan. **Trust local CA** memasang otoritas sertifikat Veranda ke penyimpanan browser agar
+`https://*.test` tidak memberi peringatan. **Config file** membuka `veranda.toml` untuk pengaturan
+yang tidak ada di formulir.
+
+## 7. Remote (klien SSH)
+
+### Hosts
+Klik **New host**: label, alamat, port, nama pengguna, dan cara masuk (**Auth**):
+
+| Auth | Artinya |
+| --- | --- |
+| Password | Memakai kata sandi yang Anda ketik di sini (disimpan di penyimpanan kredensial sistem) atau ditanya saat menghubungkan |
+| Key | Kunci dari Keychain |
+| Identity | Nama pengguna + kata sandi/kunci dari Keychain yang bisa dipakai ulang |
+| SSH agent | Kunci yang sudah dimuat di agent (`ssh-agent`, OpenSSH agent Windows, Pageant) |
+| Ask when connecting | Tanpa kredensial tersimpan; prompt dari server ditampilkan |
+
+Opsional: **Group** (host mewarisi identitas grup), **Jump host** (lewat host lain dulu),
+**Startup snippet** (dikirim setelah login), tag, warna, variabel environment, catatan,
+keep-alive, dan agent forwarding.
+
+Klik dua kali host untuk membuka terminal. Tombol di baris: terminal, SFTP, ubah, duplikat, hapus.
+**Quick connect** (`user@host:22`) menghubungkan tanpa menyimpan. **Import** membaca
+`~/.ssh/config` (dan sesi PuTTY di Windows) lalu menambahkan hostnya, berikut kuncinya jika
+"Import private keys" dicentang.
+
+Saat pertama terhubung ke server, sidik jari kuncinya ditampilkan. Bandingkan dengan yang
+diumumkan admin server, lalu **Trust**. Server yang kuncinya berubah ditandai merah; lanjutkan
+hanya jika Anda tahu sebabnya (server dipasang ulang). Kunci yang diterima ada di **Known hosts**
+dan bisa dilupakan di sana.
+
+### Terminal
+Tab menampung sesi SSH dan lokal (**+** atau Ctrl+Shift+T membuka shell lokal dengan PHP, Node,
+Composer, dan lainnya milik Veranda sudah ada di `PATH`). Di bar: status, pengirim snippet, cari
+(Ctrl+Shift+F), bersihkan, hubungkan ulang, pengaturan, tutup. Ctrl+Shift+C/V salin dan tempel;
+memilih teks otomatis menyalin jika "Copy on select" aktif; klik kanan menempel. Ikon gerigi
+mengatur font, ukuran, tema (ikuti Veranda, gelap, terang, Dracula, Solarized, Nord), kursor,
+scrollback, interval keep-alive, program shell lokal, dan konfirmasi saat menutup sesi.
+
+### SFTP
+Pilih host lalu **Connect**. Panel kiri komputer ini, panel kanan server. Klik dua kali folder
+untuk masuk, pakai kotak jalur, **↑**, home, dan segarkan. Pilih file (Ctrl atau Shift untuk
+banyak) lalu tekan panah di antara panel, atau seret ke panel lain, untuk unggah/unduh; folder
+dipindahkan beserta isinya. Daftar transfer menampilkan progres dan tombol batal. Tombol di baris:
+ganti nama, hapus, ubah izin (server), dan buka file teks di editor kecil (server).
+
+### Port forwarding
+**New rule** dengan jenis:
+
+- **Local**: `127.0.0.1:3307 → 127.0.0.1:3306` lewat server membuat alat lokal menjangkau
+  database server di port 3307.
+- **Remote**: server mendengarkan di sebuah port dan meneruskan koneksi ke layanan di komputer
+  Anda.
+- **Dynamic**: proxy SOCKS5 di komputer Anda; arahkan browser ke sana untuk berselancar lewat
+  server.
+
+Saklar menjalankan dan menghentikan aturan; baris menampilkan jumlah koneksi terbuka. Biarkan
+alamat bind di `127.0.0.1` kecuali Anda memang ingin mesin lain di jaringan memakai tunnel itu.
+
+### Snippets
+Perintah yang sering dipakai, dikelompokkan per folder. **Send** mengetikkannya ke terminal
+aktif; **Run on hosts** menjalankannya di host yang dicentang dan menampilkan keluaran serta kode
+keluar tiap host berdampingan.
+
+### Keychain
+**New key** membuat kunci Ed25519 (disarankan), RSA 4096, atau ECDSA, opsional dengan passphrase.
+**Import key** membaca file dari `~/.ssh` atau teks yang ditempel. Per kunci: salin kunci publik,
+**Install on host** (menambahkannya ke `authorized_keys` host, seperti `ssh-copy-id`), ekspor file
+publik atau privat, ganti passphrase, hapus. **Identities** menggabungkan nama pengguna dengan kata
+sandi atau kunci agar beberapa host dan grup berbagi satu login.
+
+### History
+Setiap koneksi dengan waktu, durasi, dan hasilnya; klik tombol terminal untuk terhubung lagi.
+
+## 8. Pembaruan
+
+Saat dibuka, Veranda memeriksa rilis GitHub proyek ini dan menampilkan spanduk; **Update now**
+mengunduh installer bertanda tangan lalu memulai ulang. Di Settings ini bisa dibuat otomatis.
+Versi layanan (PHP, MariaDB, dan lainnya) diambil dari server vendor masing-masing di tab
+Versions.
+
+## 9. Di mana data Anda
+
+| Data | Lokasi |
+| --- | --- |
+| Pengaturan | `<root>/etc/veranda.toml` |
+| Runtime terpasang | `<root>/bin/<jenis>/<versi>` |
+| Situs | `<root>/www` |
+| Database | `<root>/data` |
+| Log, backup | `<root>/logs`, `<root>/backups` |
+| Otoritas sertifikat lokal | `<root>/etc/ssl` (privat) |
+| Kata sandi root database | `<root>/etc/secrets` (privat) |
+| Host remote, grup, snippet, aturan, riwayat | `<root>/etc/remote/store.json` (privat) |
+| Kunci privat SSH | `<root>/etc/remote/keys` (privat, 0600) |
+| Kunci server yang diterima | `<root>/etc/remote/known_hosts` |
+| Kata sandi dan passphrase SSH | penyimpanan kredensial sistem (Keychain, Credential Manager, Secret Service); cadangan `<root>/etc/secrets/remote-secrets.json` |
+
+Cadangkan folder root untuk menyimpan semuanya; jangan pernah membagikan folder `etc/secrets`
+atau `etc/remote/keys`.
+
+## 10. Pemecahan masalah
+
+- **Layanan tidak mau jalan**: buka Logs, pilih log layanan itu. Baris terakhir menjelaskan
+  sebabnya (biasanya port terpakai, yang juga dilaporkan Overview dengan tawaran pindah port).
+- **`*.test` tidak dikenali**: Sites → **Sync** memperbarui berkas hosts (butuh elevasi sekali).
+- **Browser memperingatkan sertifikat**: Settings → **Trust local CA**, lalu buka ulang browser.
+- **"Server key changed" saat SSH**: server dipasang ulang, atau ada yang menyadap koneksi.
+  Pastikan ke admin sebelum mempercayai kunci baru.
+- **Diminta kata sandi padahal sudah disimpan**: penyimpanan kredensial sistem menolak atau tidak
+  menjawab; Veranda beralih ke berkas privat dan memberi tahu di halaman Keychain.
+- **Linux: jendela hitam atau berkedip**: Settings → matikan **GPU rendering**, buka ulang
+  Veranda.

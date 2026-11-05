@@ -94,7 +94,13 @@ impl Sftp {
         let mut out = vec![];
         for e in rd {
             let name = e.file_name();
-            if name == "." || name == ".." {
+            // a hostile server must not be able to smuggle path separators into local paths
+            if name == "."
+                || name == ".."
+                || name.contains('/')
+                || name.contains('\\')
+                || name.contains('\0')
+            {
                 continue;
             }
             let m = e.metadata();

@@ -246,6 +246,14 @@ fn ui_ready(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
         return Ok(());
     }
     show_main(&handle);
+    // Dev/screenshot hint: VERANDA_UI_SIZE=WxH resizes the window after the first render.
+    if let Ok(size) = std::env::var("VERANDA_UI_SIZE")
+        && let Some((w, h)) = size.split_once('x')
+        && let (Ok(w), Ok(h)) = (w.parse::<f64>(), h.parse::<f64>())
+        && let Some(win) = handle.get_webview_window("main")
+    {
+        let _ = win.set_size(tauri::LogicalSize::new(w, h));
+    }
     Ok(())
 }
 
@@ -1379,7 +1387,8 @@ pub fn run() {
             remote::forward_start,
             remote::forward_stop,
             remote::remote_import_detect,
-            remote::remote_import_apply
+            remote::remote_import_apply,
+            remote::remote_open_link
         ])
         .run(tauri::generate_context!())
         .expect("error while running Veranda");

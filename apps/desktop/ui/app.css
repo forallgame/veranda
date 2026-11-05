@@ -265,12 +265,12 @@ input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 3px v
 .row-progress .icon-btn.small:hover { color: var(--bad); background: var(--bad-soft); }
 
 /* ---------- dialog & toasts ---------- */
-dialog { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 22px 24px; width: min(440px, 92vw); box-shadow: 0 20px 60px rgba(0,0,0,.35); }
+dialog { border: 1px solid var(--line); border-radius: 16px; background: var(--surface); color: var(--text); padding: 22px 24px; width: min(440px, 92vw); max-height: 92vh; overflow: auto; box-sizing: border-box; box-shadow: 0 20px 60px rgba(0,0,0,.35); scrollbar-width: thin; }
 dialog::backdrop { background: rgba(0,0,0,.45); }
 dialog h2 { margin: 0 0 14px; font-size: 16px; }
 dialog label { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 dialog label > span { width: 84px; color: var(--muted); flex: none; }
-dialog label > input:not([type=checkbox]), dialog label > select { flex: 1; }
+dialog label > input:not([type=checkbox]), dialog label > select, dialog label > textarea { flex: 1 1 0; min-width: 0; width: 0; }
 dialog label.check > span { width: auto; color: var(--text); }
 #toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: min(420px, calc(100vw - 32px)); }
 .toast { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 12.5px; line-height: 1.4; cursor: pointer; animation: toast-in .22s cubic-bezier(.2,.8,.2,1); }
@@ -316,6 +316,11 @@ dialog label.check > span { width: auto; color: var(--text); }
   .row .ico { width: 32px; height: 32px; }
 }
 @media (max-width: 560px) {
+  dialog { padding: 18px 16px; width: 96vw; }
+  dialog .two, dialog .two.addr { grid-template-columns: minmax(0, 1fr); }
+  dialog label { flex-wrap: wrap; }
+  dialog label > span { width: 100%; font-size: 12px; }
+  dialog .two label > span { width: 100%; }
   .row { grid-template-columns: 1fr auto; }
   .row .ico { display: none; }
   .quick { grid-template-columns: repeat(3, 1fr); }
@@ -326,7 +331,8 @@ dialog label.check > span { width: auto; color: var(--text); }
 dialog.wide { width: min(560px, 94vw); }
 .radio-row { display: flex; gap: 16px; flex-wrap: wrap; margin: 4px 0; }
 .radio-row label { margin: 4px 0; }
-dialog .two { display: grid; grid-template-columns: 1fr 1fr; gap: 0 12px; }
+dialog .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; }
+dialog .two > label { min-width: 0; }
 dialog .two label > span { width: 64px; }
 dialog label .btn.small { flex: none; }
 input[type=radio] { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--faint); border-radius: 50%; background: var(--surface); display: inline-grid; place-items: center; cursor: pointer; margin: 0; }
