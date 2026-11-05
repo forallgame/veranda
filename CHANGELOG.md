@@ -10,6 +10,8 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.2] - 2026-11-05
+
 ### Fixed
 - Migrate: FlyEnv is now detected from its data folder (`~/.config/FlyEnv`, `~/Library/FlyEnv`,
   `C:\FlyEnv-Data`) even when it has no `host.json` yet; the dialog then says that FlyEnv is
