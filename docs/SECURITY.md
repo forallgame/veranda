@@ -77,3 +77,7 @@ if the user never opens the settings.
   `umask 077`; the public key text is rejected if it contains quotes or newlines.
 - Veranda never reads other SSH clients' databases; "Import" parses `~/.ssh/config` (and PuTTY
   registry sessions on Windows) only when clicked.
+- Known advisory, accepted: RUSTSEC-2023-0071 (`rsa` crate, Marvin timing side channel, no fix
+  released). It only affects RSA keys, used by the SSH client to sign a login challenge locally;
+  there is no RSA decryption exposed to the network. Generated keys are Ed25519 by default. The
+  entry is listed in `.cargo/audit.toml` and should be removed once a fixed `rsa` ships.
