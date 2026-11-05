@@ -106,7 +106,7 @@ function askConfirm(text, okLabel) {
     dlg.showModal();
   });
 }
-const applyI18n = () => { $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); }); document.documentElement.lang = lang; };
+const applyI18n = () => { $$("[data-i18n]").forEach((el) => { el.textContent = t(el.dataset.i18n); }); $$("[data-i18n-ph]").forEach((el) => { el.placeholder = t(el.dataset.i18nPh); }); document.documentElement.lang = lang; };
 
 /* ---------------- theme ---------------- */
 function setTheme(mode) {
@@ -147,6 +147,7 @@ function showTab(id) {
   $$(".svc-item").forEach((x) => x.classList.toggle("active", id === "service" && x.dataset.svc === currentKind));
   if (id === "logs") loadLogList();
   window.scrollTo(0, 0);
+  document.dispatchEvent(new CustomEvent("veranda:tab", { detail: id }));
 }
 
 /* ---------------- helpers over state ---------------- */
@@ -852,6 +853,8 @@ async function autotest(name) {
     await done;
     const last = activity[0]?.msg || "";
     report(`newest=${newest} elapsed=${((performance.now() - started) / 1000).toFixed(1)}s installed=${installedVersions("go").length} last="${last}"`);
+  } else if (window.VerandaRemote?.autotest) {
+    await window.VerandaRemote.autotest(name, report);
   }
 }
 
@@ -865,6 +868,7 @@ async function autotest(name) {
     if (KIND_META[tab]) { if (sub) svcTab = sub; openService(tab); } else { showTab(tab); if (sub === "migrate") openMigrate(); }
   }
   try { builtin = await invoke("builtin_versions"); renderService(); } catch (e) { fail(e); }
+  if (window.VerandaRemote) window.VerandaRemote.init();
   if (state?.ui_perf) setTimeout(perfBenchmark, 1200);
   if (state?.ui_autotest) setTimeout(() => autotest(state.ui_autotest), 1500);
   setInterval(() => { if (document.visibilityState !== "visible" || installing || removing) return; refresh(); if (currentTab === "logs") loadLog(); }, 15000);

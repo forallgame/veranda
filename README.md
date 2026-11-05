@@ -45,6 +45,10 @@ only the parts you need; nothing is forced on you and nothing runs that you did 
 - **Stays current.** Veranda tells you when a new release is out and updates itself on click (or
   automatically, if you prefer). The package list always knows the newest PHP, MariaDB and the
   rest.
+- **Your servers too.** The Remote section is a full SSH client: hosts with groups and tags,
+  terminal tabs, SFTP with drag and drop, port forwarding (local, remote, SOCKS5), snippets,
+  keys and identities, known hosts and history. Keys and passwords stay on your computer, in the
+  operating system's credential store.
 - **Linux, Windows and macOS**, dark and light mode.
 
 ## Install
@@ -124,6 +128,28 @@ Nothing else on your system is touched. Uninstalling the app leaves that folder 
    `www/` and press **Sync** in Sites.
 
 Database login: host `127.0.0.1`, user `root`, password under **Database → Show**.
+
+## Remote (SSH)
+
+The **Remote** group in the sidebar manages servers the way a dedicated SSH client does:
+
+- **Hosts**: add a host (or import `~/.ssh/config`), pick password, key, identity or agent
+  authentication, group it, tag it, give it a colour. Double-click to open a terminal; the SFTP
+  button opens the file browser for that host. "Quick connect" takes `user@host:22` without
+  saving anything.
+- **Terminal**: SSH and local tabs. Ctrl+Shift+C/V copy and paste, Ctrl+Shift+F searches,
+  Ctrl+Shift+T opens a local shell. The gear sets font, theme, cursor and keep-alive.
+- **SFTP**: this computer on the left, the server on the right. Drag files across, or select
+  and use the arrows. Double-click a text file on the server to edit it in place.
+- **Port forwarding**: `127.0.0.1:3307 → 127.0.0.1:3306` through a server reaches its database
+  from your local tools; dynamic rules give you a SOCKS5 proxy.
+- **Keychain**: generate or import keys, install a public key on a host with one click, and
+  define identities (user + password/key) that hosts and groups inherit.
+
+The first connection to a server shows its key fingerprint; accept it and it is recorded in
+`etc/remote/known_hosts`. A changed key is flagged in red. Secrets go to the system credential
+store (or `secrets/remote-secrets.json`, user-readable only, when there is none). Veranda never
+reads other SSH clients' data stores.
 
 ## How it works
 

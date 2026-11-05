@@ -10,6 +10,39 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-04
+
+### Added
+- **Remote**: a built-in SSH client in the sidebar, modelled on Termius, so you can manage your
+  servers from the same window as your local stack.
+  - **Hosts**: label, address, port, user, groups (nested, with an inherited identity), tags,
+    colours, notes, jump host (ProxyJump), startup snippet, keep-alive, agent forwarding,
+    environment variables; search and tag filters; Quick connect (`user@host:port`); the server's
+    OS is detected after the first login. Import from `~/.ssh/config` (and PuTTY sessions on
+    Windows), including the keys named in `IdentityFile`.
+  - **Terminal**: tabs with SSH and local shells (xterm.js), 256 colours and true colour,
+    search, copy-on-select, right-click paste, clickable links, themes (follow Veranda, dark,
+    light, Dracula, Solarized, Nord), font and cursor settings, reconnect, snippet sender. The
+    local shell has Veranda's runtimes (PHP, Node, Composer...) on its `PATH`.
+  - **SFTP**: dual-pane browser (this computer / server) with upload and download of files and
+    folders, drag and drop between the panes, transfer queue with progress and cancel, new
+    folder, rename, delete, chmod, hidden files, and an in-app editor for text files.
+  - **Port forwarding**: local, remote and dynamic (SOCKS5) rules per host with a start/stop
+    switch and live connection counters.
+  - **Snippets**: saved commands grouped in folders; send to the active terminal or run on
+    several hosts at once and compare the output.
+  - **Keychain**: generate Ed25519/RSA/ECDSA keys (optionally passphrase-protected), import from
+    file or paste, export the public or private key, change the passphrase, install the public key
+    on a host (like `ssh-copy-id`), and identities (username + password/key) reusable across hosts
+    and groups.
+  - **Known hosts** (trust on first use with fingerprint confirmation; a changed key is flagged
+    loudly) and a connection **History**.
+  - Authentication: key, password, SSH agent (`SSH_AUTH_SOCK`, Windows OpenSSH agent, Pageant),
+    keyboard-interactive (one-time codes). Passwords and passphrases are stored in the operating
+    system's credential store (Keychain, Credential Manager, Secret Service/KWallet); without one
+    they go to a private file under `secrets/`. Private keys live in `etc/remote/keys/` with
+    user-only permissions. The SSH stack is pure Rust (russh + ring); no OpenSSH binary needed.
+
 ## [0.5.0] - 2026-11-04
 
 ### Fixed

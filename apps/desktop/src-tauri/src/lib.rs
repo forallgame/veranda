@@ -1,5 +1,7 @@
 //! Tauri shell around `veranda-core`: commands for the web UI, tray icon, background jobs.
 
+mod remote;
+
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
@@ -1042,6 +1044,7 @@ fn quit_app(app: AppHandle) {
     let state = app.state::<AppState>();
     let core = open_app(&state).ok();
     std::thread::spawn(move || {
+        remote::shutdown(&app);
         if let Some(core) = core {
             let (tx, rx) = std::sync::mpsc::channel();
             std::thread::spawn(move || {
@@ -1102,6 +1105,7 @@ pub fn run() {
             app: Mutex::new(core),
             heartbeat: std::sync::atomic::AtomicU64::new(0),
         })
+        .manage(remote::RemoteState::default())
         .setup(move |app| {
             let show = MenuItem::with_id(app, "show", "Show Veranda", true, None::<&str>)?;
             let start = MenuItem::with_id(app, "start_all", "Start All", true, None::<&str>)?;
@@ -1327,7 +1331,55 @@ pub fn run() {
             update_check,
             update_install,
             open_url_external,
-            close_decision
+            close_decision,
+            remote::remote_state,
+            remote::remote_prompt_answer,
+            remote::remote_save_host,
+            remote::remote_delete_host,
+            remote::remote_save_group,
+            remote::remote_delete_group,
+            remote::remote_save_identity,
+            remote::remote_delete_identity,
+            remote::remote_save_snippet,
+            remote::remote_delete_snippet,
+            remote::remote_save_forward,
+            remote::remote_delete_forward,
+            remote::remote_save_settings,
+            remote::remote_history_clear,
+            remote::remote_known_hosts,
+            remote::remote_known_host_remove,
+            remote::remote_key_generate,
+            remote::remote_key_import,
+            remote::remote_key_candidates,
+            remote::remote_key_delete,
+            remote::remote_key_export,
+            remote::remote_key_passphrase,
+            remote::remote_key_deploy,
+            remote::term_open,
+            remote::term_write,
+            remote::term_resize,
+            remote::term_close,
+            remote::sftp_open,
+            remote::sftp_list,
+            remote::sftp_mkdir,
+            remote::sftp_rename,
+            remote::sftp_delete,
+            remote::sftp_chmod,
+            remote::sftp_read,
+            remote::sftp_write,
+            remote::sftp_download,
+            remote::sftp_upload,
+            remote::sftp_cancel,
+            remote::sftp_close,
+            remote::local_list,
+            remote::local_mkdir,
+            remote::local_rename,
+            remote::local_delete,
+            remote::snippet_run,
+            remote::forward_start,
+            remote::forward_stop,
+            remote::remote_import_detect,
+            remote::remote_import_apply
         ])
         .run(tauri::generate_context!())
         .expect("error while running Veranda");

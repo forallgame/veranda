@@ -46,6 +46,10 @@ berjalan tanpa Anda nyalakan.
 - **Selalu mutakhir.** Veranda memberi tahu saat rilis baru terbit dan memperbarui dirinya dengan
   satu klik (atau otomatis, kalau Anda mau). Daftar paket selalu tahu PHP, MariaDB, dan lainnya
   yang terbaru.
+- **Server Anda juga.** Bagian Remote adalah klien SSH lengkap: host dengan grup dan tag, tab
+  terminal, SFTP dengan seret-lepas, port forwarding (local, remote, SOCKS5), snippet, kunci dan
+  identitas, known hosts, serta riwayat. Kunci dan kata sandi tetap di komputer Anda, di
+  penyimpanan kredensial sistem operasi.
 - **Linux, Windows, dan macOS**, mode gelap dan terang.
 
 ## Pemasangan
@@ -127,6 +131,28 @@ untuk Anda.
    foldernya di `www/` lalu tekan **Sync** di Sites.
 
 Masuk ke database: host `127.0.0.1`, pengguna `root`, kata sandi di **Database → Show**.
+
+## Remote (SSH)
+
+Grup **Remote** di sidebar mengelola server seperti klien SSH khusus:
+
+- **Host**: tambah host (atau impor `~/.ssh/config`), pilih autentikasi kata sandi, kunci,
+  identitas, atau agent; kelompokkan, beri tag dan warna. Klik dua kali untuk membuka terminal;
+  tombol SFTP membuka penjelajah file host itu. "Quick connect" menerima `user@host:22` tanpa
+  menyimpan apa pun.
+- **Terminal**: tab SSH dan lokal. Ctrl+Shift+C/V salin dan tempel, Ctrl+Shift+F mencari,
+  Ctrl+Shift+T membuka shell lokal. Ikon gerigi mengatur font, tema, kursor, dan keep-alive.
+- **SFTP**: komputer ini di kiri, server di kanan. Seret file antar panel, atau pilih lalu
+  pakai tombol panah. Klik dua kali file teks di server untuk menyuntingnya langsung.
+- **Port forwarding**: `127.0.0.1:3307 → 127.0.0.1:3306` lewat server membuat database server
+  terjangkau dari alat lokal Anda; aturan dynamic memberi proxy SOCKS5.
+- **Keychain**: buat atau impor kunci, pasang kunci publik ke host dengan satu klik, dan buat
+  identitas (pengguna + kata sandi/kunci) yang diwarisi host dan grup.
+
+Koneksi pertama ke server menampilkan sidik jari kuncinya; setelah diterima, kunci dicatat di
+`etc/remote/known_hosts`. Kunci yang berubah ditandai merah. Rahasia disimpan di penyimpanan
+kredensial sistem (atau `secrets/remote-secrets.json`, hanya terbaca pengguna Anda, jika tidak
+ada). Veranda tidak pernah membaca data klien SSH lain.
 
 ## Cara kerjanya
 

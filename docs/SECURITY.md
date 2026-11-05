@@ -60,3 +60,20 @@ if the user never opens the settings.
 ## Dependencies
 - Rust 2024 edition; every crate pinned to the newest stable release at the time of writing
   (see `Cargo.toml`). `cargo audit` runs in CI. Prefer updating dependencies with every release.
+
+## Remote (SSH client)
+- Pure-Rust SSH (`russh` + `ring`), no shelling out to `ssh`. Host keys are trust-on-first-use with
+  the SHA-256 fingerprint shown before anything is sent; a changed key is refused unless the user
+  explicitly accepts it, and the old line is then replaced in `etc/remote/known_hosts`.
+- Private keys are written with mode 0600 under `etc/remote/keys/`; passphrases are optional and
+  use OpenSSH's bcrypt/aes256-ctr format. Export of a private key is an explicit user action
+  behind a confirmation.
+- Passwords and passphrases go to the OS credential store (Keychain / Credential Manager /
+  Secret Service). If none is available they are kept in `secrets/remote-secrets.json` (0600) and
+  the Keychain page says so. They are never written to the host store or logs.
+- Forwarding listeners bind `127.0.0.1` by default; the SOCKS5 proxy has no authentication and is
+  meant for loopback use only. Remote forwards only reach the destination the rule names.
+- "Install key on host" appends one validated public-key line to `~/.ssh/authorized_keys` with
+  `umask 077`; the public key text is rejected if it contains quotes or newlines.
+- Veranda never reads other SSH clients' databases; "Import" parses `~/.ssh/config` (and PuTTY
+  registry sessions on Windows) only when clicked.
