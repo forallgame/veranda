@@ -121,13 +121,14 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
 
 #[tauri::command]
 async fn service_action(
+    handle: AppHandle,
     state: State<'_, AppState>,
     id: String,
     action: String,
 ) -> CmdResult<Vec<ActionReport>> {
     let app = open_app(&state)?;
     let sid: ServiceId = id.parse().map_err(err)?;
-    tauri::async_runtime::spawn_blocking(move || {
+    let r = tauri::async_runtime::spawn_blocking(move || {
         let r = match action.as_str() {
             "start" => services::start(&app, sid),
             "stop" => services::stop(&app, sid),
@@ -138,7 +139,9 @@ async fn service_action(
         to_report(vec![(sid, r)])
     })
     .await
-    .map_err(err)
+    .map_err(err);
+    refresh_tray(&handle);
+    r
 }
 
 /// Linux only: grant the active web server binary permission to bind ports below 1024
@@ -258,22 +261,30 @@ fn ui_ready(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<()> {
 }
 
 #[tauri::command]
-async fn start_all(state: State<'_, AppState>) -> CmdResult<Vec<ActionReport>> {
-    let app = open_app(&state)?;
-    tauri::async_runtime::spawn_blocking(move || {
-        let _ = services::prepare_all(&app);
-        to_report(services::start_all(&app))
-    })
-    .await
-    .map_err(err)
+async fn start_all(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<Vec<ActionReport>> {
+    let r = {
+        let app = open_app(&state)?;
+        tauri::async_runtime::spawn_blocking(move || {
+            let _ = services::prepare_all(&app);
+            to_report(services::start_all(&app))
+        })
+        .await
+        .map_err(err)
+    };
+    refresh_tray(&handle);
+    r
 }
 
 #[tauri::command]
-async fn stop_all(state: State<'_, AppState>) -> CmdResult<Vec<ActionReport>> {
-    let app = open_app(&state)?;
-    tauri::async_runtime::spawn_blocking(move || to_report(services::stop_all(&app)))
-        .await
-        .map_err(err)
+async fn stop_all(handle: AppHandle, state: State<'_, AppState>) -> CmdResult<Vec<ActionReport>> {
+    let r = {
+        let app = open_app(&state)?;
+        tauri::async_runtime::spawn_blocking(move || to_report(services::stop_all(&app)))
+            .await
+            .map_err(err)
+    };
+    refresh_tray(&handle);
+    r
 }
 
 #[derive(Clone, Serialize)]
@@ -1080,6 +1091,106 @@ fn teardown_webview(app: &AppHandle) {
     }
 }
 
+/// The tray menu: actions plus one line per service that is on (name, ports, state).
+/// Returns the menu and how many of those services are running.
+fn tray_menu(app: &AppHandle) -> tauri::Result<(Menu<tauri::Wry>, usize)> {
+    let menu = Menu::new(app)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "show",
+        "Show Veranda",
+        true,
+        None::<&str>,
+    )?)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    let statuses = open_app(&app.state::<AppState>())
+        .ok()
+        .and_then(|core| services::status_all(&core).ok())
+        .unwrap_or_default();
+    let shown: Vec<&ServiceStatus> = statuses
+        .iter()
+        .filter(|s| s.installed && (s.enabled || s.running))
+        .collect();
+    let running = shown.iter().filter(|s| s.running).count();
+    if shown.is_empty() {
+        menu.append(&MenuItem::with_id(
+            app,
+            "svc-none",
+            "No service is on",
+            false,
+            None::<&str>,
+        )?)?;
+    }
+    for s in &shown {
+        let ports = s
+            .ports
+            .iter()
+            .map(|p| format!(":{p}"))
+            .collect::<Vec<_>>()
+            .join(" ");
+        let text = if s.running {
+            format!("\u{25cf}  {}  {ports}  \u{2014} running", s.name)
+        } else {
+            format!("\u{25cb}  {}  \u{2014} stopped", s.name)
+        };
+        menu.append(&MenuItem::with_id(
+            app,
+            format!("svc-{}", s.id.id()),
+            text,
+            false,
+            None::<&str>,
+        )?)?;
+    }
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "start_all",
+        "Start All",
+        true,
+        None::<&str>,
+    )?)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "stop_all",
+        "Stop All",
+        true,
+        None::<&str>,
+    )?)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "open_web",
+        "Open localhost",
+        true,
+        None::<&str>,
+    )?)?;
+    menu.append(&PredefinedMenuItem::separator(app)?)?;
+    menu.append(&MenuItem::with_id(
+        app,
+        "quit",
+        "Quit (stops services)",
+        true,
+        None::<&str>,
+    )?)?;
+    Ok((menu, running))
+}
+
+/// Rebuild the tray menu and tooltip from the current service states.
+fn refresh_tray(app: &AppHandle) {
+    let Some(tray) = app.tray_by_id("main") else {
+        return;
+    };
+    let Ok((menu, running)) = tray_menu(app) else {
+        return;
+    };
+    let _ = tray.set_menu(Some(menu));
+    let tooltip = if running == 0 {
+        "Veranda \u{2014} stopped".to_string()
+    } else {
+        format!("Veranda \u{2014} {running} running")
+    };
+    let _ = tray.set_tooltip(Some(tooltip));
+}
+
 fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.unminimize();
@@ -1115,23 +1226,7 @@ pub fn run() {
         })
         .manage(remote::RemoteState::default())
         .setup(move |app| {
-            let show = MenuItem::with_id(app, "show", "Show Veranda", true, None::<&str>)?;
-            let start = MenuItem::with_id(app, "start_all", "Start All", true, None::<&str>)?;
-            let stop = MenuItem::with_id(app, "stop_all", "Stop All", true, None::<&str>)?;
-            let web = MenuItem::with_id(app, "open_web", "Open localhost", true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", "Quit (stops services)", true, None::<&str>)?;
-            let menu = Menu::with_items(
-                app,
-                &[
-                    &show,
-                    &PredefinedMenuItem::separator(app)?,
-                    &start,
-                    &stop,
-                    &web,
-                    &PredefinedMenuItem::separator(app)?,
-                    &quit,
-                ],
-            )?;
+            let (menu, _) = tray_menu(app.handle())?;
             TrayIconBuilder::with_id("main")
                 .icon(app.default_window_icon().cloned().expect("icon"))
                 .tooltip("Veranda")
@@ -1143,15 +1238,23 @@ pub fn run() {
                         "show" => show_main(app),
                         "start_all" => {
                             if let Ok(core) = open_app(&state) {
+                                let h = app.clone();
                                 std::thread::spawn(move || {
                                     let _ = services::prepare_all(&core);
                                     let _ = services::start_all(&core);
+                                    let _ = h.emit("services-changed", ());
+                                    refresh_tray(&h);
                                 });
                             }
                         }
                         "stop_all" => {
                             if let Ok(core) = open_app(&state) {
-                                std::thread::spawn(move || services::stop_all(&core));
+                                let h = app.clone();
+                                std::thread::spawn(move || {
+                                    let _ = services::stop_all(&core);
+                                    let _ = h.emit("services-changed", ());
+                                    refresh_tray(&h);
+                                });
                             }
                         }
                         "open_web" => {
@@ -1203,11 +1306,20 @@ pub fn run() {
                         let _ = services::prepare_all(&core);
                         let report = to_report(services::start_all(&core));
                         let _ = handle.emit("services-changed", ());
+                        refresh_tray(&handle);
                         // The UI shows the outcome (and the port dialogs) like a manual Start All.
                         let _ = handle.emit("autostart-done", report);
                     });
                 }
             }
+            // Tray menu: keep the service list current even when nothing is clicked.
+            let handle_t = app.handle().clone();
+            std::thread::spawn(move || {
+                loop {
+                    std::thread::sleep(std::time::Duration::from_secs(20));
+                    refresh_tray(&handle_t);
+                }
+            });
             // Watchdog: reload the page when the UI stops sending heartbeats (web process died).
             let handle_w = app.handle().clone();
             std::thread::spawn(move || {

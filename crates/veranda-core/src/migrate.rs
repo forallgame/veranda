@@ -515,6 +515,16 @@ fn import_databases(
     if !crate::process::port_accepting(db.port) {
         bail!("start Veranda's database first (it receives the imported data)");
     }
+    let host = req.db_host.trim();
+    if (host.is_empty() || host == "127.0.0.1" || host == "localhost" || host == "::1")
+        && req.db_port == db.port
+    {
+        bail!(
+            "{host}:{} is Veranda's own database, not the source. Start the other stack's database server and enter its port here; if both use port {}, move Veranda's database to another port in Settings first",
+            db.port,
+            db.port
+        );
+    }
     let root_pw = crate::db::root_password(&app.layout)?.context("root password unknown")?;
     let names = list_source_databases(&db, req)?;
     if names.is_empty() {

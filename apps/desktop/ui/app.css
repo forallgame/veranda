@@ -215,7 +215,10 @@ svg { width: 18px; height: 18px; fill: currentColor; flex: none; }
 .vrow .act { display: flex; justify-content: flex-end; align-items: center; gap: 6px; }
 .vrow.head .act { text-align: right; justify-content: flex-end; }
 .vrow.inuse { box-shadow: inset 3px 0 0 var(--ok); }
-.vrow.installing { background: color-mix(in srgb, var(--accent-soft) 50%, var(--surface)); }
+.vrow.installing { background: color-mix(in srgb, var(--accent-soft) 50%, var(--surface)); grid-template-columns: minmax(80px, auto) minmax(0, 1fr) auto minmax(240px, 2fr); }
+.vrow .act { min-width: 0; }
+.row-progress { min-width: 0; }
+.row-progress .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .vrow.removing { opacity: .55; }
 @container (max-width: 520px) {
   .vrow { grid-template-columns: minmax(80px, 1fr) 96px 120px; }
@@ -334,6 +337,7 @@ dialog.wide { width: min(560px, 94vw); }
 dialog .two { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 12px; }
 dialog .two > label { min-width: 0; }
 dialog .two label > span { width: 64px; }
+dialog.wide .two label > span { width: 84px; }
 dialog label .btn.small { flex: none; }
 input[type=radio] { appearance: none; -webkit-appearance: none; width: 16px; height: 16px; border: 1.5px solid var(--faint); border-radius: 50%; background: var(--surface); display: inline-grid; place-items: center; cursor: pointer; margin: 0; }
 input[type=radio]:checked { border-color: var(--accent); }

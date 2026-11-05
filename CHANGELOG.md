@@ -10,6 +10,22 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.3] - 2026-11-05
+
+### Added
+- The tray icon menu lists every service that is on, with its ports and whether it is running,
+  and the tooltip says how many are running. The list refreshes after every start/stop and every
+  20 seconds.
+
+### Fixed
+- A service that kept running with an older port setting (for example Apache still on 80/443
+  after the ports were moved to 8080/8443) showed "Running" on the new ports. Overview now says
+  "not listening on port …; restart to apply", and Start restarts it so the new ports apply.
+- Migrate: entering Veranda's own database port as the source is refused with an explanation,
+  instead of failing with "access denied".
+- Version tables: the download progress text is no longer clipped; wide dialogs give two-column
+  labels enough room so "Jump host" and "Startup snippet" stay on one line.
+
 ## [0.6.2] - 2026-11-05
 
 ### Fixed

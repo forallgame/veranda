@@ -154,6 +154,13 @@ pub fn status(ctx: &Ctx, id: ServiceId) -> ServiceStatus {
         ServiceId::Qdrant => extra::status(extra::Which::Qdrant, ctx),
     };
     st.enabled = enabled(ctx.app, id);
+    if st.running
+        && st.message.is_empty()
+        && let Some(port) = st.ports.first()
+        && !crate::process::port_accepting(*port)
+    {
+        st.message = format!("not listening on port {port}; restart to apply the new settings");
+    }
     st
 }
 
@@ -205,6 +212,14 @@ pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
     };
     if app.config.web.ssl && matches!(id, ServiceId::Web) {
         crate::tls::ensure_site_cert(&app.layout, &crate::sites::hostnames(&sites))?;
+    }
+    // A service still running with an older port setting is restarted so the new one applies.
+    let st = status(&ctx, id);
+    if st.running
+        && let Some(port) = st.ports.first()
+        && !crate::process::port_accepting(*port)
+    {
+        stop(app, id)?;
     }
     match id {
         ServiceId::Web => web::start(&ctx),
