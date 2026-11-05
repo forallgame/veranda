@@ -22,6 +22,8 @@ pub struct Source {
     /// Projects folder (Laragon `www`, XAMPP `htdocs`) or FlyEnv's `host.json`.
     pub path: Option<String>,
     pub found: bool,
+    /// The application is installed here but holds no sites yet (FlyEnv without hosts).
+    pub installed_at: Option<String>,
     pub db_port: u16,
     pub db_user: String,
     pub db_password: String,
@@ -79,40 +81,67 @@ pub fn detect() -> Vec<Source> {
         PathBuf::from("/opt/lampp/htdocs"),
         PathBuf::from("/Applications/XAMPP/xamppfiles/htdocs"),
     ];
-    let mut flyenv = vec![
-        h.join(".config")
-            .join("FlyEnv")
-            .join("server")
-            .join("host.json"),
-        h.join("Library")
-            .join("FlyEnv")
-            .join("server")
-            .join("host.json"),
-        h.join("Library")
-            .join("PhpWebStudy")
-            .join("server")
-            .join("host.json"),
-        PathBuf::from("C:\\FlyEnv-Data\\server\\host.json"),
-        PathBuf::from("C:\\Program Files\\FlyEnv-Data\\server\\host.json"),
-    ];
-    if let Some(d) = dirs::config_dir() {
-        flyenv.push(d.join("FlyEnv").join("server").join("host.json"));
-    }
+    let flyenv_dirs = flyenv_config_dirs(&h);
+    let flyenv_installed = flyenv_dirs.iter().find(|d| d.is_dir()).cloned();
+    let flyenv = flyenv_installed
+        .as_ref()
+        .and_then(|d| flyenv_site_source(d));
     let mk = |platform: &str, label: &str, found: Option<PathBuf>, user: &str, pw: &str| Source {
         platform: platform.into(),
         label: label.into(),
         found: found.is_some(),
         path: found.map(|p| p.display().to_string()),
+        installed_at: None,
         db_port: 3306,
         db_user: user.into(),
         db_password: pw.into(),
     };
+    let mut fly = mk("flyenv", "FlyEnv", flyenv, "root", "root");
+    fly.installed_at = flyenv_installed.map(|p| p.display().to_string());
     vec![
         mk("laragon", "Laragon", first_existing(&laragon), "root", ""),
         mk("xampp", "XAMPP", first_existing(&xampp), "root", ""),
-        mk("flyenv", "FlyEnv", first_existing(&flyenv), "root", "root"),
+        fly,
         mk("folder", "Other folder of projects", None, "root", ""),
     ]
+}
+
+/// Where FlyEnv (formerly PhpWebStudy) keeps its data on each platform.
+fn flyenv_config_dirs(h: &Path) -> Vec<PathBuf> {
+    let mut v = vec![
+        h.join(".config").join("FlyEnv"),
+        h.join("Library").join("FlyEnv"),
+        h.join("Library").join("PhpWebStudy"),
+        PathBuf::from("C:\\FlyEnv-Data"),
+        PathBuf::from("C:\\Program Files\\FlyEnv-Data"),
+    ];
+    if let Some(d) = dirs::config_dir() {
+        v.push(d.join("FlyEnv"));
+    }
+    v
+}
+
+/// The site list inside a FlyEnv folder: `host.json` when it exists, else the vhost folder when
+/// it holds at least one `.conf`. `None` = FlyEnv has no sites yet.
+fn flyenv_site_source(dir: &Path) -> Option<PathBuf> {
+    for p in [dir.join("server").join("host.json"), dir.join("host.json")] {
+        if p.is_file() {
+            return Some(p);
+        }
+    }
+    let vhost = dir.join("server").join("vhost");
+    let has_conf = |d: &Path| {
+        std::fs::read_dir(d)
+            .map(|rd| {
+                rd.flatten()
+                    .any(|e| e.path().extension().is_some_and(|x| x == "conf"))
+            })
+            .unwrap_or(false)
+    };
+    if has_conf(&vhost) || has_conf(&vhost.join("apache")) || has_conf(&vhost.join("nginx")) {
+        return Some(vhost);
+    }
+    None
 }
 
 /// A project found in the source.
@@ -155,7 +184,26 @@ fn projects_in_folder(dir: &Path, platform: &str) -> Result<Vec<Project>> {
 }
 
 /// FlyEnv keeps its sites in `host.json`: `[{ "name": "demo.test", "root": "/path", ... }]`.
-fn projects_in_flyenv(host_json: &Path) -> Result<Vec<Project>> {
+/// Accepts that file, the FlyEnv data folder, or its `server/vhost` folder (Apache/Nginx confs).
+fn projects_in_flyenv(path: &Path) -> Result<Vec<Project>> {
+    if path.is_dir() {
+        let Some(src) = flyenv_site_source(path).or_else(|| {
+            // a vhost folder itself
+            path.file_name()
+                .is_some_and(|n| n == "vhost")
+                .then(|| path.to_path_buf())
+        }) else {
+            bail!(
+                "FlyEnv at {} has no sites yet (no host.json and no vhost files); add hosts in FlyEnv first, or choose \"Other folder of projects\"",
+                path.display()
+            );
+        };
+        if src.is_dir() {
+            return projects_in_vhost_confs(&src);
+        }
+        return projects_in_flyenv(&src);
+    }
+    let host_json = path;
     let text = std::fs::read_to_string(host_json)
         .with_context(|| format!("reading {}", host_json.display()))?;
     let hosts: Vec<serde_json::Value> = serde_json::from_str(text.trim()).context("host.json")?;
@@ -179,6 +227,68 @@ fn projects_in_flyenv(host_json: &Path) -> Result<Vec<Project>> {
             name: name_hint.split('.').next().unwrap_or(name_hint).to_string(),
             path,
             hostname: Some(name.to_ascii_lowercase()),
+        });
+    }
+    Ok(out)
+}
+
+/// Sites from Apache (`ServerName` + `DocumentRoot`) or Nginx (`server_name` + `root`) vhost
+/// files, one site per file, searched one level deep (`vhost/apache/*.conf`, `vhost/nginx/*.conf`).
+fn projects_in_vhost_confs(dir: &Path) -> Result<Vec<Project>> {
+    let mut files = Vec::new();
+    for d in [dir.to_path_buf(), dir.join("apache"), dir.join("nginx")] {
+        if let Ok(rd) = std::fs::read_dir(&d) {
+            files.extend(
+                rd.flatten()
+                    .map(|e| e.path())
+                    .filter(|p| p.extension().is_some_and(|x| x == "conf")),
+            );
+        }
+    }
+    files.sort();
+    let mut out: Vec<Project> = Vec::new();
+    for f in files {
+        let Ok(text) = std::fs::read_to_string(&f) else {
+            continue;
+        };
+        let mut name = None;
+        let mut root = None;
+        for line in text.lines() {
+            let l = line.trim().trim_end_matches(';');
+            let mut parts = l.split_whitespace();
+            match parts.next() {
+                Some("ServerName") | Some("server_name") if name.is_none() => {
+                    name = parts
+                        .next()
+                        .map(|n| n.trim_matches('"').to_ascii_lowercase());
+                }
+                Some("DocumentRoot") | Some("root") if root.is_none() => {
+                    root = parts.next().map(|r| r.trim_matches('"').to_string());
+                }
+                _ => {}
+            }
+        }
+        let (Some(name), Some(root)) = (name, root) else {
+            continue;
+        };
+        if name.is_empty()
+            || root.is_empty()
+            || out.iter().any(|p| p.hostname.as_deref() == Some(&name))
+        {
+            continue;
+        }
+        let path = PathBuf::from(&root);
+        let path = if path.file_name().is_some_and(|f| f == "public")
+            && path.parent().is_some_and(|p| p.is_dir())
+        {
+            path.parent().unwrap().to_path_buf()
+        } else {
+            path
+        };
+        out.push(Project {
+            name: name.split('.').next().unwrap_or(&name).to_string(),
+            path,
+            hostname: Some(name),
         });
     }
     Ok(out)
@@ -464,6 +574,50 @@ mod tests {
         assert_eq!(p[0].name, "demo");
         assert_eq!(p[0].path, proj);
         assert_eq!(p[0].hostname.as_deref(), Some("demo.test"));
+    }
+
+    #[test]
+    fn flyenv_dir_and_vhost_confs() {
+        let dir = tempfile::tempdir().unwrap();
+        let fly = dir.path().join("FlyEnv");
+        let proj = dir.path().join("shop");
+        std::fs::create_dir_all(proj.join("public")).unwrap();
+        // installed but empty: a clear error, no sites
+        std::fs::create_dir_all(fly.join("server").join("vhost").join("apache")).unwrap();
+        assert!(flyenv_site_source(&fly).is_none());
+        let e = projects_in_flyenv(&fly).unwrap_err().to_string();
+        assert!(e.contains("no sites yet"), "{e}");
+        // an apache vhost appears
+        std::fs::write(
+            fly.join("server/vhost/apache/shop.test.conf"),
+            format!("<VirtualHost *:80>\n  ServerName shop.test\n  DocumentRoot \"{}\"\n</VirtualHost>\n", proj.join("public").display()),
+        )
+        .unwrap();
+        // and an nginx one for the same host must not duplicate it
+        std::fs::create_dir_all(fly.join("server/vhost/nginx")).unwrap();
+        std::fs::write(
+            fly.join("server/vhost/nginx/shop.test.conf"),
+            format!(
+                "server {{\n  server_name shop.test;\n  root {};\n}}\n",
+                proj.join("public").display()
+            ),
+        )
+        .unwrap();
+        assert_eq!(
+            flyenv_site_source(&fly).unwrap(),
+            fly.join("server").join("vhost")
+        );
+        let p = projects_in_flyenv(&fly).unwrap();
+        assert_eq!(p.len(), 1);
+        assert_eq!(p[0].name, "shop");
+        assert_eq!(p[0].path, proj);
+        assert_eq!(p[0].hostname.as_deref(), Some("shop.test"));
+        // host.json wins when present
+        std::fs::write(fly.join("server/host.json"), "[]").unwrap();
+        assert_eq!(
+            flyenv_site_source(&fly).unwrap(),
+            fly.join("server").join("host.json")
+        );
     }
 
     #[test]

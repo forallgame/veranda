@@ -40,7 +40,10 @@ memberi izin itu hanya ke binari web server (atau ganti ke 8080/8443 di Settings
 Setiap folder di dalam `www/` otomatis menjadi `https://nama-folder.test`. Folder `public/` gaya
 Laravel dan Symfony terdeteksi sendiri. Untuk proyek di tempat lain, pakai **Add external folder**
 (ditautkan di tempat) atau **Migrate** untuk memindahkan proyek dan database dari Laragon, XAMPP,
-atau FlyEnv. **New project** membuat folder dari templat (polos, paket Composer, Git clone) dan,
+atau FlyEnv. Migrate mencari tiap stack di lokasi biasanya; untuk FlyEnv dibaca daftar host
+(`host.json`) atau berkas vhost Apache/Nginx di folder datanya, dan Veranda memberi tahu bila
+FlyEnv terpasang tetapi belum punya situs (pakai "Other folder of projects" lalu tunjuk folder
+proyek Anda). **New project** membuat folder dari templat (polos, paket Composer, Git clone) dan,
 jika dicentang, database. **Sync** menulis ulang virtual host dan berkas hosts (minta izin
 elevasi sekali).
 

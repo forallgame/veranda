@@ -40,7 +40,10 @@ grants it to the web server binary only (or switch to 8080/8443 in Settings).
 Every folder inside `www/` becomes `https://folder-name.test` automatically. Laravel and Symfony
 style `public/` folders are detected. For a project that lives elsewhere, use **Add external
 folder** (link in place) or **Migrate** to bring projects and databases over from Laragon, XAMPP
-or FlyEnv. **New project** creates a folder from a template (plain, Composer package, Git clone)
+or FlyEnv. Migrate looks for each stack in its usual place; for FlyEnv it reads the host list
+(`host.json`) or the Apache/Nginx vhost files under its data folder, and tells you when FlyEnv is
+installed but has no sites yet (then use "Other folder of projects" and point at the folder that
+holds your projects). **New project** creates a folder from a template (plain, Composer package, Git clone)
 and, optionally, a database. **Sync** rewrites the virtual hosts and your hosts file (asks for
 elevation once).
 

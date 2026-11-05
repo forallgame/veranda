@@ -563,8 +563,8 @@ async function openMigrate() {
   const dlg = $("#dlg-migrate"), f = $("#form-migrate");
   try { migrateSources = await invoke("migrate_detect"); } catch (e) { fail(e); return; }
   const sel = $("#migrate-platform");
-  sel.innerHTML = migrateSources.map((s) => `<option value="${s.platform}">${esc(s.label)}${s.found ? " ✓" : ""}</option>`).join("");
-  const first = migrateSources.find((s) => s.found) || migrateSources[0];
+  sel.innerHTML = migrateSources.map((s) => `<option value="${s.platform}">${esc(s.label)}${s.found ? " ✓" : s.installed_at ? " ·" : ""}</option>`).join("");
+  const first = migrateSources.find((s) => s.found) || migrateSources.find((s) => s.installed_at) || migrateSources[0];
   sel.value = first.platform;
   $("#migrate-report").classList.add("hidden"); $("#migrate-report").innerHTML = "";
   $("#migrate-progress").classList.add("hidden");
@@ -577,9 +577,9 @@ function applyMigrateSource() {
   const f = $("#form-migrate");
   const s = migrateSources.find((x) => x.platform === f.elements.platform.value);
   if (!s) return;
-  f.elements.path.value = s.path || "";
-  f.elements.path.placeholder = s.platform === "flyenv" ? "…/FlyEnv/server/host.json" : "/path/to/www";
-  $("#migrate-detected").textContent = s.found ? t("migrate.found", { path: s.path }) : t("migrate.notFound");
+  f.elements.path.value = s.path || s.installed_at || "";
+  f.elements.path.placeholder = s.platform === "flyenv" ? "…/FlyEnv  (folder, host.json or vhost)" : "/path/to/www";
+  $("#migrate-detected").textContent = s.found ? t("migrate.found", { path: s.path }) : s.installed_at ? t("migrate.installedEmpty", { path: s.installed_at }) : t("migrate.notFound");
   f.elements.db_port.value = s.db_port; f.elements.db_user.value = s.db_user; f.elements.db_password.value = s.db_password;
 }
 $("#btn-migrate").onclick = openMigrate;
@@ -588,9 +588,8 @@ $("#btn-migrate-cancel").onclick = () => $("#dlg-migrate").close();
 $("#form-migrate").elements.databases.onchange = (ev) => $("#migrate-db").classList.toggle("hidden", !ev.target.checked);
 $("#btn-migrate-browse").onclick = async () => {
   const f = $("#form-migrate");
-  const isFile = f.elements.platform.value === "flyenv";
   try {
-    const picked = await window.__TAURI__.dialog.open({ directory: !isFile, multiple: false, title: t("migrate.folder") });
+    const picked = await window.__TAURI__.dialog.open({ directory: true, multiple: false, title: t("migrate.folder") });
     if (picked) f.elements.path.value = typeof picked === "string" ? picked : picked.path || "";
   } catch (e) { toast(t("migrate.noPicker"), "info"); }
 };

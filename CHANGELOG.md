@@ -10,6 +10,13 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+### Fixed
+- Migrate: FlyEnv is now detected from its data folder (`~/.config/FlyEnv`, `~/Library/FlyEnv`,
+  `C:\FlyEnv-Data`) even when it has no `host.json` yet; the dialog then says that FlyEnv is
+  installed but has no sites, instead of "not found". The FlyEnv folder itself can be given as the
+  source, and sites are also read from its Apache/Nginx vhost files. The folder picker always
+  picks folders, and the dialog preselects an installed stack.
+
 ## [0.6.1] - 2026-11-05
 
 ### Fixed
