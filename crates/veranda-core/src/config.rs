@@ -50,6 +50,11 @@ pub struct General {
     /// Services hidden from the dashboard (`web`, `php`, `db`, `cache`, `mail`). Hidden services are
     /// never started by "Start All".
     pub hidden_services: Vec<String>,
+    /// Named sets of services started/stopped together, in order (like FlyEnv's startup groups).
+    pub startup_groups: Vec<StartupGroup>,
+    /// Group started on launch when "Start services on launch" is on (empty = every service that
+    /// is switched on).
+    pub default_group: String,
     /// Command for "Edit" actions, e.g. `code`. Empty = system default.
     pub editor: String,
     /// Command for "Open" actions. Empty = system default browser.
@@ -95,6 +100,14 @@ pub enum WebServer {
     Caddy,
     Nginx,
     Apache,
+}
+
+/// A startup group: services (`web`, `php`, `db`...) started in this order and stopped in reverse.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct StartupGroup {
+    pub name: String,
+    pub services: Vec<String>,
 }
 
 /// Which Node.js goes first on the `PATH` of terminals and project commands.
@@ -226,6 +239,8 @@ impl Default for General {
             close_action: CloseAction::Ask,
             close_to_tray: true,
             hidden_services: Vec::new(),
+            startup_groups: Vec::new(),
+            default_group: String::new(),
             editor: String::new(),
             browser: String::new(),
             language: "en".into(),

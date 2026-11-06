@@ -36,6 +36,7 @@ const KIND_META = {
   adminer:    { label: "Adminer",        group: "tools", icon: "tool", open: "adminer" },
   phpmyadmin: { label: "phpMyAdmin",     group: "tools", icon: "tool", open: "phpmyadmin" },
   cabundle:   { label: "CA bundle",      group: "tools", icon: "shield" },
+  cloudflared:{ label: "Cloudflare Tunnel", group: "tools", icon: "link" },
 };
 const GROUPS = [["web", "group.web"], ["lang", "group.lang"], ["db", "group.db"], ["search", "group.search"], ["more", "group.more"], ["tools", "group.tools"]];
 const SVC_SECTION = { web: "web", php: "php", db: "db", pg: "pg", cache: "cache", mail: "mail", mongodb: "mongodb", meilisearch: "meilisearch", qdrant: "qdrant" };
@@ -239,8 +240,74 @@ async function toggleKind(kind, on) {
   if (on && svcStatus(svc)?.installed && !svcStatus(svc)?.running) await serviceAction(svc, "start");
 }
 
+/* ---------------- startup groups ---------------- */
+let busyGroup = null;
+function renderGroups() {
+  const groups = state.config.general.startup_groups || [];
+  const def = state.config.general.default_group || "";
+  const chips = groups.map((g) => {
+    const ids = g.services.filter((id) => svcStatus(id));
+    const running = ids.filter((id) => svcStatus(id)?.running).length;
+    const on = ids.length > 0 && running === ids.length;
+    const busy = busyGroup === g.name;
+    return `<div class="gchip ${on ? "on" : running ? "partial" : ""}" data-group="${esc(g.name)}">
+      <span class="gname">${esc(g.name)}${g.name === def ? `<i title="${t("groups.default")}">${ICONS.play}</i>` : ""}</span>
+      <span class="gsvc">${ids.map((id) => `<b class="${svcStatus(id)?.running ? "run" : ""}">${esc(serviceName(id))}</b>`).join("")}</span>
+      <span class="gact">
+        <button class="icon-btn small go" data-group-action="start" data-group="${esc(g.name)}" title="${t("btn.start")}" ${busy ? "disabled" : ""}>${busy ? ICONS.spinner : ICONS.play}</button>
+        <button class="icon-btn small danger" data-group-action="stop" data-group="${esc(g.name)}" title="${t("btn.stop")}" ${busy ? "disabled" : ""}>${ICONS.stop}</button>
+        <button class="icon-btn small" data-group-edit="${esc(g.name)}" title="${t("btn.edit")}">${ICONS.edit}</button>
+      </span></div>`;
+  }).join("");
+  $("#groups").innerHTML = chips + `<button class="gchip add" id="btn-group-new">${ICONS.plus}<span>${t("groups.new")}</span></button>`;
+}
+function openGroupSvcDialog(g) {
+  const f = $("#form-group-svc"); f.reset();
+  f.elements.orig.value = g?.name || ""; f.elements.name.value = g?.name || "";
+  f.elements.default.checked = !!g && state.config.general.default_group === g.name;
+  const order = g?.services || [];
+  const all = state.services.filter((s) => s.installed || order.includes(s.id));
+  const sorted = [...all].sort((a, b) => { const ia = order.indexOf(a.id), ib = order.indexOf(b.id); return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib); });
+  $("#group-svc-list").innerHTML = sorted.map((s) => `<label class="check"><input type="checkbox" name="svc" value="${esc(s.id)}" ${order.includes(s.id) ? "checked" : ""}><span>${esc(s.name)} <small class="mono">${s.ports.map((p) => ":" + p).join(" ")}</small></span></label>`).join("") || `<div class="empty small">${t("msg.installFirst")}</div>`;
+  $("#btn-group-svc-delete").classList.toggle("hidden", !g);
+  $("#dlg-group-svc").showModal(); f.elements.name.focus();
+}
+$("#form-group-svc").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  const name = f.elements.name.value.trim(); if (!name) return;
+  const services = $$("input[name=svc]:checked", f).map((i) => i.value);
+  const cfg = clone(state.config);
+  const groups = cfg.general.startup_groups || [];
+  const orig = f.elements.orig.value;
+  const idx = groups.findIndex((g) => g.name === orig);
+  if (idx >= 0) groups[idx] = { name, services }; else groups.push({ name, services });
+  cfg.general.startup_groups = groups;
+  if (f.elements.default.checked) cfg.general.default_group = name; else if (cfg.general.default_group === orig || cfg.general.default_group === name) cfg.general.default_group = "";
+  try { await invoke("save_config", { config: cfg }); $("#dlg-group-svc").close(); toast(t("msg.saved2"), "ok"); } catch (e) { fail(e); }
+  refresh(true);
+};
+$("#btn-group-svc-delete").onclick = async () => {
+  const f = $("#form-group-svc"); const orig = f.elements.orig.value;
+  if (!orig || !(await askConfirm(t("groups.confirmDelete", { name: orig })))) return;
+  const cfg = clone(state.config);
+  cfg.general.startup_groups = (cfg.general.startup_groups || []).filter((g) => g.name !== orig);
+  if (cfg.general.default_group === orig) cfg.general.default_group = "";
+  try { await invoke("save_config", { config: cfg }); $("#dlg-group-svc").close(); } catch (e) { fail(e); }
+  refresh(true);
+};
+async function runGroup(name, action) {
+  if (busyGroup) return;
+  busyGroup = name; renderGroups();
+  let results = null;
+  try { results = await invoke("group_action", { name, action }); } catch (e) { fail(e); }
+  busyGroup = null;
+  await refresh(true);
+  if (results) await reportResults(results, action);
+}
+
 /* ---------------- overview ---------------- */
 function renderServices() {
+  renderGroups();
   const visible = state.services.filter((s) => !isHidden(s.id) && (s.enabled || s.running));
   const enabled = visible.filter((s) => s.enabled && s.installed);
   const running = enabled.filter((s) => s.running).length;
@@ -556,10 +623,16 @@ $("#dlg-close").oncancel = (ev) => { ev.preventDefault(); $("#dlg-close").close(
 function renderSites() {
   const root = state.config.general.document_root || `${state.root}/www`;
   $("#sites-hint").textContent = t("sites.hint", { root, tld: state.config.general.tld });
+  const tunnelOf = (target) => (state.tunnels || []).find((x) => x.target === target);
+  const shareBtn = (target) => { const tn = tunnelOf(target); return tn
+    ? `<span class="pill ok tunnel-pill" title="${esc(tn.url)}">${ICONS.link}<a href="#" data-link="${esc(tn.url)}">${esc(tn.url.replace("https://", ""))}</a></span><button class="icon-btn small" data-copy-text="${esc(tn.url)}" title="${t("msg.copied")}">${ICONS.copy}</button><button class="icon-btn small danger" data-tunnel-stop="${esc(target)}" title="${t("sites.unshare")}">${ICONS.x}</button>`
+    : `<button class="icon-btn" data-tunnel-start="${esc(target)}" title="${t("sites.share")}">${ICONS.link}</button>`; };
+  const localShare = $("#local-share"); if (localShare) localShare.innerHTML = shareBtn("local");
   $("#sites").innerHTML = state.sites.map((s) => `<div class="row on">
     <div class="ico">${ICONS.site}</div>
-    <div><div class="name">${esc(s.hostname)}${s.auto ? "" : ' <span class="pill">manual</span>'}</div><div class="meta"><span class="mono">${esc(s.root)}</span></div></div>
+    <div><div class="name">${esc(s.hostname)}${s.auto ? "" : ' <span class="pill">manual</span>'}</div><div class="meta"><span class="mono">${esc(s.root)}</span>${tunnelOf(`site:${s.hostname}`) ? shareBtn(`site:${s.hostname}`) : ""}</div></div>
     <div class="act">
+      ${tunnelOf(`site:${s.hostname}`) ? "" : shareBtn(`site:${s.hostname}`)}
       <button class="icon-btn" data-open="site:${esc(s.hostname)}" title="${t("btn.open")}">${ICONS.open}</button>
       <button class="icon-btn" data-open="path:${esc(s.path)}" title="${t("quick.root")}">${ICONS.folder}</button>
       <button class="icon-btn" data-open="edit:${esc(s.path)}" title="${t("settings.editor")}">${ICONS.edit}</button>
@@ -716,6 +789,19 @@ document.addEventListener("click", async (ev) => {
   if (b.dataset.install) { await installPackage(b.dataset.install, !!b.dataset.latest, b.dataset.version || null); return; }
   if (b.dataset.cancelInstall) { if (installing) { installing.cancelling = true; paintProgress(); } try { await invoke("cancel_install"); } catch (e) { fail(e); } return; }
   if (b.dataset.remove) { await removePackage(b.dataset.remove, b.dataset.version); return; }
+  if (b.id === "btn-group-new") { openGroupSvcDialog(null); return; }
+  if (b.dataset.groupEdit !== undefined && b.dataset.groupAction === undefined && b.closest("#groups")) { openGroupSvcDialog((state.config.general.startup_groups || []).find((g) => g.name === b.dataset.groupEdit)); return; }
+  if (b.dataset.groupAction) { await runGroup(b.dataset.group, b.dataset.groupAction); return; }
+  if (b.dataset.tunnelStart) {
+    const target = b.dataset.tunnelStart;
+    if (!installedVersions("cloudflared").length) { toast(t("sites.shareInstall"), "info"); openService("cloudflared"); return; }
+    if (!(await askConfirm(t("sites.shareConfirm", { name: target === "local" ? "localhost" : target.slice(5) }), t("sites.share")))) return;
+    b.disabled = true; b.classList.add("busy");
+    try { const r = await invoke("tunnel_start", { target }); toast(t("sites.shared", { url: r.url }), "ok"); await navigator.clipboard.writeText(r.url).catch(() => {}); } catch (e) { fail(e); }
+    await refresh(true); return;
+  }
+  if (b.dataset.tunnelStop) { try { await invoke("tunnel_stop", { target: b.dataset.tunnelStop }); toast(t("sites.unshared"), "ok"); } catch (e) { fail(e); } await refresh(true); return; }
+  if (b.dataset.copyText) { await navigator.clipboard.writeText(b.dataset.copyText); toast(t("msg.copied"), "ok"); return; }
   if (b.dataset.nodeDefault !== undefined) {
     b.disabled = true;
     try { const label = await invoke("node_set_default", { selector: b.dataset.nodeDefault }); toast(t("msg.nodeDefault", { version: label }), "ok"); } catch (e) { fail(e); }
@@ -734,6 +820,10 @@ document.addEventListener("click", async (ev) => {
     return;
   }
   if (b.dataset.removeSite) { try { await invoke("remove_site", { hostname: b.dataset.removeSite }); await syncSites(); } catch (e) { fail(e); } }
+});
+document.addEventListener("click", (ev) => {
+  const a = ev.target.closest("a[data-link]"); if (!a) return;
+  ev.preventDefault(); invoke("remote_open_link", { url: a.dataset.link }).catch(fail);
 });
 document.addEventListener("keydown", (ev) => {
   const item = ev.target.closest?.("[data-svc]");
@@ -871,6 +961,23 @@ async function autotest(name) {
     await done;
     const last = activity[0]?.msg || "";
     report(`newest=${newest} elapsed=${((performance.now() - started) / 1000).toFixed(1)}s installed=${installedVersions("go").length} last="${last}"`);
+  } else if (name === "groups") {
+    const cfg = clone(state.config);
+    cfg.general.startup_groups = [{ name: "Web stack", services: ["web", "php", "db"] }, { name: "Mail only", services: ["mail"] }];
+    cfg.general.default_group = "Web stack";
+    await invoke("save_config", { config: cfg }); await refresh(true); showTab("dashboard"); report(`groups=${(state.config.general.startup_groups || []).length}`);
+  } else if (name === "share") {
+    // install cloudflared (if needed), open a quick tunnel to the web root, report, stop
+    showTab("sites");
+    try {
+      if (!installedVersions("cloudflared").length) { await installPackage("cloudflared", true); }
+      const r = await invoke("tunnel_start", { target: "local" });
+      await refresh(true);
+      const shown = !!$("[data-tunnel-stop]");
+      report(`url=${r.url} pill=${shown}`);
+      await new Promise((r2) => setTimeout(r2, 1500));
+      await invoke("tunnel_stop", { target: "local" });
+    } catch (e) { report(`ERROR ${e?.message || e}`); }
   } else if (window.VerandaRemote?.autotest) {
     await window.VerandaRemote.autotest(name, report);
   }

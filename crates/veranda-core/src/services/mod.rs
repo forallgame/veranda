@@ -11,6 +11,7 @@ pub mod web;
 use crate::Veranda;
 use crate::packages::Registry;
 use crate::sites::Site;
+use anyhow::Context as _;
 use anyhow::{Result, bail};
 use serde::{Deserialize, Serialize};
 use std::fmt;
@@ -232,6 +233,42 @@ pub fn start(app: &Veranda, id: ServiceId) -> Result<()> {
         ServiceId::Meili => extra::start(extra::Which::Meili, &ctx),
         ServiceId::Qdrant => extra::start(extra::Which::Qdrant, &ctx),
     }
+}
+
+/// Start the services of a startup group in order; unknown ids are reported as errors.
+pub fn start_group(app: &Veranda, name: &str) -> Result<Vec<(ServiceId, Result<()>)>> {
+    let g = app
+        .config
+        .general
+        .startup_groups
+        .iter()
+        .find(|g| g.name == name)
+        .with_context(|| format!("no startup group named {name}"))?;
+    prepare_all(app)?;
+    Ok(g.services
+        .iter()
+        .map(|id| match id.parse::<ServiceId>() {
+            Ok(sid) => (sid, start(app, sid)),
+            Err(e) => (ServiceId::Web, Err(e)),
+        })
+        .collect())
+}
+
+/// Stop the services of a startup group, last one first.
+pub fn stop_group(app: &Veranda, name: &str) -> Result<Vec<(ServiceId, Result<()>)>> {
+    let g = app
+        .config
+        .general
+        .startup_groups
+        .iter()
+        .find(|g| g.name == name)
+        .with_context(|| format!("no startup group named {name}"))?;
+    Ok(g.services
+        .iter()
+        .rev()
+        .filter_map(|id| id.parse::<ServiceId>().ok())
+        .map(|sid| (sid, stop(app, sid)))
+        .collect())
 }
 
 /// Restart every running service whose configured port is not accepting connections: it is

@@ -121,6 +121,7 @@ pub async fn versions(kind: Kind, p: Platform) -> Result<Vec<Package>> {
         Kind::Bun => bun(&c, p).await?,
         Kind::MongoDb => mongodb(&c, p).await?,
         Kind::Meilisearch => meilisearch(&c, p).await?,
+        Kind::Cloudflared => cloudflared(&c, p).await?,
         Kind::Qdrant => qdrant(&c, p).await?,
         Kind::Java => java(&c, p).await?,
         Kind::Deno => deno(&c, p).await?,
@@ -1052,6 +1053,34 @@ async fn meilisearch(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
                     file,
                 )],
             ));
+        }
+    }
+    Ok(out)
+}
+
+/// cloudflared: GitHub releases with per-asset digests. Linux/Windows ship a bare binary,
+/// macOS a .tgz holding `cloudflared`.
+async fn cloudflared(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
+    let (name, file) = match (p.os, p.arch) {
+        (Os::Linux, Arch::X86_64) => ("cloudflared-linux-amd64", Some("cloudflared")),
+        (Os::Linux, Arch::Aarch64) => ("cloudflared-linux-arm64", Some("cloudflared")),
+        (Os::Macos, Arch::X86_64) => ("cloudflared-darwin-amd64.tgz", None),
+        (Os::Macos, Arch::Aarch64) => ("cloudflared-darwin-arm64.tgz", None),
+        (Os::Windows, Arch::X86_64) => ("cloudflared-windows-amd64.exe", Some("cloudflared.exe")),
+        (Os::Windows, Arch::Aarch64) => bail!("no cloudflared build for Windows on ARM"),
+    };
+    let mut out = Vec::new();
+    for rel in github_releases(c, "cloudflare/cloudflared", 10).await? {
+        let v = rel.tag_name.trim_start_matches('v').to_string();
+        if !v.chars().next().is_some_and(|ch| ch.is_ascii_digit()) {
+            continue;
+        }
+        if let Some(a) = rel.assets.iter().find(|a| a.name == name) {
+            let p_ = match file {
+                Some(f) => file_part(a.browser_download_url.clone(), gh_checksum(a), f),
+                None => part(a.browser_download_url.clone(), gh_checksum(a), 0),
+            };
+            out.push(pkg(Kind::Cloudflared, &v, p, "github", vec![p_]));
         }
     }
     Ok(out)

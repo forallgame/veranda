@@ -81,3 +81,31 @@ if the user never opens the settings.
   released). It only affects RSA keys, used by the SSH client to sign a login challenge locally;
   there is no RSA decryption exposed to the network. Generated keys are Ed25519 by default. The
   entry is listed in `.cargo/audit.toml` and should be removed once a fixed `rsa` ships.
+
+## Where your data goes (review of 2026-11-06)
+
+What was checked: every outbound request in the code, every file that holds a secret, every
+log line, every listening socket, and the crash-reporting path.
+
+- **Network.** Veranda contacts only the vendors' download servers (nodejs.org, php.net,
+  static-php.dev, mariadb.org, dl.mysql.com, go.dev, GitHub releases, Adoptium, Microsoft,
+  ziglang.org, Maven Central, mongodb.org, valkey.io, curl.se, getcomposer.org, phpmyadmin.net,
+  apachelounge.com, nginx.org) and the GitHub API for version lists and update checks. All of it
+  over HTTPS with checksum verification. There is no telemetry, analytics, crash upload or
+  account; bundled services are started with their telemetry switched off (Meilisearch, Qdrant).
+  SSH connections go only to the hosts you add. A Cloudflare quick tunnel is started only when you
+  click Share and confirm the dialog; it exposes that one site until you stop it.
+- **Storage.** Everything lives under the Veranda root. Secrets (database root password, SSH
+  passwords/passphrases when no OS credential store exists, private keys, the local CA key) are
+  written with user-only permissions (0600 / restricted ACL). The remote host list carries flags
+  such as `has_password`, never the password. Exports of private keys are explicit actions.
+- **Logs.** No password, passphrase, token or key is ever logged or printed; database passwords
+  are passed to client tools through the environment, not the command line.
+- **Listeners.** Every service binds 127.0.0.1 only; forwarding rules default to 127.0.0.1 and a
+  non-loopback bind asks for confirmation.
+- **Process hardening.** On Linux/macOS the app disables core dumps for itself and every helper it
+  starts (WebKit, services) and marks itself non-dumpable, so crash reporters such as Ubuntu's
+  Apport cannot upload a memory image that might contain a password being typed
+  (`VERANDA_ALLOW_COREDUMP=1` re-enables dumps for debugging).
+- **Updates.** Installers are verified against Veranda's updater public key before they are
+  applied; the key pair is separate from code signing (see `SIGNING.md`).

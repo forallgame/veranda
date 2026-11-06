@@ -49,10 +49,12 @@ pub enum Kind {
     Zig,
     /// .NET SDK (Microsoft release metadata).
     DotNet,
+    /// cloudflared: share a local site through a Cloudflare quick tunnel.
+    Cloudflared,
 }
 
 impl Kind {
-    pub const ALL: [Kind; 24] = [
+    pub const ALL: [Kind; 25] = [
         Kind::Php,
         Kind::Caddy,
         Kind::Nginx,
@@ -77,6 +79,7 @@ impl Kind {
         Kind::Deno,
         Kind::Zig,
         Kind::DotNet,
+        Kind::Cloudflared,
     ];
 
     pub const fn id(&self) -> &'static str {
@@ -105,6 +108,7 @@ impl Kind {
             Kind::Deno => "deno",
             Kind::Zig => "zig",
             Kind::DotNet => "dotnet",
+            Kind::Cloudflared => "cloudflared",
         }
     }
 
@@ -134,6 +138,7 @@ impl Kind {
             Kind::Deno => "Deno",
             Kind::Zig => "Zig",
             Kind::DotNet => ".NET SDK",
+            Kind::Cloudflared => "Cloudflare Tunnel",
         }
     }
 

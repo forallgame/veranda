@@ -23,6 +23,11 @@ default; shown in Settings). Deleting that folder removes all runtimes, sites an
 
 ## 2. Overview
 
+**Startup groups** (the chips above the service list) start and stop a named set of services in
+one click, in the order you chose: for example "Laravel stack" = Caddy, PHP, MariaDB, Valkey. The
+group marked as default starts when Veranda launches, if "Start services on launch" is on.
+
+
 - The status pill shows whether everything that is on is running.
 - **Start All / Stop All** act on every service whose switch is on.
 - Each row shows the version in use (a drop-down when several are installed), its ports and the
@@ -36,6 +41,13 @@ On Linux, ports below 1024 need a one-time permission; Veranda asks for your pas
 grants it to the web server binary only (or switch to 8080/8443 in Settings).
 
 ## 3. Sites
+
+**Share** (the link icon on a site, or next to the Sites title for the web root) opens a
+Cloudflare quick tunnel: a public `https://….trycloudflare.com` address that reaches the site on
+your computer, with no account. Install *Cloudflare Tunnel* under Tools first. Anyone with the
+address can open the site while the tunnel runs, so stop it (the × next to the address) when you
+are done; it also stops when Veranda quits.
+
 
 Every folder inside `www/` becomes `https://folder-name.test` automatically. Laravel and Symfony
 style `public/` folders are detected. For a project that lives elsewhere, use **Add external

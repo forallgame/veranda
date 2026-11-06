@@ -934,3 +934,45 @@ os = "windows"
 arch = "x86_64"
 source = "microsoft.com"
 parts = [{ url = "https://builds.dotnet.microsoft.com/dotnet/Sdk/10.0.403/dotnet-sdk-10.0.403-win-x64.zip", archive = "zip", checksum = { algo = "sha512", hex = "7a114c318fa7f1d9822991b534b2814d0e78386ceda816b371f5141acefe741d87ccb606ede06cadac8f9ac5070e32b708a67bbd1619ff5e5a7858a27874ef48" } }]
+
+# ---------------------------------------------------------------- Cloudflare Tunnel (cloudflared, GitHub releases, API digests)
+[[packages]]
+kind = "cloudflared"
+version = "2026.10.7"
+os = "linux"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-linux-amd64", archive = "file", file_name = "cloudflared", checksum = { algo = "sha256", hex = "1f99fb518b83dec2ba8d870a7cc991d82a77e6196295a3d2754ba17ab9f91872" } }]
+
+[[packages]]
+kind = "cloudflared"
+version = "2026.10.7"
+os = "linux"
+arch = "aarch64"
+source = "github"
+parts = [{ url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-linux-arm64", archive = "file", file_name = "cloudflared", checksum = { algo = "sha256", hex = "3df43aedc9ff291d1735b5cb576cb97e0b157488796db2e32b28aecabb445775" } }]
+
+[[packages]]
+kind = "cloudflared"
+version = "2026.10.7"
+os = "macos"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-darwin-amd64.tgz", archive = "targz", checksum = { algo = "sha256", hex = "02f3edfd87684dd5b705607688e4eb4b323f6e777b81e7b3a85af556aa356848" } }]
+
+[[packages]]
+kind = "cloudflared"
+version = "2026.10.7"
+os = "macos"
+arch = "aarch64"
+source = "github"
+parts = [{ url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-darwin-arm64.tgz", archive = "targz", checksum = { algo = "sha256", hex = "3586ccf397e98e5f437e60e7c307ca6ac463e110580503af8bb8e6f9ebf831bd" } }]
+
+[[packages]]
+kind = "cloudflared"
+version = "2026.10.7"
+os = "windows"
+arch = "x86_64"
+source = "github"
+parts = [{ url = "https://github.com/cloudflare/cloudflared/releases/download/2026.10.7/cloudflared-windows-amd64.exe", archive = "file", file_name = "cloudflared.exe", checksum = { algo = "sha256", hex = "2493dbc168923bb3e59e5e7716f71deced92992eea9acd6e9d74f84ac7751343" } }]
+

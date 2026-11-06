@@ -340,9 +340,13 @@ fn post_install(kind: Kind, dir: &Path) -> Result<()> {
             make_bin_executable(&dir.join("bin"))?;
             make_bin_executable(&dir.join("Contents").join("Home").join("bin"))?;
         }
-        Kind::Bun | Kind::Meilisearch | Kind::Qdrant | Kind::Deno | Kind::Zig | Kind::DotNet => {
-            make_bin_executable(dir)?
-        }
+        Kind::Bun
+        | Kind::Meilisearch
+        | Kind::Qdrant
+        | Kind::Deno
+        | Kind::Zig
+        | Kind::DotNet
+        | Kind::Cloudflared => make_bin_executable(dir)?,
         _ => {}
     }
     Ok(())
@@ -574,7 +578,7 @@ pub fn runtime_path(layout: &Layout, reg: &Registry, cfg: &crate::Config) -> Vec
     if let Some(i) = reg.newest(Kind::Java) {
         v.push(Binaries::java_bin_dir(i));
     }
-    for k in [Kind::Deno, Kind::Zig, Kind::DotNet] {
+    for k in [Kind::Deno, Kind::Zig, Kind::DotNet, Kind::Cloudflared] {
         if let Some(i) = reg.newest(k) {
             v.push(Binaries::root_bin_dir(i));
         }

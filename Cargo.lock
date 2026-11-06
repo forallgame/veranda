@@ -6275,7 +6275,7 @@ checksum = "ba73ea9cf16a25df0c8caa16c51acb937d5712a8429db78a3ee29d5dcacd3a65"
 
 [[package]]
 name = "veranda-cli"
-version = "0.6.10"
+version = "0.6.11"
 dependencies = [
  "anyhow",
  "clap",
@@ -6289,7 +6289,7 @@ dependencies = [
 
 [[package]]
 name = "veranda-core"
-version = "0.6.10"
+version = "0.6.11"
 dependencies = [
  "anyhow",
  "dirs",
@@ -6319,10 +6319,11 @@ dependencies = [
 
 [[package]]
 name = "veranda-desktop"
-version = "0.6.10"
+version = "0.6.11"
 dependencies = [
  "anyhow",
  "base64 0.23.1",
+ "libc",
  "serde",
  "serde_json",
  "tauri",
@@ -6341,7 +6342,7 @@ dependencies = [
 
 [[package]]
 name = "veranda-remote"
-version = "0.6.10"
+version = "0.6.11"
 dependencies = [
  "anyhow",
  "dirs",

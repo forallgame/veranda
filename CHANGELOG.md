@@ -10,6 +10,24 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.11] - 2026-11-06
+
+### Added
+- **Startup groups** (as in FlyEnv): named sets of services started in order and stopped in
+  reverse from chips on Overview; one group can be the default started on launch.
+- **Share a site**: a Cloudflare quick tunnel (`cloudflared`, installable under Tools) gives a
+  public `https://….trycloudflare.com` address for the web root or any `*.test` site, after a
+  confirmation; stop it from the address pill. No account needed.
+- Cloudflare Tunnel package kind (GitHub releases with API digests, all platforms).
+
+### Changed
+- Security: on Linux/macOS the app disables core dumps for itself and every helper it starts and
+  marks itself non-dumpable, so system crash reporters cannot upload memory images with secrets.
+  `docs/SECURITY.md` gains a "where your data goes" review.
+- Inputs, selects and text areas use 6 px corners instead of 8 px; search boxes match.
+- Version lists: transient network errors (HTTP/2 stream resets, timeouts, 5xx) are retried
+  twice, the retries over HTTP/1.1, instead of surfacing "error decoding response body".
+
 ## [0.6.10] - 2026-11-06
 
 ### Fixed

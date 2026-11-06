@@ -38,5 +38,30 @@ fn main() {
             unsafe { std::env::set_var("WEBKIT_DISABLE_DMABUF_RENDERER", "1") };
         }
     }
+    harden_process();
     veranda_desktop_lib::run()
 }
+
+/// Keep secrets out of crash dumps: the app (and every helper it spawns, which inherit the
+/// limit) never writes a core file, and other processes of the same user cannot ptrace it. Crash
+/// reporters such as Apport upload core dumps that would contain whatever the UI held in memory,
+/// for example a password being typed.
+#[cfg(unix)]
+fn harden_process() {
+    if std::env::var_os("VERANDA_ALLOW_COREDUMP").is_some() {
+        return;
+    }
+    // SAFETY: plain libc calls with valid arguments, made before any other thread exists.
+    unsafe {
+        let none = libc::rlimit {
+            rlim_cur: 0,
+            rlim_max: 0,
+        };
+        let _ = libc::setrlimit(libc::RLIMIT_CORE, &none);
+        #[cfg(target_os = "linux")]
+        let _ = libc::prctl(libc::PR_SET_DUMPABLE, 0);
+    }
+}
+
+#[cfg(not(unix))]
+fn harden_process() {}

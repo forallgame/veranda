@@ -67,6 +67,7 @@
         <span data-i18n="notice.hosts">Hosts file needs an update</span>
         <button class="btn small" id="btn-hosts-sync" data-i18n="btn.update">Update</button>
       </div>
+      <div class="groups" id="groups"></div>
       <div class="list" id="services"></div>
       <div class="quick">
         <button class="tile" data-open="web"><i class="ic" data-icon="web"></i><span data-i18n="quick.web">Web</span></button>
@@ -86,6 +87,7 @@
       <header class="top">
         <h1 data-i18n="nav.sites">Sites</h1>
         <div class="spacer"></div>
+        <span id="local-share" class="share-local" title="localhost"></span>
         <button class="btn" id="btn-migrate"><i class="ic" data-icon="migrate"></i><span data-i18n="btn.migrate">Migrate</span></button>
         <button class="btn" id="btn-sync-sites"><i class="ic" data-icon="refresh"></i><span data-i18n="btn.sync">Sync</span></button>
         <button class="btn primary" id="btn-new-project"><i class="ic" data-icon="plus"></i><span data-i18n="btn.newProject">New project</span></button>
@@ -359,6 +361,23 @@
     <div class="actions-row">
       <button type="button" class="btn" id="btn-migrate-cancel" data-i18n="btn.close">Close</button>
       <button type="submit" class="btn primary" id="btn-migrate-run" data-i18n="btn.migrateNow">Migrate now</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-group-svc">
+  <form method="dialog" id="form-group-svc">
+    <h2 data-i18n="groups.title">Startup group</h2>
+    <input type="hidden" name="orig">
+    <label><span data-i18n="rm.name">Name</span><input name="name" required placeholder="Laravel stack"></label>
+    <p class="sub" data-i18n="groups.hint">Pick the services and their start order; they stop in reverse order.</p>
+    <div class="host-picker" id="group-svc-list"></div>
+    <label class="check"><input type="checkbox" name="default"><span data-i18n="groups.default">Start this group on launch</span></label>
+    <div class="actions-row">
+      <button type="button" class="btn danger hidden" id="btn-group-svc-delete" data-i18n="btn.remove">Remove</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close="dlg-group-svc" data-i18n="btn.cancel">Cancel</button>
+      <button type="submit" class="btn primary" data-i18n="btn.save">Save</button>
     </div>
   </form>
 </dialog>

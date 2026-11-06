@@ -83,9 +83,64 @@ pub fn client() -> Result<reqwest::Client> {
         .build()?)
 }
 
-/// Fetch a small text document (checksum files, JSON APIs). Capped at 8 MiB.
+/// Same client settings but HTTP/1.1 only: some CDNs reset HTTP/2 streams mid-body
+/// ("stream error ... unexpected internal error"); a retry over HTTP/1.1 gets through.
+pub fn client_http1() -> Result<reqwest::Client> {
+    init_tls();
+    Ok(reqwest::Client::builder()
+        .user_agent(USER_AGENT)
+        .https_only(true)
+        .http1_only()
+        .connect_timeout(Duration::from_secs(20))
+        .read_timeout(Duration::from_secs(120))
+        .redirect(reqwest::redirect::Policy::limited(5))
+        .build()?)
+}
+
+fn is_transient(e: &anyhow::Error) -> bool {
+    let t = format!("{e:#}").to_ascii_lowercase();
+    [
+        "stream error",
+        "body error",
+        "reading a body",
+        "connection reset",
+        "connection closed",
+        "timed out",
+        "broken pipe",
+        "502",
+        "503",
+        "504",
+        "incomplete message",
+    ]
+    .iter()
+    .any(|k| t.contains(k))
+}
+
+/// Fetch a small text document (checksum files, JSON APIs). Capped at 8 MiB. Transient network
+/// errors are retried twice, the retries over HTTP/1.1.
 pub async fn fetch_text(client: &reqwest::Client, url: &str) -> Result<String> {
     require_https(url)?;
+    let mut last: Option<anyhow::Error> = None;
+    for attempt in 0..3u32 {
+        let c = if attempt == 0 {
+            client.clone()
+        } else {
+            client_http1()?
+        };
+        match fetch_text_once(&c, url).await {
+            Ok(t) => return Ok(t),
+            Err(e) if attempt < 2 && is_transient(&e) => {
+                tracing::debug!("{url}: attempt {} failed ({e:#}); retrying", attempt + 1);
+                tokio::time::sleep(Duration::from_millis(400 * (attempt as u64 + 1))).await;
+                last = Some(e);
+            }
+            Err(e) => return Err(e),
+        }
+    }
+    Err(last.unwrap_or_else(|| anyhow::anyhow!("{url}: request failed")))
+}
+
+async fn fetch_text_once(client: &reqwest::Client, url: &str) -> Result<String> {
     let resp = client.get(url).send().await?.error_for_status()?;
     if let Some(len) = resp.content_length()
         && len > 8 * 1024 * 1024

@@ -12,7 +12,7 @@
 .quick-connect input { width: 190px; max-width: 100%; font-family: var(--mono); font-size: 12px; height: 36px; }
 .quick-connect { flex-wrap: wrap; }
 .rm-toolbar { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; flex-wrap: wrap; }
-.rm-search { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; height: 36px; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--muted); }
+.rm-search { display: flex; align-items: center; gap: 8px; flex: 1; min-width: 200px; height: 36px; padding: 0 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; color: var(--muted); }
 .rm-search input { border: 0; background: transparent; flex: 1; height: 100%; padding: 0; box-shadow: none !important; }
 .rm-search svg { width: 16px; height: 16px; }
 .rm-tags { display: flex; gap: 6px; flex-wrap: wrap; }
@@ -37,7 +37,7 @@
 dialog .two.addr { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
 dialog label.block { flex-direction: column; align-items: stretch; }
 dialog label.block > span { width: auto; }
-dialog textarea { flex: 1; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 8px 10px; font: inherit; resize: vertical; min-height: 40px; }
+dialog textarea { flex: 1; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); color: var(--text); padding: 8px 10px; font: inherit; resize: vertical; min-height: 40px; }
 dialog textarea:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
 dialog textarea[name=script], dialog textarea[name=text], textarea.editor { font-family: var(--mono); font-size: 12px; }
 textarea.editor { width: 100%; min-height: 320px; }
@@ -100,7 +100,7 @@ textarea.editor { width: 100%; min-height: 320px; }
 .pane-title b { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pane-title svg { width: 15px; height: 15px; flex: none; }
 .pane-path { padding: 6px 8px; border-bottom: 1px solid var(--line); }
-.pane-path input { width: 100%; height: 30px; font-family: var(--mono); font-size: 12px; }
+.pane-path input { width: 100%; height: 30px; border-radius: 6px; font-family: var(--mono); font-size: 12px; }
 .pane-list { flex: 1; overflow: auto; min-height: 0; scrollbar-width: thin; }
 .prow { display: grid; grid-template-columns: 22px minmax(0, 1fr) 76px 112px auto; align-items: center; gap: 8px; padding: 4px 8px 4px 10px; font-size: 12.5px; cursor: default; border-bottom: 1px solid color-mix(in srgb, var(--line) 50%, transparent); }
 .prow:hover { background: var(--surface-2); }

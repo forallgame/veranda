@@ -23,6 +23,7 @@ pub mod services;
 pub mod sites;
 pub mod tls;
 pub mod tools;
+pub mod tunnel;
 pub mod update;
 
 pub use config::Config;

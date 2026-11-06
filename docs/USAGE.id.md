@@ -23,6 +23,12 @@ di Settings). Menghapus folder itu menghapus semua runtime, situs, dan data.
 
 ## 2. Overview
 
+**Grup startup** (chip di atas daftar layanan) menjalankan dan menghentikan sekumpulan layanan
+dengan satu klik, sesuai urutan yang Anda pilih: misalnya "Laravel stack" = Caddy, PHP, MariaDB,
+Valkey. Grup yang ditandai default dijalankan saat Veranda dibuka jika "Start services on launch"
+aktif.
+
+
 - Pil status menunjukkan apakah semua layanan yang aktif sedang berjalan.
 - **Start All / Stop All** bekerja pada semua layanan yang saklarnya menyala.
 - Tiap baris menampilkan versi yang dipakai (menu pilihan jika ada beberapa), port, dan tombol
@@ -36,6 +42,13 @@ Di Linux, port di bawah 1024 butuh izin sekali; Veranda meminta kata sandi Anda 
 memberi izin itu hanya ke binari web server (atau ganti ke 8080/8443 di Settings).
 
 ## 3. Sites
+
+**Share** (ikon tautan di tiap situs, atau di samping judul Sites untuk web root) membuka
+Cloudflare quick tunnel: alamat publik `https://….trycloudflare.com` yang menjangkau situs di
+komputer Anda, tanpa akun. Pasang dulu *Cloudflare Tunnel* di Tools. Siapa pun yang punya
+alamatnya bisa membuka situs selama tunnel berjalan, jadi hentikan (tanda × di samping alamat)
+kalau sudah selesai; tunnel juga berhenti saat Veranda ditutup.
+
 
 Setiap folder di dalam `www/` otomatis menjadi `https://nama-folder.test`. Folder `public/` gaya
 Laravel dan Symfony terdeteksi sendiri. Untuk proyek di tempat lain, pakai **Add external folder**

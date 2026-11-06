@@ -18,6 +18,8 @@ pub struct AppState {
     pub app: Mutex<Veranda>,
     /// Unix time of the last `ui_heartbeat`; 0 until the UI has rendered once.
     pub heartbeat: std::sync::atomic::AtomicU64,
+    /// Running Cloudflare quick tunnels, keyed by target (`local` or `site:<host>`).
+    pub tunnels: Mutex<std::collections::HashMap<String, veranda_core::tunnel::Tunnel>>,
 }
 
 fn now_secs() -> u64 {
@@ -66,6 +68,14 @@ struct UiState {
     ui_perf: bool,
     /// VERANDA_UI_AUTOTEST=<name> runs a scripted UI check (dev only), reported via `perf_report`.
     ui_autotest: Option<String>,
+    /// Public addresses of running quick tunnels.
+    tunnels: Vec<TunnelInfo>,
+}
+
+#[derive(Clone, Serialize)]
+struct TunnelInfo {
+    target: String,
+    url: String,
 }
 
 #[tauri::command]
@@ -116,6 +126,7 @@ fn get_state(state: State<'_, AppState>) -> CmdResult<UiState> {
         ui_theme: std::env::var("VERANDA_UI_THEME").ok(),
         ui_perf: std::env::var("VERANDA_UI_PERF").is_ok(),
         ui_autotest: std::env::var("VERANDA_UI_AUTOTEST").ok(),
+        tunnels: tunnel_list(&state),
     })
 }
 
@@ -810,6 +821,95 @@ async fn ssl_trust(state: State<'_, AppState>) -> CmdResult<Vec<TrustReport>> {
     .map_err(err)
 }
 
+fn tunnel_list(state: &State<'_, AppState>) -> Vec<TunnelInfo> {
+    let mut g = state.tunnels.lock().unwrap_or_else(|e| e.into_inner());
+    g.retain(|_, t| t.is_alive());
+    let mut v: Vec<TunnelInfo> = g
+        .iter()
+        .map(|(k, t)| TunnelInfo {
+            target: k.clone(),
+            url: t.url.clone(),
+        })
+        .collect();
+    v.sort_by(|a, b| a.target.cmp(&b.target));
+    v
+}
+
+#[tauri::command]
+async fn group_action(
+    handle: AppHandle,
+    state: State<'_, AppState>,
+    name: String,
+    action: String,
+) -> CmdResult<Vec<ActionReport>> {
+    let app = open_app(&state)?;
+    let r = tauri::async_runtime::spawn_blocking(move || {
+        let res = match action.as_str() {
+            "start" => services::start_group(&app, &name),
+            "stop" => services::stop_group(&app, &name),
+            other => Err(anyhow::anyhow!("unknown action {other}")),
+        };
+        res.map(to_report)
+    })
+    .await
+    .map_err(err)?
+    .map_err(err);
+    refresh_tray(&handle);
+    r
+}
+
+/// Share `local` (the web root) or `site:<host>` through a Cloudflare quick tunnel.
+#[tauri::command]
+async fn tunnel_start(state: State<'_, AppState>, target: String) -> CmdResult<TunnelInfo> {
+    let app = open_app(&state)?;
+    let reg = Registry::load(&app.layout).map_err(err)?;
+    let pkg = reg
+        .newest(Kind::Cloudflared)
+        .cloned()
+        .ok_or("Cloudflare Tunnel is not installed yet (Tools > Cloudflare Tunnel)")?;
+    let bin = veranda_core::packages::Binaries::root_bin_dir(&pkg)
+        .join(Platform::current().exe("cloudflared"));
+    let host = target.strip_prefix("site:").map(|h| h.to_string());
+    if let Some(h) = &host
+        && !veranda_core::fsutil::is_safe_name(&h.replace('.', "-"))
+    {
+        return Err("invalid site name".into());
+    }
+    if target != "local" && host.is_none() {
+        return Err("unknown tunnel target".into());
+    }
+    let local_url = format!("http://127.0.0.1:{}", app.config.web.http_port);
+    let key = target.clone();
+    let t = tauri::async_runtime::spawn_blocking(move || {
+        veranda_core::tunnel::Tunnel::start(&bin, &app.layout, &key, &local_url, host.as_deref())
+    })
+    .await
+    .map_err(err)?
+    .map_err(err)?;
+    let info = TunnelInfo {
+        target: target.clone(),
+        url: t.url.clone(),
+    };
+    let mut g = state.tunnels.lock().unwrap_or_else(|e| e.into_inner());
+    if let Some(old) = g.insert(target, t) {
+        old.stop();
+    }
+    Ok(info)
+}
+
+#[tauri::command]
+fn tunnel_stop(state: State<'_, AppState>, target: String) -> CmdResult<()> {
+    let t = state
+        .tunnels
+        .lock()
+        .unwrap_or_else(|e| e.into_inner())
+        .remove(&target);
+    if let Some(t) = t {
+        t.stop();
+    }
+    Ok(())
+}
+
 #[tauri::command]
 fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
     let app = open_app(&state)?;
@@ -1145,6 +1245,19 @@ fn quit_app(app: AppHandle) {
     let state = app.state::<AppState>();
     let core = open_app(&state).ok();
     std::thread::spawn(move || {
+        {
+            let st = app.state::<AppState>();
+            let all: Vec<_> = st
+                .tunnels
+                .lock()
+                .unwrap_or_else(|e| e.into_inner())
+                .drain()
+                .map(|(_, t)| t)
+                .collect();
+            for t in all {
+                t.stop();
+            }
+        }
         remote::shutdown(&app);
         if let Some(core) = core {
             let (tx, rx) = std::sync::mpsc::channel();
@@ -1305,6 +1418,7 @@ pub fn run() {
         .manage(AppState {
             app: Mutex::new(core),
             heartbeat: std::sync::atomic::AtomicU64::new(0),
+            tunnels: Mutex::new(Default::default()),
         })
         .manage(remote::RemoteState::default())
         .setup(move |app| {
@@ -1386,7 +1500,14 @@ pub fn run() {
                 if let Ok(core) = open_app(&state) {
                     std::thread::spawn(move || {
                         let _ = services::prepare_all(&core);
-                        let report = to_report(services::start_all(&core));
+                        let default_group = core.config.general.default_group.trim().to_string();
+                        let report = if !default_group.is_empty()
+                            && let Ok(r) = services::start_group(&core, &default_group)
+                        {
+                            to_report(r)
+                        } else {
+                            to_report(services::start_all(&core))
+                        };
                         let _ = handle.emit("services-changed", ());
                         refresh_tray(&handle);
                         // The UI shows the outcome (and the port dialogs) like a manual Start All.
@@ -1514,6 +1635,9 @@ pub fn run() {
             pg_password,
             remove_external,
             node_set_default,
+            group_action,
+            tunnel_start,
+            tunnel_stop,
             cancel_install,
             start_all,
             stop_all,
