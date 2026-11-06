@@ -781,10 +781,23 @@ async fn ssl_trust(state: State<'_, AppState>) -> CmdResult<Vec<TrustReport>> {
                         }
                     })
             };
+            let error = match r {
+                Ok(()) => String::new(),
+                Err(e) if step.program == "certutil"
+                    && cfg!(target_os = "linux")
+                    && which::which("certutil").is_err() =>
+                {
+                    format!(
+                        "certutil is not installed (sudo apt install libnss3-tools, or dnf install nss-tools), then try again; or import {} by hand in the browser's certificate settings ({e:#})",
+                        app.layout.ssl().join("ca.crt").display()
+                    )
+                }
+                Err(e) => format!("{e:#}"),
+            };
             out.push(TrustReport {
                 description: step.description,
-                ok: r.is_ok(),
-                error: r.err().map(|e| format!("{e:#}")).unwrap_or_default(),
+                ok: error.is_empty(),
+                error,
             });
         }
         Ok(out)

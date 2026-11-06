@@ -54,16 +54,22 @@ fn ca_params() -> CertificateParams {
 /// Create the CA if missing. Returns true when a new CA was generated.
 pub fn ensure_ca(layout: &Layout) -> Result<bool> {
     let p = paths(layout);
-    if p.ca_crt.is_file() && p.ca_key.is_file() {
+    // The CA's name is recorded next to it; a CA from before the rename (or with another name)
+    // is replaced so the browser shows the current product name in its trust list.
+    let stamp = layout.ssl().join("ca.name");
+    let current = std::fs::read_to_string(&stamp).unwrap_or_default();
+    if p.ca_crt.is_file() && p.ca_key.is_file() && current.trim() == CA_NAME {
         return Ok(false);
     }
     let key = KeyPair::generate_for(&rcgen::PKCS_ECDSA_P256_SHA256)?;
     let cert = ca_params().self_signed(&key)?;
     fsutil::write_private(&p.ca_key, key.serialize_pem().as_bytes())?;
     fsutil::write_atomic(&p.ca_crt, cert.pem().as_bytes())?;
+    fsutil::write_atomic(&stamp, CA_NAME.as_bytes())?;
     // A new CA invalidates old leaf certs.
     let _ = std::fs::remove_file(&p.sites_crt);
     let _ = std::fs::remove_file(&p.sites_key);
+    let _ = std::fs::remove_file(layout.ssl().join("sites.sans"));
     Ok(true)
 }
 

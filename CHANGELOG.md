@@ -10,6 +10,15 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.7] - 2026-11-06
+
+### Fixed
+- The local certificate authority created by versions before the rename was still called
+  "Padu Local Development CA"; it is replaced once by a "Veranda Local Development CA" (the site
+  certificate is reissued, and the CA must be trusted again if it had been).
+- "Trust local CA" on Linux explains that `certutil` (package `libnss3-tools` / `nss-tools`) is
+  needed for Chrome, Brave and Firefox, and where the CA file is for a manual import.
+
 ## [0.6.6] - 2026-11-06
 
 ### Fixed
