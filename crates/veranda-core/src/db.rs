@@ -183,9 +183,9 @@ pub fn initialize(db: &DbCtx) -> Result<()> {
 pub fn set_root_password(db: &DbCtx, current: Option<&str>, new: &str) -> Result<()> {
     if !new.is_empty()
         && (new.len() < 8
-        || !new
-            .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "-_.!@#%^*+=".contains(c)))
+            || !new
+                .chars()
+                .all(|c| c.is_ascii_alphanumeric() || "-_.!@#%^*+=".contains(c)))
     {
         bail!(
             "password must be at least 8 characters and only contain letters, digits and -_.!@#%^*+="

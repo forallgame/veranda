@@ -427,7 +427,9 @@ fn reload_running(handle: &AppHandle, state: &State<'_, AppState>, installed: &I
         _ => return,
     };
     let Ok(core) = open_app(state) else { return };
-    let Ok(statuses) = services::status_all(&core) else { return };
+    let Ok(statuses) = services::status_all(&core) else {
+        return;
+    };
     let Some(st) = statuses
         .into_iter()
         .find(|s| s.id == sid && s.running && s.version == installed.version)
@@ -441,7 +443,10 @@ fn reload_running(handle: &AppHandle, state: &State<'_, AppState>, installed: &I
         match services::restart(&core, sid) {
             Ok(()) => {
                 tracing::info!("{name}: restarted to load the reinstalled {version}");
-                let _ = h.emit("service-reloaded", serde_json::json!({ "name": name, "version": version }));
+                let _ = h.emit(
+                    "service-reloaded",
+                    serde_json::json!({ "name": name, "version": version }),
+                );
             }
             Err(e) => tracing::warn!("{name}: restart after reinstall failed: {e:#}"),
         }
@@ -1362,12 +1367,14 @@ fn teardown_webview(app: &AppHandle) {
     }
 }
 
-/// The tray menu: actions plus one line per service that is on (name, ports, state).
-/// Returns the menu and how many of those services are running.
 /// 16x16 RGBA disc for the tray menu: green when running, red when stopped (anti-aliased edge).
 fn status_dot(running: bool) -> Image<'static> {
     const N: usize = 16;
-    let (r, g, b) = if running { (34u8, 197u8, 94u8) } else { (239u8, 68u8, 68u8) };
+    let (r, g, b) = if running {
+        (34u8, 197u8, 94u8)
+    } else {
+        (239u8, 68u8, 68u8)
+    };
     let mut px = vec![0u8; N * N * 4];
     let c = (N as f32 - 1.0) / 2.0;
     let radius = 5.5f32;
@@ -1385,6 +1392,8 @@ fn status_dot(running: bool) -> Image<'static> {
     Image::new_owned(px, N as u32, N as u32)
 }
 
+/// The tray menu: actions plus one line per service that is on (name, ports, state).
+/// Returns the menu and how many of those services are running.
 fn tray_menu(app: &AppHandle) -> tauri::Result<(Menu<tauri::Wry>, usize)> {
     let menu = Menu::new(app)?;
     menu.append(&MenuItem::with_id(
