@@ -992,6 +992,9 @@ async function autotest(name) {
       await new Promise((r2) => setTimeout(r2, 1500));
       await invoke("tunnel_stop", { target: "local" });
     } catch (e) { report(`ERROR ${e?.message || e}`); }
+  } else if (name === "projectdlg") { showTab("sites"); $("#btn-new-project").click(); report("open");
+  } else if (name === "migratedlg") { showTab("sites"); await openMigrate(); report("open");
+  } else if (name === "svcgroupdlg") { showTab("dashboard"); openGroupSvcDialog({ name: "Web stack", services: ["web", "php", "db"] }); report("open");
   } else if (window.VerandaRemote?.autotest) {
     await window.VerandaRemote.autotest(name, report);
   }

@@ -278,6 +278,8 @@ dialog label { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
 dialog label > span { width: 84px; color: var(--muted); flex: none; }
 dialog label > input:not([type=checkbox]), dialog label > select, dialog label > textarea { flex: 1 1 0; min-width: 0; width: 0; }
 dialog label.check > span { width: auto; color: var(--text); }
+/* stacked label (span above the field): the field takes the full dialog width */
+dialog label.block > input:not([type=checkbox]), dialog label.block > select, dialog label.block > textarea { flex: none; width: 100%; }
 #toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 50; max-width: min(420px, calc(100vw - 32px)); }
 .toast { display: flex; align-items: flex-start; gap: 10px; background: var(--surface); color: var(--text); border: 1px solid var(--line); border-left: 3px solid var(--accent); padding: 10px 12px; border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,.25); font-size: 12.5px; line-height: 1.4; cursor: pointer; animation: toast-in .22s cubic-bezier(.2,.8,.2,1); }
 .toast.ok { border-left-color: var(--ok); } .toast.bad { border-left-color: var(--bad); }

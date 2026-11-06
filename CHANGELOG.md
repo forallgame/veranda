@@ -10,6 +10,15 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.16] - 2026-11-06
+
+### Fixed
+- Remote > Snippets: the Script box in "New snippet" collapsed to a few pixels wide (a shared
+  dialog rule set stacked fields to zero width). Stacked fields now take the full dialog width.
+- Headless check script: every dialog of the app can be opened by name
+  (`scripts/ui-shot.sh snippets 24 remote:snippetdlg`, `projectdlg`, `migratedlg`, `svcgroupdlg`...)
+  and each capture gets its own file name. All 16 dialogs were reviewed at 1360 px and 620 px.
+
 ## [0.6.15] - 2026-11-06
 
 ### Changed
