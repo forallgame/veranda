@@ -113,11 +113,14 @@ dan bisa dilupakan di sana.
 
 ### Terminal
 Tab menampung sesi SSH dan lokal (**+** atau Ctrl+Shift+T membuka shell lokal dengan PHP, Node,
-Composer, dan lainnya milik Veranda sudah ada di `PATH`). Di bar: status, pengirim snippet, cari
-(Ctrl+Shift+F), bersihkan, hubungkan ulang, pengaturan, tutup. Ctrl+Shift+C/V salin dan tempel;
-memilih teks otomatis menyalin jika "Copy on select" aktif; klik kanan menempel. Ikon gerigi
-mengatur font, ukuran, tema (ikuti Veranda, gelap, terang, Dracula, Solarized, Nord), kursor,
-scrollback, interval keep-alive, program shell lokal, dan konfirmasi saat menutup sesi.
+Composer, dan lainnya milik Veranda sudah ada di `PATH`). Di bar: status, **Snippets**
+(Ctrl+Shift+S membuka panel di samping terminal: cari, klik nama untuk mengetikkannya ke sesi,
+dan panel tetap terbuka sampai Anda menutupnya), cari (Ctrl+Shift+F), bersihkan, hubungkan
+ulang, pengaturan, tutup. Ctrl+Shift+C/V salin dan tempel; memilih teks otomatis menyalin jika
+"Copy on select" aktif; klik kanan menempel. Ikon gerigi mengatur font, ukuran, tema (ikuti
+Veranda, gelap, terang, One Dark, Tokyo Night, Catppuccin, Dracula, Gruvbox, Monokai, Solarized,
+Nord), kursor, scrollback, interval keep-alive, program shell lokal, dan konfirmasi saat menutup
+sesi.
 
 ### SFTP
 Pilih host lalu **Connect**. Panel kiri komputer ini, panel kanan server. Klik dua kali folder
@@ -140,9 +143,17 @@ Saklar menjalankan dan menghentikan aturan; baris menampilkan jumlah koneksi ter
 alamat bind di `127.0.0.1` kecuali Anda memang ingin mesin lain di jaringan memakai tunnel itu.
 
 ### Snippets
-Perintah yang sering dipakai, dikelompokkan per folder. **Send** mengetikkannya ke terminal
-aktif; **Run on hosts** menjalankannya di host yang dicentang dan menampilkan keluaran serta kode
-keluar tiap host berdampingan.
+Perintah yang sering dipakai, dikelompokkan per folder. Daftar hanya menampilkan nama, tidak
+pernah isi perintahnya; isi tampil di editor. **Send** mengetikkannya ke terminal aktif (panel
+Snippets di terminal melakukan hal yang sama dengan sekali klik); **Run on hosts** menjalankannya
+di host yang dicentang dan menampilkan keluaran serta kode keluar tiap host berdampingan.
+
+**Pasang kata sandi** mengunci halaman ini dan panel di terminal sampai kata sandi dimasukkan,
+dan mengenkripsi isi setiap snippet di disk (AES-256-GCM, kunci diturunkan dari kata sandi dengan
+PBKDF2). Status terbuka bertahan sampai Veranda ditutup, sampai Anda menekan **Kunci**, atau
+setelah waktu diam yang dipilih. Startup snippet dan "Run on hosts" juga butuh kunci terbuka.
+Tidak ada pemulihan: kata sandi yang terlupa berarti isi snippet hilang, jadi simpan kata sandi
+di tempat aman.
 
 ### Keychain
 **New key** membuat kunci Ed25519 (disarankan), RSA 4096, atau ECDSA, opsional dengan passphrase.
@@ -176,7 +187,8 @@ Versions.
 | Log, backup | `<root>/logs`, `<root>/backups` |
 | Otoritas sertifikat lokal | `<root>/etc/ssl` (privat) |
 | Kata sandi root database | `<root>/etc/secrets` (privat) |
-| Host remote, grup, snippet, aturan, riwayat | `<root>/etc/remote/store.json` (privat) |
+| Host remote, grup, snippet, aturan, riwayat | `<root>/etc/remote/store.json` (privat; isi snippet terenkripsi bila kata sandi snippet dipasang) |
+| Pemeriksa kata sandi snippet (salt + verifier, bukan kuncinya) | `<root>/etc/remote/snippet-lock.json` (privat) |
 | Kunci privat SSH | `<root>/etc/remote/keys` (privat, 0600) |
 | Kunci server yang diterima | `<root>/etc/remote/known_hosts` |
 | Kata sandi dan passphrase SSH | penyimpanan kredensial sistem (Keychain, Credential Manager, Secret Service); cadangan `<root>/etc/secrets/remote-secrets.json` |

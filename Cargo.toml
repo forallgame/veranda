@@ -9,7 +9,7 @@ members = [
 default-members = ["crates/veranda-core", "apps/cli"]
 
 [workspace.package]
-version = "0.6.16"
+version = "0.6.17"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT"
@@ -51,6 +51,7 @@ russh-sftp = "3.0.1"
 portable-pty = "0.9.0"
 keyring = "4.2.0"
 base64 = "0.23.1"
+ring = "0.17.14"
 
 [profile.release]
 opt-level = "z"

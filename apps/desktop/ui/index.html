@@ -150,7 +150,7 @@
 
     <section id="tab-terminal" class="tab tab-terminal">
       <div class="term-tabs" id="term-tabs"></div>
-      <div class="term-stage hidden" id="term-stage"></div>
+      <div class="term-stage hidden" id="term-stage"><aside class="term-side hidden" id="term-side"></aside></div>
       <div class="term-empty" id="term-empty">
         <i class="ic" data-icon="terminal"></i>
         <p data-i18n="rm.termEmpty">No terminal open. Connect to a host or open a local shell.</p>
@@ -194,9 +194,11 @@
       <header class="top">
         <h1 data-i18n="nav.snippets">Snippets</h1>
         <div class="spacer"></div>
+        <button class="btn hidden" id="btn-snip-lock-now"><i class="ic" data-icon="lock"></i><span data-i18n="rm.lockNow">Lock</span></button>
+        <button class="btn hidden" id="btn-snip-pass"><i class="ic" data-icon="key"></i><span id="btn-snip-pass-text" data-i18n="rm.setPassword">Set password</span></button>
         <button class="btn primary" id="btn-snip-new"><i class="ic" data-icon="plus"></i><span data-i18n="rm.newSnippet">New snippet</span></button>
       </header>
-      <p class="sub" data-i18n="rm.snippetHint">Commands you run often. Send one to the active terminal, or run it on several hosts at once and compare the output.</p>
+      <p class="sub" data-i18n="rm.snippetHint">Commands you run often. Open the Snippets panel in a terminal to send them with one click, or run one on several hosts at once and compare the output. Contents stay hidden in lists; a password keeps this page and the panel locked.</p>
       <div id="snip-list"></div>
       <div class="card hidden" id="snip-output"></div>
     </section>
@@ -518,6 +520,23 @@
   </form>
 </dialog>
 
+<dialog id="dlg-snip-lock">
+  <form method="dialog" id="form-snip-lock">
+    <h2 id="snip-lock-title" data-i18n="rm.setPassword">Set password</h2>
+    <p class="sub" data-i18n="rm.lockTip">Snippet contents are encrypted on disk and the Snippets page and panel stay locked until you enter the password. Nobody looking at your screen sees what is inside.</p>
+    <label data-lock="on"><span data-i18n="rm.currentPassword">Current</span><input type="password" name="current" autocomplete="current-password"></label>
+    <label><span data-i18n="rm.newPassword">New password</span><input type="password" name="new" minlength="6" autocomplete="new-password" required></label>
+    <label><span data-i18n="rm.confirmPassword">Confirm</span><input type="password" name="confirm" minlength="6" autocomplete="new-password" required></label>
+    <label><span data-i18n="rm.autoLock">Lock again</span><select name="minutes"><option value="5">5</option><option value="15">15</option><option value="30">30</option><option value="60">60</option><option value="0">0</option></select></label>
+    <div class="actions-row">
+      <button type="button" class="btn danger hidden" id="btn-snip-pass-remove" data-i18n="rm.removePassword">Remove password</button>
+      <span class="spacer"></span>
+      <button type="button" class="btn" data-close="dlg-snip-lock" data-i18n="btn.cancel">Cancel</button>
+      <button type="submit" class="btn primary" data-i18n="btn.save">Save</button>
+    </div>
+  </form>
+</dialog>
+
 <dialog id="dlg-run-snippet">
   <form method="dialog" id="form-run-snippet">
     <h2 id="run-snippet-title" data-i18n="rm.runOnHosts">Run on hosts</h2>
@@ -574,7 +593,7 @@
       <label><span data-i18n="rm.fontSize">Size</span><input type="number" name="font_size" min="8" max="32"></label>
     </div>
     <div class="two">
-      <label><span data-i18n="rm.theme">Theme</span><select name="theme"><option value="auto" data-i18n="rm.themeAuto">Follow Veranda</option><option value="dark">Dark</option><option value="light">Light</option><option value="dracula">Dracula</option><option value="solarized">Solarized dark</option><option value="nord">Nord</option></select></label>
+      <label><span data-i18n="rm.theme">Theme</span><select name="theme"><option value="auto" data-i18n="rm.themeAuto">Follow Veranda</option><option value="dark">Dark</option><option value="light">Light</option><option value="onedark">One Dark</option><option value="tokyonight">Tokyo Night</option><option value="catppuccin">Catppuccin Mocha</option><option value="dracula">Dracula</option><option value="gruvbox">Gruvbox dark</option><option value="monokai">Monokai</option><option value="solarized">Solarized dark</option><option value="nord">Nord</option></select></label>
       <label><span data-i18n="rm.cursor">Cursor</span><select name="cursor_style"><option value="block">Block</option><option value="underline">Underline</option><option value="bar">Bar</option></select></label>
     </div>
     <div class="two">

@@ -8,6 +8,7 @@
 //! * [`known_hosts`]: trust-on-first-use host keys in OpenSSH format.
 //! * [`client`]: SSH connections (password, key, agent, keyboard-interactive, jump hosts).
 //! * [`session`]: interactive terminals over SSH or a local PTY.
+//! * [`vault`]: optional password lock that encrypts snippet bodies at rest.
 //! * [`sftp`], [`forward`], [`import`], [`local`].
 //!
 //! Everything is pure Rust (russh + ring); no OpenSSH binary is needed.
@@ -22,6 +23,7 @@ pub mod secrets;
 pub mod session;
 pub mod sftp;
 pub mod store;
+pub mod vault;
 
 /// The SSH key type used by [`client::AuthMethod::Key`] (re-exported so callers need no `russh` dependency).
 pub use russh::keys::PrivateKey;

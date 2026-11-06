@@ -8,7 +8,8 @@ The Remote group in the sidebar is an SSH client built into Veranda. It is imple
 
 | What | Where | Notes |
 | --- | --- | --- |
-| Hosts, groups, identities, key metadata, snippets, rules, history, settings | `etc/remote/store.json` | one JSON file, user-only permissions, written atomically |
+| Hosts, groups, identities, key metadata, snippets, rules, history, settings | `etc/remote/store.json` | one JSON file, user-only permissions, written atomically; snippet bodies are stored sealed (`script_enc`) once a snippet password is set |
+| Snippet lock | `etc/remote/snippet-lock.json` | salt, PBKDF2 round count, verifier and auto-lock minutes; the key is never written |
 | Private keys | `etc/remote/keys/<id>.key` | OpenSSH format, optionally passphrase-encrypted, mode 0600 |
 | Accepted server keys | `etc/remote/known_hosts` | OpenSSH `known_hosts` format |
 | Passwords and passphrases | OS credential store (service "Veranda") | macOS Keychain, Windows Credential Manager, Secret Service / KWallet |
@@ -40,6 +41,15 @@ Pure Rust: `russh` with the `ring` backend (the same crypto that `rustls` uses e
 Veranda). Key types: Ed25519, ECDSA P-256/384/521, RSA (rsa-sha2-256/512 negotiated through
 `server-sig-algs`). Generated keys: Ed25519 by default, RSA 4096, ECDSA P-256. Private keys are
 encrypted with the OpenSSH `aes256-ctr` + `bcrypt` scheme when a passphrase is set.
+
+Snippet lock (`vault.rs`): PBKDF2-HMAC-SHA256 with 600 000 rounds and a 16-byte random salt
+derives 64 bytes from the password; bytes 0-31 are the AES-256-GCM key, bytes 32-63 the verifier
+kept on disk. Each snippet body is sealed with a fresh 12-byte nonce (`v1:` + base64 of nonce,
+ciphertext and tag). The key lives only in the desktop process while unlocked, is wiped when
+dropped, and is forgotten on **Lock**, after the chosen idle time, or when Veranda exits. Wrong
+passwords add a growing delay (up to 3 s) before the next attempt. The UI never receives the
+ciphertext: `remote_state` sends the plain text when unlocked and an empty body otherwise, and
+`term_send_snippet` types a snippet into a session server-side so the panel only needs names.
 
 ## Tests
 

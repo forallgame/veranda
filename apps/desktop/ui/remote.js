@@ -11,7 +11,10 @@
     search: "", tag: null,
     promptQueue: [], promptOpen: null,
     pendingTheme: null,
+    side: { open: false, enter: true, q: "" },   // snippets panel in the terminal
   };
+  try { R.side.open = localStorage.getItem("veranda.snipPanel") === "1"; R.side.enter = localStorage.getItem("veranda.snipEnter") !== "0"; } catch (e) {}
+  const lockState = () => R.view?.snippet_lock || "off";
   const settings = () => R.view?.store.settings || {};
   const hostsOf = () => R.view?.store.hosts || [];
   const hostById = (id) => hostsOf().find((h) => h.id === id);
@@ -28,7 +31,7 @@
     renderAll();
   }
   function renderAll() {
-    for (const fn of [renderHosts, renderForwards, renderSnippets, renderKeychain, renderHistory, renderSftpHosts, renderCounts]) {
+    for (const fn of [renderHosts, renderForwards, renderSnippets, renderSnipPanel, renderKeychain, renderHistory, renderSftpHosts, renderCounts]) {
       try { fn(); } catch (e) { fail(`remote ${fn.name}: ${e?.message || e}`); }
     }
   }
@@ -192,21 +195,22 @@
 
   /* ---------------- terminal themes ---------------- */
   const PALETTES = {
-    dark: { black: "#1c2030", red: "#f87171", green: "#34d399", yellow: "#fbbf24", blue: "#6f8fff", magenta: "#c084fc", cyan: "#38c6ff", white: "#e8ebf2", brightBlack: "#5d667a", brightRed: "#fca5a5", brightGreen: "#6ee7b7", brightYellow: "#fde68a", brightBlue: "#a5b4fc", brightMagenta: "#d8b4fe", brightCyan: "#7dd3fc", brightWhite: "#ffffff", background: "#0f131b", foreground: "#e8ebf2", cursor: "#6f8fff", selectionBackground: "#2b3a66" },
-    light: { black: "#0f1420", red: "#dc2626", green: "#16a34a", yellow: "#b45309", blue: "#3b6cf6", magenta: "#9333ea", cyan: "#0891b2", white: "#d9dde7", brightBlack: "#6b7384", brightRed: "#ef4444", brightGreen: "#22c55e", brightYellow: "#d97706", brightBlue: "#60a5fa", brightMagenta: "#a855f7", brightCyan: "#06b6d4", brightWhite: "#ffffff", background: "#ffffff", foreground: "#0f1420", cursor: "#3b6cf6", selectionBackground: "#dbe4ff" },
-    dracula: { black: "#21222c", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c", blue: "#bd93f9", magenta: "#ff79c6", cyan: "#8be9fd", white: "#f8f8f2", brightBlack: "#6272a4", brightRed: "#ff6e6e", brightGreen: "#69ff94", brightYellow: "#ffffa5", brightBlue: "#d6acff", brightMagenta: "#ff92df", brightCyan: "#a4ffff", brightWhite: "#ffffff", background: "#282a36", foreground: "#f8f8f2", cursor: "#f8f8f2", selectionBackground: "#44475a" },
-    solarized: { black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900", blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5", brightBlack: "#586e75", brightRed: "#cb4b16", brightGreen: "#586e75", brightYellow: "#657b83", brightBlue: "#839496", brightMagenta: "#6c71c4", brightCyan: "#93a1a1", brightWhite: "#fdf6e3", background: "#002b36", foreground: "#839496", cursor: "#93a1a1", selectionBackground: "#073642" },
-    nord: { black: "#3b4252", red: "#bf616a", green: "#a3be8c", yellow: "#ebcb8b", blue: "#81a1c1", magenta: "#b48ead", cyan: "#88c0d0", white: "#e5e9f0", brightBlack: "#4c566a", brightRed: "#bf616a", brightGreen: "#a3be8c", brightYellow: "#ebcb8b", brightBlue: "#81a1c1", brightMagenta: "#b48ead", brightCyan: "#8fbcbb", brightWhite: "#eceff4", background: "#2e3440", foreground: "#d8dee9", cursor: "#d8dee9", selectionBackground: "#434c5e" },
+    dark: { black: "#1f2633", red: "#ff7b72", green: "#3fb950", yellow: "#e3b341", blue: "#79c0ff", magenta: "#d2a8ff", cyan: "#56d4dd", white: "#d0d7e2", brightBlack: "#6e7a90", brightRed: "#ffa198", brightGreen: "#56d364", brightYellow: "#f2cc60", brightBlue: "#a5d6ff", brightMagenta: "#e2c5ff", brightCyan: "#76e3ea", brightWhite: "#ffffff", background: "#0d1117", foreground: "#dde3ee", cursor: "#7c9cff", cursorAccent: "#0d1117", selectionBackground: "#2d3f70", selectionInactiveBackground: "#222c47" },
+    light: { black: "#0f1420", red: "#cf222e", green: "#1a7f37", yellow: "#9a6700", blue: "#0969da", magenta: "#8250df", cyan: "#0a7f8c", white: "#d9dde7", brightBlack: "#6b7384", brightRed: "#e5484d", brightGreen: "#2da44e", brightYellow: "#bf8700", brightBlue: "#218bff", brightMagenta: "#a475f9", brightCyan: "#1b9aaa", brightWhite: "#ffffff", background: "#ffffff", foreground: "#1f2430", cursor: "#3b6cf6", cursorAccent: "#ffffff", selectionBackground: "#d7e3ff", selectionInactiveBackground: "#e8eefc" },
+    onedark: { black: "#282c34", red: "#e06c75", green: "#98c379", yellow: "#e5c07b", blue: "#61afef", magenta: "#c678dd", cyan: "#56b6c2", white: "#abb2bf", brightBlack: "#5c6370", brightRed: "#e06c75", brightGreen: "#98c379", brightYellow: "#e5c07b", brightBlue: "#61afef", brightMagenta: "#c678dd", brightCyan: "#56b6c2", brightWhite: "#ffffff", background: "#282c34", foreground: "#abb2bf", cursor: "#528bff", cursorAccent: "#282c34", selectionBackground: "#3e4451", selectionInactiveBackground: "#353a45" },
+    tokyonight: { black: "#15161e", red: "#f7768e", green: "#9ece6a", yellow: "#e0af68", blue: "#7aa2f7", magenta: "#bb9af7", cyan: "#7dcfff", white: "#a9b1d6", brightBlack: "#414868", brightRed: "#f7768e", brightGreen: "#9ece6a", brightYellow: "#e0af68", brightBlue: "#7aa2f7", brightMagenta: "#bb9af7", brightCyan: "#7dcfff", brightWhite: "#c0caf5", background: "#1a1b26", foreground: "#c0caf5", cursor: "#c0caf5", cursorAccent: "#1a1b26", selectionBackground: "#33467c", selectionInactiveBackground: "#283457" },
+    catppuccin: { black: "#45475a", red: "#f38ba8", green: "#a6e3a1", yellow: "#f9e2af", blue: "#89b4fa", magenta: "#f5c2e7", cyan: "#94e2d5", white: "#bac2de", brightBlack: "#585b70", brightRed: "#f38ba8", brightGreen: "#a6e3a1", brightYellow: "#f9e2af", brightBlue: "#89b4fa", brightMagenta: "#f5c2e7", brightCyan: "#94e2d5", brightWhite: "#a6adc8", background: "#1e1e2e", foreground: "#cdd6f4", cursor: "#f5e0dc", cursorAccent: "#1e1e2e", selectionBackground: "#45475a", selectionInactiveBackground: "#313244" },
+    dracula: { black: "#21222c", red: "#ff5555", green: "#50fa7b", yellow: "#f1fa8c", blue: "#bd93f9", magenta: "#ff79c6", cyan: "#8be9fd", white: "#f8f8f2", brightBlack: "#6272a4", brightRed: "#ff6e6e", brightGreen: "#69ff94", brightYellow: "#ffffa5", brightBlue: "#d6acff", brightMagenta: "#ff92df", brightCyan: "#a4ffff", brightWhite: "#ffffff", background: "#282a36", foreground: "#f8f8f2", cursor: "#f8f8f2", cursorAccent: "#282a36", selectionBackground: "#44475a", selectionInactiveBackground: "#363848" },
+    gruvbox: { black: "#282828", red: "#cc241d", green: "#98971a", yellow: "#d79921", blue: "#458588", magenta: "#b16286", cyan: "#689d6a", white: "#a89984", brightBlack: "#928374", brightRed: "#fb4934", brightGreen: "#b8bb26", brightYellow: "#fabd2f", brightBlue: "#83a598", brightMagenta: "#d3869b", brightCyan: "#8ec07c", brightWhite: "#ebdbb2", background: "#282828", foreground: "#ebdbb2", cursor: "#ebdbb2", cursorAccent: "#282828", selectionBackground: "#504945", selectionInactiveBackground: "#3c3836" },
+    monokai: { black: "#272822", red: "#f92672", green: "#a6e22e", yellow: "#f4bf75", blue: "#66d9ef", magenta: "#ae81ff", cyan: "#a1efe4", white: "#f8f8f2", brightBlack: "#75715e", brightRed: "#f92672", brightGreen: "#a6e22e", brightYellow: "#f4bf75", brightBlue: "#66d9ef", brightMagenta: "#ae81ff", brightCyan: "#a1efe4", brightWhite: "#f9f8f5", background: "#272822", foreground: "#f8f8f2", cursor: "#f8f8f0", cursorAccent: "#272822", selectionBackground: "#49483e", selectionInactiveBackground: "#3e3d32" },
+    solarized: { black: "#073642", red: "#dc322f", green: "#859900", yellow: "#b58900", blue: "#268bd2", magenta: "#d33682", cyan: "#2aa198", white: "#eee8d5", brightBlack: "#586e75", brightRed: "#cb4b16", brightGreen: "#586e75", brightYellow: "#657b83", brightBlue: "#839496", brightMagenta: "#6c71c4", brightCyan: "#93a1a1", brightWhite: "#fdf6e3", background: "#002b36", foreground: "#839496", cursor: "#93a1a1", cursorAccent: "#002b36", selectionBackground: "#073642", selectionInactiveBackground: "#06313d" },
+    nord: { black: "#3b4252", red: "#bf616a", green: "#a3be8c", yellow: "#ebcb8b", blue: "#81a1c1", magenta: "#b48ead", cyan: "#88c0d0", white: "#e5e9f0", brightBlack: "#4c566a", brightRed: "#bf616a", brightGreen: "#a3be8c", brightYellow: "#ebcb8b", brightBlue: "#81a1c1", brightMagenta: "#b48ead", brightCyan: "#8fbcbb", brightWhite: "#eceff4", background: "#2e3440", foreground: "#d8dee9", cursor: "#d8dee9", cursorAccent: "#2e3440", selectionBackground: "#434c5e", selectionInactiveBackground: "#3b4252" },
   };
   const isDarkApp = () => document.documentElement.dataset.theme === "dark" || (!document.documentElement.dataset.theme && matchMedia("(prefers-color-scheme: dark)").matches);
   function xtermTheme() {
     const name = settings().theme || "auto";
     if (name !== "auto" && PALETTES[name]) return PALETTES[name];
-    const base = { ...(isDarkApp() ? PALETTES.dark : PALETTES.light) };
-    const css = getComputedStyle(document.documentElement);
-    const surface = css.getPropertyValue("--surface").trim(); if (surface) base.background = surface;
-    const text = css.getPropertyValue("--text").trim(); if (text) base.foreground = text;
-    return base;
+    return isDarkApp() ? PALETTES.dark : PALETTES.light;
   }
   function xtermOptions() {
     const s = settings();
@@ -219,7 +223,7 @@
     };
   }
   function applyThemeToTerms() {
-    for (const x of R.terms.values()) { const o = xtermOptions(); x.term.options.theme = o.theme; x.term.options.fontFamily = o.fontFamily; x.term.options.fontSize = o.fontSize; x.term.options.cursorStyle = o.cursorStyle; x.term.options.cursorBlink = o.cursorBlink; x.term.options.scrollback = o.scrollback; try { x.fit.fit(); } catch (e) {} }
+    for (const x of R.terms.values()) { const o = xtermOptions(); x.term.options.theme = o.theme; x.el.style.background = o.theme.background; x.term.options.fontFamily = o.fontFamily; x.term.options.fontSize = o.fontSize; x.term.options.cursorStyle = o.cursorStyle; x.term.options.cursorBlink = o.cursorBlink; x.term.options.scrollback = o.scrollback; try { x.fit.fit(); } catch (e) {} }
   }
   new MutationObserver(() => applyThemeToTerms()).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   matchMedia("(prefers-color-scheme: dark)").addEventListener("change", applyThemeToTerms);
@@ -236,12 +240,11 @@
     renderCounts();
   }
   function barMarkup(x) {
-    const snippets = R.view?.store.snippets || [];
     return `<div class="term-bar">
       <span class="tstate ${x.info?.state || "connecting"}"><i></i><span class="txt">${esc(stateText(x))}</span></span>
       <span class="ttarget mono">${esc(x.info?.target || "")}</span>
       <span class="spacer"></span>
-      <select class="small term-snippet" title="${t("nav.snippets")}"><option value="">${t("rm.sendSnippet")}</option>${snippets.map((s) => `<option value="${esc(s.id)}">${esc(s.folder ? s.folder + " / " : "")}${esc(s.label)}</option>`).join("")}</select>
+      <button class="btn small term-snip-btn ${R.side.open ? "on" : ""}" data-tact="snippets" title="${t("nav.snippets")} (Ctrl+Shift+S)">${ICONS.snippet}<span>${t("nav.snippets")}</span></button>
       <button class="icon-btn small" data-tact="search" title="${t("rm.search")} (Ctrl+Shift+F)">${ICONS.search}</button>
       <button class="icon-btn small" data-tact="clear" title="${t("btn.clear")}">${ICONS.trash}</button>
       <button class="icon-btn small" data-tact="reconnect" title="${t("rm.reconnect")}">${ICONS.refresh}</button>
@@ -276,6 +279,7 @@
     const x = { id, term, fit, search, el, title: "", info: { state: "connecting", label: opts.label || hostById(opts.hostId)?.label || (opts.local ? t("rm.local") : ""), target: opts.quick || (hostById(opts.hostId) ? hostSummary(hostById(opts.hostId)) : "") }, hostId: opts.hostId || null, quick: opts.quick || null, local: !!opts.local, closed: false };
     R.terms.set(id, x);
     $(".term-head", el).innerHTML = barMarkup(x);
+    el.style.background = xtermTheme().background;
     term.open($(".term-view", el));
     term.onData((d) => { if (!x.closed) invoke("term_write", { id, data: d }).catch(() => {}); });
     term.onResize(({ cols, rows }) => { if (!x.closed) invoke("term_resize", { id, cols, rows }).catch(() => {}); });
@@ -289,6 +293,7 @@
       if (ev.ctrlKey && ev.shiftKey && ev.code === "KeyF") { toggleSearch(x, true); return false; }
       if (ev.ctrlKey && ev.shiftKey && ev.code === "KeyW") { closeTerminal(id); return false; }
       if (ev.ctrlKey && ev.shiftKey && ev.code === "KeyT") { openTerminal({ local: true }); return false; }
+      if (ev.ctrlKey && ev.shiftKey && ev.code === "KeyS") { toggleSnipPanel(); return false; }
       return true;
     });
     $(".term-view", el).addEventListener("contextmenu", (ev) => {
@@ -352,6 +357,7 @@
     const b = ev.target.closest("[data-tact]"); if (!b) return;
     switch (b.dataset.tact) {
       case "search": toggleSearch(x); break;
+      case "snippets": toggleSnipPanel(); break;
       case "next": x.search.findNext($(".term-search input", x.el).value); break;
       case "prev": x.search.findPrevious($(".term-search input", x.el).value); break;
       case "clear": x.term.clear(); x.term.focus(); break;
@@ -371,17 +377,88 @@
     if (ev.key === "Enter") { ev.preventDefault(); if (ev.shiftKey) x.search.findPrevious(inp.value); else x.search.findNext(inp.value); }
     if (ev.key === "Escape") toggleSearch(x, false);
   });
-  $("#term-stage").addEventListener("change", async (ev) => {
-    const sel = ev.target.closest(".term-snippet"); if (!sel || !sel.value) return;
-    const x = R.terms.get(ev.target.closest(".term-box").dataset.term);
-    const s = R.view.store.snippets.find((q) => q.id === sel.value); sel.value = "";
-    if (s && x && !x.closed) { sendToTerminal(x.id, s.script); x.term.focus(); }
+  /* Snippets panel (Termius-like): stays open beside the terminal; a click types the snippet
+     into the active session. Names only; the body is sent by the backend and never shown here. */
+  function toggleSnipPanel(show) {
+    R.side.open = show ?? !R.side.open;
+    try { localStorage.setItem("veranda.snipPanel", R.side.open ? "1" : "0"); } catch (e) {}
+    $("#term-side").classList.toggle("hidden", !R.side.open);
+    $$(".term-snip-btn").forEach((b) => b.classList.toggle("on", R.side.open));
+    renderSnipPanel();
+    const x = R.terms.get(R.active);
+    requestAnimationFrame(() => { try { x?.fit.fit(); } catch (e) {} if (R.side.open) $("#snip-side-q")?.focus(); else x?.term.focus(); });
+  }
+  function lockScreen(compact) {
+    return `<form class="snip-lock ${compact ? "compact" : ""}"><div class="ic">${ICONS.lock}</div><h3>${t("rm.snipLocked")}</h3><p>${t("rm.snipLockedHint")}</p>
+      <div class="row"><input type="password" name="password" placeholder="${t("db.password")}" autocomplete="current-password" required><button class="btn primary" type="submit">${ICONS.unlock}<span>${t("rm.unlock")}</span></button></div></form>`;
+  }
+  document.addEventListener("submit", async (ev) => {
+    const f = ev.target.closest?.(".snip-lock"); if (!f) return;
+    ev.preventDefault();
+    const inp = f.elements.password, pw = inp.value; if (!pw) return;
+    const btn = $("button", f); btn.disabled = true;
+    try {
+      const ok = await invoke("snippet_unlock", { password: pw });
+      if (ok) { toast(t("rm.unlocked"), "ok"); await refresh(); }
+      else { inp.value = ""; f.classList.remove("shake"); void f.offsetWidth; f.classList.add("shake"); toast(t("rm.pwWrong"), "bad"); inp.focus(); }
+    } catch (e) { fail(e); }
+    btn.disabled = false;
   });
-  function sendToTerminal(id, text) {
-    const x = R.terms.get(id); if (!x || x.closed) return false;
-    invoke("term_write", { id, data: text.endsWith("\n") ? text : text + "\n" }).catch(fail);
+  function renderSnipPanel() {
+    const side = $("#term-side"); if (!side || !R.view) return;
+    side.classList.toggle("hidden", !R.side.open);
+    if (!R.side.open) return;
+    const head = `<div class="ts-head">${ICONS.snippet}<span>${t("nav.snippets")}</span><span class="spacer"></span>
+      ${lockState() === "unlocked" ? `<button class="icon-btn small" data-side="lock" title="${t("rm.lockNow")}">${ICONS.lock}</button>` : ""}
+      <button class="icon-btn small" data-side="manage" title="${t("rm.manageSnippets")}">${ICONS.gear}</button>
+      <button class="icon-btn small" data-side="close" title="${t("btn.close")}">${ICONS.x}</button></div>`;
+    if (lockState() === "locked") { side.innerHTML = head + lockScreen(true); return; }
+    const snippets = R.view.store.snippets;
+    const folders = [...new Set(snippets.map((s) => s.folder || ""))].sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
+    const list = snippets.length ? folders.map((fo) => `<div class="ts-group" data-folder="${esc(fo)}">${fo ? `<div class="ts-folder">${esc(fo)}</div>` : ""}${snippets.filter((s) => (s.folder || "") === fo).map((s) => `<button class="snip-item" data-side-send="${esc(s.id)}" data-q="${esc((s.folder + " " + s.label).toLowerCase())}" title="${t("rm.sendToTerminal")}">${ICONS.snippet}<span class="nm">${esc(s.label)}</span><span class="go">${ICONS.send}</span></button>`).join("")}</div>`).join("")
+      : `<div class="empty small">${t("rm.noSnippets")}</div>`;
+    side.innerHTML = head + `<div class="ts-search">${ICONS.search}<input id="snip-side-q" placeholder="${t("rm.searchSnippets")}" value="${esc(R.side.q)}"></div><div class="ts-body">${list}</div>
+      <label class="ts-foot check"><input type="checkbox" id="snip-side-enter" ${R.side.enter ? "checked" : ""}><span>${t("rm.sendEnter")}</span></label>`;
+    applySideFilter();
+  }
+  function applySideFilter() {
+    const q = R.side.q.trim().toLowerCase();
+    for (const g of $$("#term-side .ts-group")) {
+      let shown = 0;
+      for (const b of $$(".snip-item", g)) { const hit = !q || b.dataset.q.includes(q); b.classList.toggle("hidden", !hit); shown += hit; }
+      g.classList.toggle("hidden", !shown);
+    }
+  }
+  async function sendSnippet(id, fromPage) {
+    const x = R.terms.get(R.active);
+    if (!x || x.closed) { toast(t("rm.noTerminal"), "info"); return false; }
+    try { await invoke("term_send_snippet", { id: x.id, snippetId: id, enter: R.side.enter }); }
+    catch (e) { fail(e); if (/locked/i.test(String(e?.message || e))) refresh(); return false; }
+    if (fromPage) showTab("terminal");
+    x.term.focus();
     return true;
   }
+  $("#term-side").addEventListener("click", async (ev) => {
+    const a = ev.target.closest("[data-side]");
+    if (a) {
+      if (a.dataset.side === "close") toggleSnipPanel(false);
+      else if (a.dataset.side === "manage") showTab("snippets");
+      else if (a.dataset.side === "lock") { try { await invoke("snippet_lock_now"); toast(t("rm.locked"), "ok"); } catch (e) { fail(e); } refresh(); }
+      return;
+    }
+    const b = ev.target.closest("[data-side-send]"); if (!b) return;
+    if (await sendSnippet(b.dataset.sideSend)) { b.classList.add("sent"); setTimeout(() => b.classList.remove("sent"), 700); }
+  });
+  $("#term-side").addEventListener("input", (ev) => {
+    if (ev.target.id === "snip-side-q") { R.side.q = ev.target.value; applySideFilter(); }
+  });
+  $("#term-side").addEventListener("change", (ev) => {
+    if (ev.target.id === "snip-side-enter") { R.side.enter = ev.target.checked; try { localStorage.setItem("veranda.snipEnter", R.side.enter ? "1" : "0"); } catch (e) {} }
+  });
+  $("#term-side").addEventListener("keydown", (ev) => {
+    if (ev.target.id === "snip-side-q" && ev.key === "Enter") { ev.preventDefault(); const first = $("#term-side .snip-item:not(.hidden)"); first?.click(); }
+    if (ev.key === "Escape") toggleSnipPanel(false);
+  });
   $("#btn-term-local").onclick = () => openTerminal({ local: true });
   new ResizeObserver(() => { const x = R.terms.get(R.active); if (x && $("#tab-terminal").classList.contains("active")) { try { x.fit.fit(); } catch (e) {} } }).observe($("#term-stage"));
   document.addEventListener("veranda:tab", (ev) => {
@@ -702,19 +779,54 @@
   /* ---------------- snippets ---------------- */
   function renderSnippets() {
     if (!R.view) return;
+    const lock = lockState();
+    $("#btn-snip-new").classList.toggle("hidden", lock === "locked");
+    $("#btn-snip-lock-now").classList.toggle("hidden", lock !== "unlocked");
+    $("#btn-snip-pass").classList.toggle("hidden", lock === "locked");
+    $("#btn-snip-pass-text").textContent = lock === "off" ? t("rm.setPassword") : t("rm.changePassword");
+    if (lock === "locked") { $("#snip-list").innerHTML = lockScreen(false); $("#snip-output").classList.add("hidden"); return; }
     const snippets = R.view.store.snippets;
     const folders = [...new Set(snippets.map((s) => s.folder || ""))].sort((a, b) => (a === "") - (b === "") || a.localeCompare(b));
     const canSend = !!(R.active && R.terms.get(R.active) && !R.terms.get(R.active).closed);
-    $("#snip-list").innerHTML = folders.map((fo) => `${fo ? `<h3 class="rm-folder">${ICONS.group}${esc(fo)}</h3>` : ""}<div class="list">${snippets.filter((s) => (s.folder || "") === fo).map((s) => `<div class="row" data-snip="${esc(s.id)}">
+    const tip = lock === "off" ? `<div class="card snip-lock-tip">${ICONS.lock}<div><b>${t("rm.lockTipTitle")}</b><p>${t("rm.lockTip")}</p></div><button class="btn small" id="btn-snip-pass-tip">${ICONS.key}<span>${t("rm.setPassword")}</span></button></div>` : "";
+    $("#snip-list").innerHTML = tip + (folders.map((fo) => `${fo ? `<h3 class="rm-folder">${ICONS.group}${esc(fo)}</h3>` : ""}<div class="list">${snippets.filter((s) => (s.folder || "") === fo).map((s) => `<div class="row" data-snip="${esc(s.id)}">
         <div class="ico">${ICONS.snippet}</div>
-        <div><div class="name">${esc(s.label)}</div><div class="meta"><code class="snip-prev">${esc(s.script.split("\n")[0].slice(0, 120))}${s.script.includes("\n") ? " …" : ""}</code></div></div>
+        <div><div class="name">${esc(s.label)}</div><div class="meta"><span class="pill">${((n) => n === 1 ? t("rm.line") : t("rm.lines", { n }))((s.script.match(/\n/g) || []).length + 1)}</span>${lock !== "off" ? `<span class="pill ok">${ICONS.lock}${t("rm.encrypted")}</span>` : ""}</div></div>
         <div class="act"><button class="btn small ${canSend ? "primary" : ""}" data-snip-send="${esc(s.id)}" ${canSend ? "" : "disabled"} title="${t("rm.sendToTerminal")}">${ICONS.send}<span>${t("rm.send")}</span></button>
           <button class="btn small" data-snip-run="${esc(s.id)}">${ICONS.play}<span>${t("rm.runOnHosts")}</span></button>
           <button class="icon-btn" data-snip-copy="${esc(s.id)}" title="${t("msg.copied")}">${ICONS.copy}</button>
           <button class="icon-btn" data-snip-edit="${esc(s.id)}" title="${t("btn.edit")}">${ICONS.edit}</button>
           <button class="icon-btn danger" data-snip-delete="${esc(s.id)}" title="${t("btn.remove")}">${ICONS.trash}</button></div></div>`).join("")}</div>`).join("")
-      || `<div class="empty">${ICONS.snippet}<span>${t("rm.noSnippets")}</span></div>`;
+      || `<div class="empty">${ICONS.snippet}<span>${t("rm.noSnippets")}</span></div>`);
+    const tb = $("#btn-snip-pass-tip"); if (tb) tb.onclick = openSnipLockDialog;
   }
+  function openSnipLockDialog() {
+    const f = $("#form-snip-lock"), on = lockState() !== "off"; f.reset();
+    $("#snip-lock-title").textContent = on ? t("rm.changePassword") : t("rm.setPassword");
+    $$("[data-lock=on]", f).forEach((el) => el.classList.toggle("hidden", !on));
+    $("#btn-snip-pass-remove").classList.toggle("hidden", !on);
+    f.elements.current.required = on;
+    for (const o of f.elements.minutes.options) o.textContent = o.value === "0" ? t("rm.lockNever") : t("rm.lockMin", { n: o.value });
+    f.elements.minutes.value = String(R.view?.snippet_lock_minutes ?? 15);
+    $("#dlg-snip-lock").showModal(); (on ? f.elements.current : f.elements.new).focus();
+  }
+  $("#form-snip-lock").onsubmit = async (ev) => {
+    ev.preventDefault(); const e = ev.target.elements;
+    if (e.new.value !== e.confirm.value) { toast(t("rm.pwMismatch"), "bad"); e.confirm.focus(); return; }
+    if (e.new.value.length < 6) { toast(t("rm.pwShort"), "bad"); e.new.focus(); return; }
+    const btn = $("button[type=submit]", ev.target); btn.disabled = true;
+    try { await invoke("snippet_lock_set", { current: e.current.value || null, new: e.new.value, autoLockMinutes: Number(e.minutes.value) }); $("#dlg-snip-lock").close(); toast(t("rm.pwSet"), "ok"); } catch (x) { fail(x); }
+    btn.disabled = false; ev.target.reset(); refresh();
+  };
+  $("#btn-snip-pass-remove").onclick = async () => {
+    const e = $("#form-snip-lock").elements;
+    if (!e.current.value) { toast(t("rm.currentNeeded"), "bad"); e.current.focus(); return; }
+    if (!(await askConfirm(t("rm.confirmRemovePw"), t("rm.removePassword")))) return;
+    try { await invoke("snippet_lock_set", { current: e.current.value, new: "", autoLockMinutes: 0 }); $("#dlg-snip-lock").close(); toast(t("rm.pwRemoved"), "ok"); } catch (x) { fail(x); }
+    $("#form-snip-lock").reset(); refresh();
+  };
+  $("#btn-snip-pass").onclick = openSnipLockDialog;
+  $("#btn-snip-lock-now").onclick = async () => { try { await invoke("snippet_lock_now"); toast(t("rm.locked"), "ok"); } catch (x) { fail(x); } refresh(); };
   function openSnippetDialog(s) {
     const f = $("#form-snippet"); f.reset();
     f.elements.id.value = s?.id || ""; f.elements.label.value = s?.label || ""; f.elements.folder.value = s?.folder || ""; f.elements.script.value = s?.script || "";
@@ -742,7 +854,7 @@
     const b = ev.target.closest("button"); if (!b) return;
     const sid = b.dataset.snipSend || b.dataset.snipRun || b.dataset.snipCopy || b.dataset.snipEdit || b.dataset.snipDelete;
     const s = R.view.store.snippets.find((x) => x.id === sid); if (!s) return;
-    if (b.dataset.snipSend) { if (sendToTerminal(R.active, s.script)) { showTab("terminal"); } else toast(t("rm.noTerminal"), "info"); }
+    if (b.dataset.snipSend) sendSnippet(s.id, true);
     else if (b.dataset.snipCopy) { await navigator.clipboard.writeText(s.script); toast(t("msg.copied"), "ok"); }
     else if (b.dataset.snipEdit) openSnippetDialog(s);
     else if (b.dataset.snipDelete) { if (await askConfirm(t("rm.confirmDeleteSnippet", { name: s.label }))) { try { await invoke("remote_delete_snippet", { id: s.id }); } catch (x) { fail(x); } refresh(); } }
@@ -929,6 +1041,10 @@
     const out = [];
     try {
       await refresh();
+      if (lockState() !== "off") { // a previous locked run; start from an open store
+        if (lockState() === "locked") await invoke("snippet_unlock", { password: "autotest-pass" });
+        await invoke("snippet_lock_set", { current: "autotest-pass", new: "", autoLockMinutes: 0 }); await refresh();
+      }
       let host = hostsOf().find((h) => h.label === "Refused box");
       if (!host) {
         const gid = await invoke("remote_save_group", { group: { id: "", name: "Lab", parent_id: null, identity_id: null, color: "" } });
@@ -958,8 +1074,9 @@
       const l = await invoke("local_list", { path: null }); out.push(`local_list=${l.entries.length}`);
       const kh = await invoke("remote_known_hosts"); await refresh(); out.push(`known=${kh.length} history=${R.view.store.history.length} ok=${R.view.store.history.filter((h) => h.ok).length}`);
       if (tab === "sftp") { await loadPane("local", ""); }
-      const dialogs = { snippetdlg: () => { showTab("snippets"); openSnippetDialog(R.view.store.snippets[0]); }, runsnippetdlg: () => { showTab("snippets"); pickHosts("Disk usage", [host.id]); }, groupdlg: () => { showTab("hosts"); openGroupDialog(R.view.store.groups[0]); }, identdlg: () => { showTab("keychain"); openIdentityDialog(R.view.store.identities[0]); }, importdlg: () => { showTab("hosts"); $("#btn-rm-import").click(); }, textdlg: () => { showTab("sftp"); askText("Rename", "New name", "notes.txt", false); }, editordlg: () => { showTab("sftp"); askEditor("notes.txt", "line one\nline two\n"); }, hostdlg: () => { showTab("hosts"); openHostDialog(hostsOf()[0]); }, fwddlg: () => { showTab("forward"); openForwardDialog(R.view.store.forwards[0]); }, keydlg: () => { showTab("keychain"); openKeyDialog("import"); }, settingsdlg: () => { showTab("terminal"); activateTerminal(tid); openTermSettings(); }, pwdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "password", title: "Refused box", prompt: "Password for root@127.0.0.1", echo: false, can_remember: true }); showNextPrompt(); }, promptdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "hostkey", title: "Example", host: "example.com", port: 22, algorithm: "ssh-ed25519", fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefg", status: "changed" }); showNextPrompt(); } };
-      if (dialogs[tab]) dialogs[tab]();
+      const lockIt = async () => { await invoke("snippet_lock_set", { current: null, new: "autotest-pass", autoLockMinutes: 15 }); await invoke("snippet_lock_now"); await refresh(); };
+      const dialogs = { lockdlg: () => { showTab("snippets"); openSnipLockDialog(); }, snippanel: async () => { showTab("terminal"); activateTerminal(tid); toggleSnipPanel(true); $("#term-side .snip-item").click(); out.push(`sent=${await waitFor(() => /Filesystem|Mounted on/.test(bufferText(tid)), 6000)}`); }, sniplocked: async () => { await lockIt(); showTab("snippets"); }, snippanellocked: async () => { await lockIt(); let refused = ""; try { await invoke("term_send_snippet", { id: tid, snippetId: R.view.store.snippets[0].id, enter: true }); } catch (e) { refused = String(e?.message || e); } out.push(`locked-send="${refused.slice(0, 40)}"`); showTab("terminal"); activateTerminal(tid); toggleSnipPanel(true); }, snippetdlg: () => { showTab("snippets"); openSnippetDialog(R.view.store.snippets[0]); }, runsnippetdlg: () => { showTab("snippets"); pickHosts("Disk usage", [host.id]); }, groupdlg: () => { showTab("hosts"); openGroupDialog(R.view.store.groups[0]); }, identdlg: () => { showTab("keychain"); openIdentityDialog(R.view.store.identities[0]); }, importdlg: () => { showTab("hosts"); $("#btn-rm-import").click(); }, textdlg: () => { showTab("sftp"); askText("Rename", "New name", "notes.txt", false); }, editordlg: () => { showTab("sftp"); askEditor("notes.txt", "line one\nline two\n"); }, hostdlg: () => { showTab("hosts"); openHostDialog(hostsOf()[0]); }, fwddlg: () => { showTab("forward"); openForwardDialog(R.view.store.forwards[0]); }, keydlg: () => { showTab("keychain"); openKeyDialog("import"); }, settingsdlg: () => { showTab("terminal"); activateTerminal(tid); openTermSettings(); }, pwdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "password", title: "Refused box", prompt: "Password for root@127.0.0.1", echo: false, can_remember: true }); showNextPrompt(); }, promptdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "hostkey", title: "Example", host: "example.com", port: 22, algorithm: "ssh-ed25519", fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefg", status: "changed" }); showNextPrompt(); } };
+      if (dialogs[tab]) await dialogs[tab]();
       else if (tab) { showTab(tab); if (tab === "terminal") activateTerminal(tid); }
     } catch (e) { out.push(`ERROR ${e?.message || e}`); }
     report(out.join(" | "));

@@ -11,8 +11,9 @@ use base64::prelude::{BASE64_STANDARD, Engine};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{Arc, Mutex};
+use std::time::{Duration, Instant};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tokio::sync::{mpsc, oneshot};
 use veranda_core::Veranda;
@@ -24,7 +25,7 @@ use veranda_remote::secrets::{self, Secrets};
 use veranda_remote::store::{
     AuthKind, ForwardRule, Group, HistoryEntry, Host, Identity, KeyMeta, Settings, Snippet,
 };
-use veranda_remote::{Store, forward, import, keys, known_hosts, local, session, sftp};
+use veranda_remote::{Store, forward, import, keys, known_hosts, local, session, sftp, vault};
 
 /* ---------------- state ---------------- */
 
@@ -68,9 +69,19 @@ pub struct ForwardStatus {
     pub bound_port: u16,
 }
 
+/// The snippet lock while it is open: the key plus when it was last used (for auto-lock).
+struct VaultSession {
+    key: vault::Key,
+    last_used: Instant,
+    auto_lock_minutes: u32,
+}
+
 #[derive(Default)]
 pub struct RemoteState {
     secrets: Mutex<Option<(PathBuf, Arc<Secrets>)>>,
+    vault: Mutex<Option<VaultSession>>,
+    /// Wrong snippet passwords in a row; each one adds a delay to the next try.
+    vault_failures: AtomicU32,
     /// Serialises load-modify-save cycles on the store file.
     store_lock: Mutex<()>,
     terms: Mutex<HashMap<String, TermEntry>>,
@@ -111,6 +122,65 @@ impl RemoteState {
             store.save(&core.layout)?;
         }
         Ok(r)
+    }
+
+    /// Snippet lock: `off` (no password set), `locked` or `unlocked`.
+    fn lock_status(&self, core: &Veranda) -> String {
+        if !vault::path(&core.layout).is_file() {
+            return "off".into();
+        }
+        self.with_key(|k| if k.is_some() { "unlocked" } else { "locked" })
+            .into()
+    }
+
+    /// Run `f` with the unlocked snippet key, if any. Drops the key first when it sat unused
+    /// for longer than the auto-lock time.
+    fn with_key<R>(&self, f: impl FnOnce(Option<&vault::Key>) -> R) -> R {
+        let mut g = lock(&self.vault);
+        if let Some(s) = g.as_ref()
+            && s.auto_lock_minutes > 0
+            && s.last_used.elapsed() > Duration::from_secs(u64::from(s.auto_lock_minutes) * 60)
+        {
+            *g = None;
+        }
+        if let Some(s) = g.as_mut() {
+            s.last_used = Instant::now();
+        }
+        f(g.as_ref().map(|s| &s.key))
+    }
+
+    fn set_key(&self, key: Option<vault::Key>, auto_lock_minutes: u32) {
+        *lock(&self.vault) = key.map(|key| VaultSession {
+            key,
+            last_used: Instant::now(),
+            auto_lock_minutes,
+        });
+    }
+
+    /// The command text of a snippet, decrypting it when the lock is open.
+    fn snippet_script(&self, s: &Snippet) -> anyhow::Result<String> {
+        if s.script_enc.is_empty() {
+            return Ok(s.script.clone());
+        }
+        self.with_key(|k| match k {
+            Some(k) => k.open(&s.script_enc),
+            None => anyhow::bail!("snippets are locked; unlock them first"),
+        })
+    }
+
+    /// Prepare snippets for the UI: plain text when unlocked, empty when locked, never the
+    /// ciphertext.
+    fn reveal_snippets(&self, store: &mut Store) {
+        self.with_key(|k| {
+            for s in &mut store.snippets {
+                if !s.script_enc.is_empty() {
+                    s.script = k
+                        .and_then(|k| k.open(&s.script_enc).ok())
+                        .unwrap_or_default();
+                    s.script_enc.clear();
+                }
+            }
+        });
     }
 
     fn set_term_state(&self, app: &AppHandle, id: &str, state: &str, message: &str) {
@@ -554,6 +624,9 @@ pub struct RemoteView {
     sftps: Vec<SftpInfo>,
     forwards_active: Vec<ForwardStatus>,
     secret_backend: String,
+    /// `off`, `locked` or `unlocked` (see [`snippet_lock_set`]).
+    snippet_lock: String,
+    snippet_lock_minutes: u32,
     agent: bool,
     local_shell: String,
     home: String,
@@ -565,7 +638,13 @@ pub struct RemoteView {
 pub async fn remote_state(app: AppHandle) -> CmdResult<RemoteView> {
     let core = core_of(&app)?;
     let rs = app.state::<RemoteState>();
-    let store = Store::load(&core.layout).map_err(err)?;
+    let mut store = Store::load(&core.layout).map_err(err)?;
+    rs.reveal_snippets(&mut store);
+    let snippet_lock_minutes = vault::LockFile::load(&core.layout)
+        .ok()
+        .flatten()
+        .map(|l| l.auto_lock_minutes)
+        .unwrap_or(15);
     let sessions: Vec<SessionInfo> = {
         let g = lock(&rs.terms);
         let mut v: Vec<SessionInfo> = g.values().map(|e| e.info.clone()).collect();
@@ -596,6 +675,8 @@ pub async fn remote_state(app: AppHandle) -> CmdResult<RemoteView> {
     let importable = import::from_ssh_config().len() + import::from_putty().len();
     Ok(RemoteView {
         secret_backend: rs.secrets(&core).backend().into(),
+        snippet_lock: rs.lock_status(&core),
+        snippet_lock_minutes,
         store,
         sessions,
         sftps,
@@ -739,14 +820,190 @@ pub fn remote_delete_identity(app: AppHandle, id: String) -> CmdResult<bool> {
 }
 
 #[tauri::command]
-pub fn remote_save_snippet(app: AppHandle, snippet: Snippet) -> CmdResult<String> {
+pub fn remote_save_snippet(app: AppHandle, mut snippet: Snippet) -> CmdResult<String> {
     let core = core_of(&app)?;
     if snippet.label.trim().is_empty() {
         return Err("name is required".into());
     }
-    app.state::<RemoteState>()
-        .with_store(&core, |s| (true, s.upsert_snippet(snippet)))
+    let rs = app.state::<RemoteState>();
+    if vault::path(&core.layout).is_file() {
+        // the lock is on: only the sealed body goes to disk
+        let sealed = rs
+            .with_key(|k| match k {
+                Some(k) => k.seal(&snippet.script),
+                None => anyhow::bail!("snippets are locked; unlock them first"),
+            })
+            .map_err(err)?;
+        snippet.script_enc = sealed;
+        snippet.script.clear();
+    } else {
+        snippet.script_enc.clear();
+    }
+    rs.with_store(&core, |s| (true, s.upsert_snippet(snippet)))
         .map_err(err)
+}
+
+/* ---------------- snippet lock ---------------- */
+
+/// Set, change or remove the snippet password. `current` is required once a lock exists; an
+/// empty `new` removes the lock and stores the snippets in plain text again. Every snippet body
+/// is re-encrypted with the new key. Returns the new lock state.
+#[tauri::command]
+pub async fn snippet_lock_set(
+    app: AppHandle,
+    current: Option<String>,
+    new: String,
+    auto_lock_minutes: u32,
+) -> CmdResult<String> {
+    let core = core_of(&app)?;
+    let rs = app.state::<RemoteState>();
+    let existing = vault::LockFile::load(&core.layout).map_err(err)?;
+    let old_key = match &existing {
+        Some(lock_file) => {
+            let (lf, pw) = (lock_file.clone(), current.unwrap_or_default());
+            match tauri::async_runtime::spawn_blocking(move || lf.unlock(&pw))
+                .await
+                .map_err(err)?
+                .map_err(err)?
+            {
+                Some(k) => Some(k),
+                None => {
+                    rs.vault_failures.fetch_add(1, Ordering::Relaxed);
+                    return Err("the current password is wrong".into());
+                }
+            }
+        }
+        None => None,
+    };
+    let new = new.trim().to_string();
+    let plain_of = |s: &Snippet| -> anyhow::Result<String> {
+        if s.script_enc.is_empty() {
+            return Ok(s.script.clone());
+        }
+        match &old_key {
+            Some(k) => k.open(&s.script_enc),
+            None => anyhow::bail!("snippet {} cannot be decrypted", s.label),
+        }
+    };
+    if new.is_empty() {
+        if existing.is_none() {
+            return Ok("off".into());
+        }
+        rs.with_store(&core, |s| {
+            for sn in &mut s.snippets {
+                match plain_of(sn) {
+                    Ok(p) => {
+                        sn.script = p;
+                        sn.script_enc.clear();
+                    }
+                    Err(e) => return (false, Err(e)),
+                }
+            }
+            (true, Ok(()))
+        })
+        .map_err(err)?
+        .map_err(err)?;
+        vault::LockFile::remove(&core.layout).map_err(err)?;
+        rs.set_key(None, 0);
+        let _ = app.emit("remote-changed", ());
+        return Ok("off".into());
+    }
+    let minutes = auto_lock_minutes.min(24 * 60);
+    let (lock_file, key) =
+        tauri::async_runtime::spawn_blocking(move || vault::LockFile::create(&new, minutes))
+            .await
+            .map_err(err)?
+            .map_err(err)?;
+    rs.with_store(&core, |s| {
+        for sn in &mut s.snippets {
+            match plain_of(sn).and_then(|p| key.seal(&p)) {
+                Ok(sealed) => {
+                    sn.script_enc = sealed;
+                    sn.script.clear();
+                }
+                Err(e) => return (false, Err(e)),
+            }
+        }
+        (true, Ok(()))
+    })
+    .map_err(err)?
+    .map_err(err)?;
+    lock_file.save(&core.layout).map_err(err)?;
+    rs.set_key(Some(key), minutes);
+    rs.vault_failures.store(0, Ordering::Relaxed);
+    let _ = app.emit("remote-changed", ());
+    Ok("unlocked".into())
+}
+
+/// Open the snippet lock for this run of Veranda. `false` = wrong password (each wrong try
+/// slows the next one down).
+#[tauri::command]
+pub async fn snippet_unlock(app: AppHandle, password: String) -> CmdResult<bool> {
+    let core = core_of(&app)?;
+    let rs = app.state::<RemoteState>();
+    let Some(lock_file) = vault::LockFile::load(&core.layout).map_err(err)? else {
+        return Ok(true);
+    };
+    let failures = rs.vault_failures.load(Ordering::Relaxed);
+    if failures > 0 {
+        tokio::time::sleep(Duration::from_millis(500 * u64::from(failures.min(6)))).await;
+    }
+    let lf = lock_file.clone();
+    let key = tauri::async_runtime::spawn_blocking(move || lf.unlock(&password))
+        .await
+        .map_err(err)?
+        .map_err(err)?;
+    match key {
+        Some(k) => {
+            rs.set_key(Some(k), lock_file.auto_lock_minutes);
+            rs.vault_failures.store(0, Ordering::Relaxed);
+            Ok(true)
+        }
+        None => {
+            rs.vault_failures.fetch_add(1, Ordering::Relaxed);
+            Ok(false)
+        }
+    }
+}
+
+/// Forget the snippet key until the password is entered again.
+#[tauri::command]
+pub fn snippet_lock_now(state: State<'_, RemoteState>) -> CmdResult<()> {
+    state.set_key(None, 0);
+    Ok(())
+}
+
+/// Type a snippet into terminal `id` (with Enter when `enter`). The body never has to pass
+/// through the UI, so it works the same whether the snippet is stored sealed or plain.
+#[tauri::command]
+pub async fn term_send_snippet(
+    app: AppHandle,
+    id: String,
+    snippet_id: String,
+    enter: bool,
+) -> CmdResult<()> {
+    let core = core_of(&app)?;
+    let rs = app.state::<RemoteState>();
+    let store = Store::load(&core.layout).map_err(err)?;
+    let snippet = store.snippet(&snippet_id).ok_or("snippet not found")?;
+    let mut text = rs.snippet_script(snippet).map_err(err)?;
+    while text.ends_with('\n') || text.ends_with('\r') {
+        text.pop();
+    }
+    if text.is_empty() {
+        return Err("the snippet is empty".into());
+    }
+    if enter {
+        text.push('\n');
+    }
+    let h = lock(&rs.terms).get(&id).and_then(|e| e.handle.clone());
+    match h {
+        Some(h) => {
+            h.write(text.into_bytes()).await;
+            Ok(())
+        }
+        None => Err("no connected terminal".into()),
+    }
 }
 
 #[tauri::command]
@@ -1119,11 +1376,22 @@ pub async fn term_open(app: AppHandle, req: OpenTerm) -> CmdResult<SessionInfo> 
     let result: anyhow::Result<session::TermHandle> = async {
         if let Some(host) = &host {
             let conn = connect_host(&app, &core, host, &req.id, "ssh").await?;
-            let startup = host
+            let startup = match host
                 .startup_snippet_id
                 .as_deref()
                 .and_then(|id| store.snippet(id))
-                .map(|s| s.script.clone());
+                .map(|s| rs.snippet_script(s))
+            {
+                Some(Ok(script)) => Some(script),
+                Some(Err(e)) => {
+                    let _ = app.emit(
+                        "remote-notice",
+                        serde_json::json!({ "session": req.id, "text": format!("startup snippet skipped: {e}") }),
+                    );
+                    None
+                }
+                None => None,
+            };
             let handle = session::open_ssh_shell(
                 conn.clone(),
                 session::ShellOptions {
@@ -1514,12 +1782,13 @@ pub async fn snippet_run(
     host_ids: Vec<String>,
 ) -> CmdResult<Vec<SnippetOutcome>> {
     let core = core_of(&app)?;
+    let rs = app.state::<RemoteState>();
     let store = Store::load(&core.layout).map_err(err)?;
     let script = match (
         snippet_id.as_deref().and_then(|id| store.snippet(id)),
         script,
     ) {
-        (Some(s), _) => s.script.clone(),
+        (Some(s), _) => rs.snippet_script(s).map_err(err)?,
         (None, Some(t)) if !t.trim().is_empty() => t,
         _ => return Err("nothing to run".into()),
     };

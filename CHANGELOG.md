@@ -10,6 +10,23 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.17] - 2026-11-06
+
+### Added
+- Terminal: a **Snippets** panel (bar button or Ctrl+Shift+S) that stays open beside the
+  session; search, click a name to type it in, "Press Enter after sending" toggle. It replaces
+  the drop-down that closed after every pick.
+- Snippets: optional **password lock**. The page and the terminal panel stay locked until the
+  password is entered; snippet bodies are encrypted on disk (PBKDF2 + AES-256-GCM) and re-lock
+  after an idle time you choose, on **Lock**, or when Veranda closes.
+- Terminal themes: One Dark, Tokyo Night, Catppuccin Mocha, Gruvbox, Monokai; the default dark
+  and light palettes were redrawn for contrast, with a deeper background and more padding.
+
+### Changed
+- Snippet lists show names only; the command text appears in the editor, never in a list.
+- Snippets are typed into the terminal by the backend (`term_send_snippet`), so the UI never
+  needs the text to send one.
+
 ## [0.6.16] - 2026-11-06
 
 ### Fixed

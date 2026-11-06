@@ -112,10 +112,12 @@ hosts**, where you can forget one.
 
 ### Terminal
 Tabs hold SSH and local sessions (**+** or Ctrl+Shift+T opens a local shell with Veranda's PHP,
-Node, Composer and friends on `PATH`). In the bar: state, snippet sender, search
-(Ctrl+Shift+F), clear, reconnect, settings and close. Ctrl+Shift+C/V copy and paste; selecting
-text copies it when "Copy on select" is on; right-click pastes. The gear sets font, size, theme
-(follow Veranda, dark, light, Dracula, Solarized, Nord), cursor, scrollback, keep-alive interval,
+Node, Composer and friends on `PATH`). In the bar: state, **Snippets** (Ctrl+Shift+S opens a
+panel beside the terminal: search, click a name to type it into the session, and the panel stays
+open until you close it), search (Ctrl+Shift+F), clear, reconnect, settings and close.
+Ctrl+Shift+C/V copy and paste; selecting text copies it when "Copy on select" is on; right-click
+pastes. The gear sets font, size, theme (follow Veranda, dark, light, One Dark, Tokyo Night,
+Catppuccin, Dracula, Gruvbox, Monokai, Solarized, Nord), cursor, scrollback, keep-alive interval,
 the local shell program and whether closing a session asks first.
 
 ### SFTP
@@ -139,9 +141,16 @@ The switch starts and stops a rule; the row shows how many connections are open.
 address on `127.0.0.1` unless you really want other machines on your network to use the tunnel.
 
 ### Snippets
-Commands you run often, grouped by folder. **Send** types one into the active terminal; **Run on
-hosts** executes it on the hosts you tick and shows each host's output and exit code side by
-side.
+Commands you run often, grouped by folder. Lists show names only, never the command text; the
+editor shows it. **Send** types one into the active terminal (the terminal's Snippets panel does
+the same with one click); **Run on hosts** executes it on the hosts you tick and shows each
+host's output and exit code side by side.
+
+**Set password** locks the page and the terminal panel until the password is entered, and
+encrypts every snippet body on disk (AES-256-GCM, key derived from the password with PBKDF2).
+Unlocking lasts until Veranda closes, until you press **Lock**, or after the idle time you chose.
+Startup snippets and "Run on hosts" also need the lock open. There is no recovery: a forgotten
+password means the snippet bodies are gone, so keep the password somewhere safe.
 
 ### Keychain
 **New key** generates an Ed25519 (recommended), RSA 4096 or ECDSA key, optionally protected by a
@@ -174,7 +183,8 @@ when an install cannot update itself (then use the release page). Service versio
 | Logs, backups | `<root>/logs`, `<root>/backups` |
 | Local certificate authority | `<root>/etc/ssl` (private) |
 | Database root password | `<root>/etc/secrets` (private) |
-| Remote hosts, groups, snippets, rules, history | `<root>/etc/remote/store.json` (private) |
+| Remote hosts, groups, snippets, rules, history | `<root>/etc/remote/store.json` (private; snippet bodies encrypted when a snippet password is set) |
+| Snippet password check (salt + verifier, never the key) | `<root>/etc/remote/snippet-lock.json` (private) |
 | SSH private keys | `<root>/etc/remote/keys` (private, 0600) |
 | Accepted server keys | `<root>/etc/remote/known_hosts` |
 | SSH passwords and passphrases | system credential store (Keychain, Credential Manager, Secret Service); fallback `<root>/etc/secrets/remote-secrets.json` |

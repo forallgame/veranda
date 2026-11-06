@@ -147,7 +147,12 @@ pub struct Snippet {
     pub label: String,
     /// Package/folder name used to group snippets.
     pub folder: String,
+    /// The command text. Empty while the body is stored encrypted in `script_enc`, and in the
+    /// data sent to the UI when the snippet lock is on and not unlocked.
     pub script: String,
+    /// `script` sealed by [`crate::vault::Key::seal`] when a snippet lock is set.
+    #[serde(skip_serializing_if = "String::is_empty")]
+    pub script_enc: String,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
