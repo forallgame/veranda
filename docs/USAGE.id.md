@@ -156,7 +156,7 @@ Setiap koneksi dengan waktu, durasi, dan hasilnya; klik tombol terminal untuk te
 
 ## 8. Pembaruan
 
-Veranda memeriksa rilis GitHub proyek ini 8 detik setelah dibuka dan tiap 6 jam, lalu
+Veranda memeriksa rilis GitHub proyek ini 8 detik setelah dibuka, tiap jam, dan saat jendela kembali tampil setelah 30 menit atau lebih, lalu
 menampilkan spanduk; **Update now** mengunduh installer bertanda tangan dan memulai ulang. Dengan
 **Install updates automatically** aktif, unduhan dan mulai ulang terjadi sendiri: saat opsi itu
 dinyalakan, pada tiap pemeriksaan, dan setelah **Check for updates**. Pembaruan mandiri berjalan

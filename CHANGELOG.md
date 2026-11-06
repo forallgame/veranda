@@ -10,6 +10,13 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.15] - 2026-11-06
+
+### Changed
+- Update check: hourly instead of every 6 hours, and again when the window comes back to the
+  foreground after 30 minutes or more (from the tray, after sleep). A release published while
+  Veranda was already running no longer waits for "Check for updates".
+
 ## [0.6.14] - 2026-11-06
 
 ### Added

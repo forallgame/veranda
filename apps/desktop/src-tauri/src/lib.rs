@@ -1664,8 +1664,9 @@ pub fn run() {
                     }
                 }
             });
-            // Background: update check on start, then every 6 hours (signed feed, GitHub API
-            // fallback). Installs automatically when Settings say so.
+            // Background: update check on start, then hourly (signed feed, GitHub API fallback;
+            // the UI also checks when the window comes back after 30+ minutes). Installs
+            // automatically when Settings say so.
             let handle_u = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(8)).await;
@@ -1679,7 +1680,7 @@ pub fn run() {
                     if check {
                         auto_update(handle_u.clone()).await;
                     }
-                    tokio::time::sleep(std::time::Duration::from_secs(6 * 3600)).await;
+                    tokio::time::sleep(std::time::Duration::from_secs(3600)).await;
                 }
             });
             // Background: periodic database backups.

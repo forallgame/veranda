@@ -872,6 +872,7 @@ $("#btn-ssl-trust").onclick = async () => {
 
 /* ---------------- app updates ---------------- */
 let pendingUpdate = null;
+let lastUpdateCheck = Date.now(); // the backend checks 8 s after launch, then hourly
 function showUpdate(info) {
   pendingUpdate = info;
   const b = $("#update-banner");
@@ -882,6 +883,7 @@ function showUpdate(info) {
   b.classList.remove("hidden");
 }
 async function checkForUpdate(interactive) {
+  lastUpdateCheck = Date.now();
   try {
     const r = await invoke("update_check");
     if (r) { showUpdate(r); if (state.config.update.auto_install && r.installable) $("#btn-update-install").click(); }
@@ -902,7 +904,13 @@ listen("update-progress", (ev) => {
   else $(".txt", prog).textContent = `${(p.downloaded / 1048576).toFixed(1)} MiB`;
   if (p.done) $(".txt", prog).textContent = t("update.restarting");
 });
-listen("update-available", (ev) => showUpdate(ev.payload));
+listen("update-available", (ev) => { lastUpdateCheck = Date.now(); showUpdate(ev.payload); });
+// Coming back to the window (from the tray, another desktop, sleep) after a while: check again,
+// so a release published while Veranda sat in the background shows up without a click.
+document.addEventListener("visibilitychange", () => {
+  if (document.visibilityState !== "visible" || !state.config?.update?.check_on_start) return;
+  if (Date.now() - lastUpdateCheck > 30 * 60 * 1000) checkForUpdate(false);
+});
 listen("update-auto", () => { const b = $("#btn-update-install"); b.disabled = true; $("#update-notes").textContent = t("update.auto"); $("#update-progress").classList.remove("hidden"); });
 listen("update-error", (ev) => { fail(ev.payload); $("#btn-update-install").disabled = false; });
 

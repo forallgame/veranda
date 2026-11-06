@@ -9,7 +9,7 @@ members = [
 default-members = ["crates/veranda-core", "apps/cli"]
 
 [workspace.package]
-version = "0.6.14"
+version = "0.6.15"
 edition = "2024"
 rust-version = "1.90"
 license = "MIT"
