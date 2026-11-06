@@ -505,7 +505,10 @@ mod tests {
     }
 
     #[test]
-    fn unknown_key_rejected() {
-        assert!(toml::from_str::<Config>("[web]\nfoo = 1\n").is_err());
+    fn unknown_key_ignored() {
+        // Settings written by a newer Veranda must not stop an older build from starting.
+        let cfg: Config =
+            toml::from_str("[web]\nfoo = 1\nhttp_port = 8081\n[future_section]\nx = 2\n").unwrap();
+        assert_eq!(cfg.web.http_port, 8081);
     }
 }
