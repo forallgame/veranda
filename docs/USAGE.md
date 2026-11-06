@@ -65,6 +65,11 @@ Host, user and password of the local MariaDB/MySQL server, a one-click **New pas
 databases, open Adminer or phpMyAdmin, and **Backup** (dumps every database into `backups/`;
 automatic backups are configured in Settings). PostgreSQL has the same card on its own page.
 
+Veranda gives `root` a random password on first start. A project written for Laragon or XAMPP
+usually expects `root` with no password: either paste the password from this card into the
+project's `.env`, or click **No password**. The server only listens on `127.0.0.1`, so a
+password-less root is still reachable only from your own computer.
+
 ## 5. Logs
 
 The **Activity** box lists what Veranda itself did (started, stopped, installed, errors). The

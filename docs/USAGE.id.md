@@ -66,6 +66,11 @@ Host, pengguna, dan kata sandi server MariaDB/MySQL lokal, **New password** seka
 database, buka Adminer atau phpMyAdmin, dan **Backup** (dump semua database ke `backups/`; backup
 otomatis diatur di Settings). PostgreSQL punya kartu yang sama di halamannya sendiri.
 
+Veranda memberi `root` password acak saat pertama dijalankan. Proyek yang dibuat untuk Laragon
+atau XAMPP biasanya mengharapkan `root` tanpa password: tempel password dari kartu ini ke `.env`
+proyek, atau klik **Tanpa password**. Server hanya mendengarkan di `127.0.0.1`, jadi root tanpa
+password tetap hanya bisa diakses dari komputer Anda sendiri.
+
 ## 5. Logs
 
 Kotak **Activity** mencatat apa yang Veranda lakukan (start, stop, pasang, error). Menu pilihan

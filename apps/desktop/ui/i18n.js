@@ -26,7 +26,7 @@ window.VERANDA_I18N = {
     "btn.create": "Create", "btn.install": "Install", "pkg.installing": "Installing…", "pkg.removing": "Removing…", "pkg.remove": "Remove version {version}", "confirm.title": "Are you sure?", "msg.removed": "Removed {name} {version}", "pkg.downloading": "Downloading", "pkg.extracting": "Extracting…", "pkg.done": "Done", "btn.start": "Start", "btn.stop": "Stop", "btn.restart": "Restart", "btn.reload": "Reload", "btn.remove": "Remove",
     "notice.hosts": "Hosts file needs an update", "quick.web": "Web", "quick.database": "Database", "quick.mail": "Mail", "quick.terminal": "Terminal", "quick.root": "Folder", "quick.logs": "Logs",
     "sites.manual": "Add external folder", "sites.hint": "Folders in {root} become https://name.{tld}",
-    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "New password", "db.create": "Create", "db.unknownPassword": "start the database first",
+    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "New password", "db.noPassword": "No password", "db.none": "(no password)", "msg.confirmNoPassword": "Let root log in without a password? The database only listens on 127.0.0.1, so only programs on this computer can reach it. Projects written for Laragon or XAMPP expect this.", "msg.pwCleared": "root now has no password (local connections only)", "db.create": "Create", "db.unknownPassword": "start the database first",
     "settings.editFile": "Config file", "settings.general": "General", "settings.root": "Root", "settings.language": "Language", "settings.docroot": "Document root", "settings.editor": "Editor",
     "settings.autoVhosts": "Auto virtual hosts", "settings.smartPublic": "Serve public/ when present", "settings.autoStart": "Start services on launch", "settings.startMinimized": "Start minimized",
     "settings.web": "Web", "settings.enabled": "Enabled", "settings.autoindex": "Directory listing", "settings.trustCa": "Trust local CA", "settings.version": "Version",
@@ -36,7 +36,7 @@ window.VERANDA_I18N = {
     "pkg.newest": "newest", "pkg.installed": "installed", "pkg.notInstalled": "not installed", "pkg.upToDate": "up to date", "pkg.system": "system",
     "msg.saved": "Saved. Restart services to apply.", "msg.installed": "Installed {name} {version}", "msg.synced": "Sites synced", "msg.created": "Created {name}",
     "msg.copied": "Copied", "msg.upToDate": "Veranda {version} is up to date", "msg.newVersion": "Version {version} is available",
-    "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
+    "msg.confirmDelete": "Delete the project folder {name}?", "msg.confirmRemove": "Remove {name} {version}? Its files are deleted; services using it must be stopped first.", "msg.backup": "Backup saved: {path}", "msg.reloaded": "{name} restarted to load the new {version} build", "msg.trust": "{ok}/{total} trust steps done. Restart your browser."
   },
   id: {
     // ---- remote (SSH client)
@@ -64,7 +64,7 @@ window.VERANDA_I18N = {
     "btn.create": "Buat", "btn.install": "Pasang", "pkg.installing": "Memasang…", "pkg.removing": "Menghapus…", "pkg.remove": "Hapus versi {version}", "confirm.title": "Yakin?", "msg.removed": "Dihapus {name} {version}", "pkg.downloading": "Mengunduh", "pkg.extracting": "Mengekstrak…", "pkg.done": "Selesai", "btn.start": "Mulai", "btn.stop": "Stop", "btn.restart": "Mulai ulang", "btn.reload": "Muat ulang", "btn.remove": "Hapus",
     "notice.hosts": "File hosts perlu diperbarui", "quick.web": "Web", "quick.database": "Database", "quick.mail": "Mail", "quick.terminal": "Terminal", "quick.root": "Folder", "quick.logs": "Log",
     "sites.manual": "Tambah folder eksternal", "sites.hint": "Folder di {root} menjadi https://nama.{tld}",
-    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "Password baru", "db.create": "Buat", "db.unknownPassword": "jalankan database dulu",
+    "db.backup": "Backup", "db.host": "Host", "db.user": "User", "db.password": "Password", "db.rotate": "Password baru", "db.noPassword": "Tanpa password", "db.none": "(tanpa password)", "msg.confirmNoPassword": "Izinkan root masuk tanpa password? Database hanya mendengarkan di 127.0.0.1, jadi hanya program di komputer ini yang bisa mengaksesnya. Proyek yang dibuat untuk Laragon atau XAMPP mengharapkan ini.", "msg.pwCleared": "root sekarang tanpa password (hanya koneksi lokal)", "db.create": "Buat", "db.unknownPassword": "jalankan database dulu",
     "settings.editFile": "File config", "settings.general": "Umum", "settings.root": "Root", "settings.language": "Bahasa", "settings.docroot": "Document root", "settings.editor": "Editor",
     "settings.autoVhosts": "Virtual host otomatis", "settings.smartPublic": "Layani public/ jika ada", "settings.autoStart": "Jalankan layanan saat dibuka", "settings.startMinimized": "Mulai diminimalkan",
     "settings.web": "Web", "settings.enabled": "Aktif", "settings.autoindex": "Daftar isi folder", "settings.trustCa": "Percayai CA lokal", "settings.version": "Versi",
@@ -74,6 +74,6 @@ window.VERANDA_I18N = {
     "pkg.newest": "terbaru", "pkg.installed": "terpasang", "pkg.notInstalled": "belum dipasang", "pkg.upToDate": "sudah terbaru", "pkg.system": "sistem",
     "msg.saved": "Tersimpan. Mulai ulang layanan untuk menerapkan.", "msg.installed": "Terpasang {name} {version}", "msg.synced": "Situs disinkronkan", "msg.created": "Dibuat {name}",
     "msg.copied": "Disalin", "msg.upToDate": "Veranda {version} sudah terbaru", "msg.newVersion": "Versi {version} tersedia",
-    "msg.confirmDelete": "Hapus folder proyek {name}?", "msg.confirmRemove": "Hapus {name} {version}? File-nya akan dihapus; layanan yang memakainya harus dihentikan dulu.", "msg.backup": "Backup tersimpan: {path}", "msg.trust": "{ok}/{total} langkah trust selesai. Mulai ulang browser."
+    "msg.confirmDelete": "Hapus folder proyek {name}?", "msg.confirmRemove": "Hapus {name} {version}? File-nya akan dihapus; layanan yang memakainya harus dihentikan dulu.", "msg.backup": "Backup tersimpan: {path}", "msg.reloaded": "{name} dimulai ulang untuk memuat build {version} yang baru", "msg.trust": "{ok}/{total} langkah trust selesai. Mulai ulang browser."
   }
 };

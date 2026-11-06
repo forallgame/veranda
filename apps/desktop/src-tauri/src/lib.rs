@@ -4,7 +4,8 @@ mod remote;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuItem, PredefinedMenuItem};
+use tauri::image::Image;
+use tauri::menu::{IconMenuItem, Menu, MenuItem, PredefinedMenuItem};
 use tauri::tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent};
 use tauri::{AppHandle, Emitter, Manager, State};
 use tauri_plugin_updater::UpdaterExt;
@@ -403,9 +404,50 @@ async fn install_package(
             },
         );
     };
-    veranda_core::packages::install(&app.layout, &pkg, Some(&progress))
+    let installed = veranda_core::packages::install(&app.layout, &pkg, Some(&progress))
         .await
-        .map_err(err)
+        .map_err(err)?;
+    reload_running(&handle, &state, &installed);
+    Ok(installed)
+}
+
+/// A service that is running the version just (re)installed still executes the old binary
+/// (for example PHP-FPM after a bundle change): restart it so the new build is what serves.
+fn reload_running(handle: &AppHandle, state: &State<'_, AppState>, installed: &Installed) {
+    let sid = match installed.kind {
+        Kind::Php => ServiceId::Php,
+        Kind::Caddy | Kind::Nginx | Kind::Apache => ServiceId::Web,
+        Kind::MariaDb | Kind::MySql => ServiceId::Db,
+        Kind::Postgres => ServiceId::Pg,
+        Kind::Cache => ServiceId::Cache,
+        Kind::Mailpit => ServiceId::Mail,
+        Kind::MongoDb => ServiceId::Mongo,
+        Kind::Meilisearch => ServiceId::Meili,
+        Kind::Qdrant => ServiceId::Qdrant,
+        _ => return,
+    };
+    let Ok(core) = open_app(state) else { return };
+    let Ok(statuses) = services::status_all(&core) else { return };
+    let Some(st) = statuses
+        .into_iter()
+        .find(|s| s.id == sid && s.running && s.version == installed.version)
+    else {
+        return;
+    };
+    let h = handle.clone();
+    let name = st.name.clone();
+    let version = installed.version.clone();
+    std::thread::spawn(move || {
+        match services::restart(&core, sid) {
+            Ok(()) => {
+                tracing::info!("{name}: restarted to load the reinstalled {version}");
+                let _ = h.emit("service-reloaded", serde_json::json!({ "name": name, "version": version }));
+            }
+            Err(e) => tracing::warn!("{name}: restart after reinstall failed: {e:#}"),
+        }
+        let _ = h.emit("services-changed", ());
+        refresh_tray(&h);
+    });
 }
 
 #[tauri::command]
@@ -746,9 +788,11 @@ async fn db_set_password(state: State<'_, AppState>, new: Option<String>) -> Cmd
     let app = open_app(&state)?;
     let db = db_ctx(&app)?;
     let current = veranda_core::db::root_password(&app.layout).map_err(err)?;
-    let new = new
-        .filter(|s| !s.trim().is_empty())
-        .unwrap_or_else(|| veranda_core::db::random_token(24));
+    // `null` asks for a fresh random password; an empty string removes the password.
+    let new = match new {
+        Some(s) => s.trim().to_string(),
+        None => veranda_core::db::random_token(24),
+    };
     let n2 = new.clone();
     tauri::async_runtime::spawn_blocking(move || {
         veranda_core::db::set_root_password(&db, current.as_deref(), &n2)
@@ -1320,6 +1364,27 @@ fn teardown_webview(app: &AppHandle) {
 
 /// The tray menu: actions plus one line per service that is on (name, ports, state).
 /// Returns the menu and how many of those services are running.
+/// 16x16 RGBA disc for the tray menu: green when running, red when stopped (anti-aliased edge).
+fn status_dot(running: bool) -> Image<'static> {
+    const N: usize = 16;
+    let (r, g, b) = if running { (34u8, 197u8, 94u8) } else { (239u8, 68u8, 68u8) };
+    let mut px = vec![0u8; N * N * 4];
+    let c = (N as f32 - 1.0) / 2.0;
+    let radius = 5.5f32;
+    for y in 0..N {
+        for x in 0..N {
+            let d = ((x as f32 - c).powi(2) + (y as f32 - c).powi(2)).sqrt();
+            let a = (radius + 0.5 - d).clamp(0.0, 1.0);
+            let i = (y * N + x) * 4;
+            px[i] = r;
+            px[i + 1] = g;
+            px[i + 2] = b;
+            px[i + 3] = (a * 255.0) as u8;
+        }
+    }
+    Image::new_owned(px, N as u32, N as u32)
+}
+
 fn tray_menu(app: &AppHandle) -> tauri::Result<(Menu<tauri::Wry>, usize)> {
     let menu = Menu::new(app)?;
     menu.append(&MenuItem::with_id(
@@ -1356,15 +1421,18 @@ fn tray_menu(app: &AppHandle) -> tauri::Result<(Menu<tauri::Wry>, usize)> {
             .collect::<Vec<_>>()
             .join(" ");
         let text = if s.running {
-            format!("\u{25cf}  {}  {ports}  \u{2014} running", s.name)
+            format!("{}  {ports}  \u{2014} running", s.name)
         } else {
-            format!("\u{25cb}  {}  \u{2014} stopped", s.name)
+            format!("{}  \u{2014} stopped", s.name)
         };
-        menu.append(&MenuItem::with_id(
+        // A coloured dot the menu cannot dim: green = running, red = stopped. Clicking the
+        // line opens the window; the text itself is informational.
+        menu.append(&IconMenuItem::with_id(
             app,
             format!("svc-{}", s.id.id()),
             text,
-            false,
+            true,
+            Some(status_dot(s.running)),
             None::<&str>,
         )?)?;
     }
@@ -1497,6 +1565,7 @@ pub fn run() {
                         "quit" => {
                             quit_app(app.clone());
                         }
+                        id if id.starts_with("svc-") => show_main(app),
                         _ => {}
                     }
                 })

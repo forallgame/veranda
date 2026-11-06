@@ -10,6 +10,23 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.14] - 2026-11-06
+
+### Added
+- Database page: **No password** removes root's password after a confirmation, for projects
+  written for Laragon or XAMPP that connect as `root` with an empty password. The server keeps
+  listening on 127.0.0.1 only. The CLI accepts `db set-password ""` for the same.
+
+### Fixed
+- Pages fill the window again on wide or maximised screens; the 1180 px column cap from 0.6.12
+  left the right half empty.
+- Tray menu: each service line now carries a green (running) or red (stopped) dot drawn as an
+  icon, so it keeps its colour instead of inheriting the grey of the menu text. Clicking a line
+  opens the window.
+- Reinstalling the version a service is running (for example PHP 8.5.8 after the move to the
+  static-php bulk bundle) restarts that service, so the new binary is what serves. Before, the old
+  PHP-FPM kept running and phpMyAdmin still reported "mysqli is missing" until a manual restart.
+
 ## [0.6.13] - 2026-11-06
 
 ### Fixed

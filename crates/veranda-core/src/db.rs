@@ -118,9 +118,11 @@ pub fn root_password_file(layout: &Layout) -> PathBuf {
     layout.secrets().join("db-root.txt")
 }
 
+/// `None` until the database was set up once; `Some("")` when root deliberately has no
+/// password (Laragon/XAMPP style, see [`set_root_password`]).
 pub fn root_password(layout: &Layout) -> Result<Option<String>> {
     match std::fs::read_to_string(root_password_file(layout)) {
-        Ok(s) => Ok(Some(s.trim().to_string()).filter(|s| !s.is_empty())),
+        Ok(s) => Ok(Some(s.trim().to_string())),
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(e) => Err(e.into()),
     }
@@ -175,12 +177,15 @@ pub fn initialize(db: &DbCtx) -> Result<()> {
     Ok(())
 }
 
-/// Change root's password (both localhost and 127.0.0.1 identities).
+/// Change root's password (both localhost and 127.0.0.1 identities). An empty `new` removes
+/// the password: the server only listens on 127.0.0.1, so this matches what projects written
+/// for Laragon or XAMPP expect (`root` with no password) while staying local-only.
 pub fn set_root_password(db: &DbCtx, current: Option<&str>, new: &str) -> Result<()> {
-    if new.len() < 8
+    if !new.is_empty()
+        && (new.len() < 8
         || !new
             .chars()
-            .all(|c| c.is_ascii_alphanumeric() || "-_.!@#%^*+=".contains(c))
+            .all(|c| c.is_ascii_alphanumeric() || "-_.!@#%^*+=".contains(c)))
     {
         bail!(
             "password must be at least 8 characters and only contain letters, digits and -_.!@#%^*+="

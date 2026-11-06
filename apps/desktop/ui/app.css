@@ -87,8 +87,6 @@ svg.logo path { fill: currentColor; }
 .main { min-width: 0; padding: 20px 24px 28px; }
 .row, .card, .tile { contain: layout paint; }
 .tab { display: none; } .tab.active { display: block; }
-/* readable line lengths on wide screens; terminal and SFTP keep the full width */
-.tab:not(.tab-terminal):not(.tab-sftp) { max-width: 1180px; }
 .top { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; min-height: 36px; flex-wrap: wrap; }
 .top h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
 .sub { margin: -6px 0 12px; color: var(--muted); font-size: 12.5px; }

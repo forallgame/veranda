@@ -602,6 +602,7 @@ listen("install-progress", (ev) => {
 listen("services-changed", () => refresh());
 listen("autostart-done", async (ev) => { await refresh(true); await reportResults(ev.payload, "start"); });
 listen("backup-done", (ev) => toast(t("msg.backup", { path: ev.payload }), "ok"));
+listen("service-reloaded", (ev) => toast(t("msg.reloaded", ev.payload), "ok"));
 
 /* ---------------- close behaviour ---------------- */
 listen("close-requested", () => {
@@ -847,10 +848,14 @@ $("#btn-sync-sites").onclick = syncSites;
 $("#btn-db-show").onclick = async () => {
   const el = $("#db-password");
   if (!state.db_password_known) return;
-  if (el.classList.contains("secret")) { el.textContent = (await invoke("db_password")) || ""; el.classList.remove("secret"); }
+  if (el.classList.contains("secret")) { el.textContent = (await invoke("db_password")) || t("db.none"); el.classList.remove("secret"); }
   else { el.textContent = "••••••••••••"; el.classList.add("secret"); }
 };
 $("#btn-db-rotate").onclick = async () => { try { const pw = await invoke("db_set_password", { new: null }); $("#db-password").textContent = pw; $("#db-password").classList.remove("secret"); toast(t("msg.pwRotated"), "ok"); } catch (e) { fail(e); } };
+$("#btn-db-nopass").onclick = async () => {
+  if (!(await askConfirm(t("msg.confirmNoPassword"), t("db.noPassword")))) return;
+  try { await invoke("db_set_password", { new: "" }); $("#db-password").textContent = t("db.none"); $("#db-password").classList.remove("secret"); toast(t("msg.pwCleared"), "ok"); } catch (e) { fail(e); }
+};
 $("#btn-db-backup").onclick = async () => { try { const p = await invoke("db_backup"); toast(t("msg.backup", { path: p }), "ok"); } catch (e) { fail(e); } };
 $("#form-db").onsubmit = async (ev) => {
   ev.preventDefault(); const name = ev.target.elements.name.value.trim();

@@ -604,6 +604,7 @@ async fn run(cli: Cli) -> Result<()> {
                     }
                 }
                 DbCmd::Password => match veranda_core::db::root_password(&app.layout)? {
+                    Some(p) if p.is_empty() => println!("(root has no password; local only)"),
                     Some(p) => println!("{p}"),
                     None => println!("(no password stored yet; start the database once)"),
                 },
@@ -611,7 +612,11 @@ async fn run(cli: Cli) -> Result<()> {
                     let current = veranda_core::db::root_password(&app.layout)?;
                     let new = new.unwrap_or_else(|| veranda_core::db::random_token(24));
                     veranda_core::db::set_root_password(&db, current.as_deref(), &new)?;
-                    println!("root password updated: {new}");
+                    if new.is_empty() {
+                        println!("root password removed (connections only from this computer)");
+                    } else {
+                        println!("root password updated: {new}");
+                    }
                 }
                 DbCmd::Backup => {
                     let p = veranda_core::backup::run(&app)?;
