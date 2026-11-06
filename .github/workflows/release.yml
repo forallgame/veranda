@@ -15,8 +15,34 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
+  # One draft release per tag, created before the builds start. The three desktop builds used to
+  # race for it and could end up creating two releases for the same tag.
+  release:
+    name: create draft release
+    runs-on: ubuntu-latest
+    outputs:
+      id: ${{ steps.create.outputs.result }}
+    steps:
+      - uses: actions/github-script@v7
+        id: create
+        with:
+          result-encoding: string
+          script: |
+            if (!context.ref.startsWith('refs/tags/')) throw new Error('run this workflow from a tag');
+            const tag = context.ref.replace('refs/tags/', '');
+            const { owner, repo } = context.repo;
+            const existing = await github.rest.repos.listReleases({ owner, repo, per_page: 50 });
+            const found = existing.data.find((r) => r.tag_name === tag);
+            if (found) return String(found.id);
+            const { data } = await github.rest.repos.createRelease({
+              owner, repo, tag_name: tag, name: `Veranda ${tag}`,
+              body: 'See CHANGELOG.md for details.', draft: true, prerelease: false,
+            });
+            return String(data.id);
+
   desktop:
     name: desktop (${{ matrix.name }})
+    needs: release
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -55,18 +81,14 @@ jobs:
         with:
           projectPath: apps/desktop
           tauriScript: cargo tauri
-          tagName: ${{ github.ref_name }}
-          releaseName: "Veranda ${{ github.ref_name }}"
-          releaseBody: "See CHANGELOG.md for details."
-          releaseDraft: true
-          prerelease: false
+          releaseId: ${{ needs.release.outputs.id }}
           includeUpdaterJson: true
           updaterJsonPreferNsis: true
           args: ${{ matrix.args }}
 
   cli:
     name: cli (${{ matrix.name }})
-    needs: desktop
+    needs: [release, desktop]
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -87,5 +109,6 @@ jobs:
           cd dist && sha256sum * > "veranda-cli-${{ matrix.name }}.sha256"
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           draft: true
           files: dist/*

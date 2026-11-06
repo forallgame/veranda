@@ -10,6 +10,13 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.6] - 2026-11-06
+
+### Fixed
+- Release workflow: the draft release is created once before the platform builds start. The
+  builds used to race for it, which produced two releases for v0.6.5 with the installers split
+  between them (the published one had no Linux packages). This release carries every installer.
+
 ## [0.6.5] - 2026-11-05
 
 ### Changed
