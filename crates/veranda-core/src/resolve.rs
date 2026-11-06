@@ -219,7 +219,7 @@ async fn php(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
         _ => {
             let text = fetch_text(
                 c,
-                "https://dl.static-php.dev/static-php-cli/common/?format=json",
+                "https://dl.static-php.dev/static-php-cli/bulk/?format=json",
             )
             .await?;
             #[derive(Deserialize)]
@@ -241,7 +241,7 @@ async fn php(c: &reqwest::Client, p: Platform) -> Result<Vec<Package>> {
                     *have.entry(m[1].to_string()).or_default() += 1;
                 }
             }
-            let base = "https://dl.static-php.dev/static-php-cli/common";
+            let base = "https://dl.static-php.dev/static-php-cli/bulk";
             let mut out: Vec<Package> = have
                 .into_iter()
                 .filter(|(v, n)| *n == 2 && parse_version(v) >= parse_version("8.1"))

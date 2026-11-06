@@ -164,6 +164,8 @@ atau `etc/remote/keys`.
 
 ## 10. Pemecahan masalah
 
+- **phpMyAdmin bilang "the mysqli extension is missing"**: versi PHP itu dipasang dengan bundel
+  lama yang lebih kecil. Buka halaman PHP, hapus versi tersebut lalu pasang lagi.
 - **Layanan tidak mau jalan**: buka Logs, pilih log layanan itu. Baris terakhir menjelaskan
   sebabnya (biasanya port terpakai, yang juga dilaporkan Overview dengan tawaran pindah port).
 - **`*.test` tidak dikenali**: Sites → **Sync** memperbarui berkas hosts (butuh elevasi sekali).

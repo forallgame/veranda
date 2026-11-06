@@ -30,7 +30,9 @@ arch = "x86_64"
 source = "php.net"
 parts = [{ url = "https://downloads.php.net/~windows/releases/php-8.3.36-1-nts-Win32-vs16-x64.zip", archive = "zip", checksum = { algo = "sha256", hex = "1a097d52b7a68622cdc723073b61cc70caf79c941218ff65b2d8441dbc6b10d4" } }]
 
-# ---------------------------------------------------------------- PHP (Linux / macOS, static-php-cli builds: cli + fpm)
+# ---------------------------------------------------------------- PHP (Linux / macOS, static-php-cli "bulk" builds: cli + fpm)
+# The bulk bundle adds mysqli, intl, imagick, apcu, sodium, xsl, swoole... over "common"; phpMyAdmin
+# needs mysqli and most frameworks need intl.
 [[packages]]
 kind = "php"
 version = "8.5.8"
@@ -38,8 +40,8 @@ os = "linux"
 arch = "x86_64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-cli-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-fpm-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-cli-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-fpm-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 [[packages]]
@@ -49,8 +51,8 @@ os = "linux"
 arch = "aarch64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-cli-linux-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-fpm-linux-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-cli-linux-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-fpm-linux-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 [[packages]]
@@ -60,8 +62,8 @@ os = "macos"
 arch = "aarch64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-cli-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-fpm-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-cli-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-fpm-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 [[packages]]
@@ -71,8 +73,8 @@ os = "macos"
 arch = "x86_64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-cli-macos-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.5.8-fpm-macos-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-cli-macos-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.5.8-fpm-macos-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 [[packages]]
@@ -82,8 +84,8 @@ os = "linux"
 arch = "x86_64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.4.23-cli-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.4.23-fpm-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.4.23-cli-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.4.23-fpm-linux-x86_64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 [[packages]]
@@ -93,8 +95,8 @@ os = "macos"
 arch = "aarch64"
 source = "static-php.dev"
 parts = [
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.4.23-cli-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
-  { url = "https://dl.static-php.dev/static-php-cli/common/php-8.4.23-fpm-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.4.23-cli-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
+  { url = "https://dl.static-php.dev/static-php-cli/bulk/php-8.4.23-fpm-macos-aarch64.tar.gz", archive = "targz", checksum = { algo = "tofu" } },
 ]
 
 # ---------------------------------------------------------------- Caddy (default web server, all platforms)

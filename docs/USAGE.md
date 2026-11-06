@@ -163,6 +163,8 @@ folders.
 
 ## 10. Troubleshooting
 
+- **phpMyAdmin says "the mysqli extension is missing"**: the PHP version was installed with an
+  older, smaller bundle. Open the PHP page, remove that version and install it again.
 - **A service will not start**: open Logs, pick the service's log. The last lines say why
   (usually a port in use, which Overview also reports with an offer to move).
 - **`*.test` does not resolve**: Sites → **Sync** updates the hosts file (needs elevation once).

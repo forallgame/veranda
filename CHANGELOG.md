@@ -10,6 +10,15 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.10] - 2026-11-06
+
+### Fixed
+- PHP on Linux and macOS now comes from static-php.dev's **bulk** bundle instead of "common":
+  it adds `mysqli` (phpMyAdmin refused to start without it), `intl` (Laravel, Symfony), `imagick`,
+  `apcu`, `sodium`, `xsl`, `imap`, `swoole` and more. Downloads grow from about 20 MB to about
+  31 MB per version. PHP versions installed earlier keep the smaller bundle: remove and install
+  the version again in the PHP page to get the new extensions.
+
 ## [0.6.9] - 2026-11-06
 
 ### Fixed
