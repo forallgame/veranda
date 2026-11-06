@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 #[derive(Default)]
 pub struct Config {
     pub general: General,
@@ -26,7 +26,7 @@ pub struct Config {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct General {
     /// Reserved TLD (RFC 6761) used for auto virtual hosts.
     pub tld: String,
@@ -67,7 +67,7 @@ pub struct General {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Web {
     pub enabled: bool,
     /// `caddy` (default, all platforms), `nginx`, `apache`.
@@ -112,7 +112,7 @@ pub struct StartupGroup {
 
 /// Which Node.js goes first on the `PATH` of terminals and project commands.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Node {
     /// `""` = newest version installed by Veranda; `26.13.0` = that Veranda version;
     /// `nvm:24.22.2` (or `fnm:`/`volta:`) = a version managed by that tool.
@@ -120,7 +120,7 @@ pub struct Node {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Php {
     pub enabled: bool,
     /// Installed version to use; empty = newest installed.
@@ -136,7 +136,7 @@ pub struct Php {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Db {
     pub enabled: bool,
     /// `mariadb` or `mysql`.
@@ -149,7 +149,7 @@ pub struct Db {
 
 /// Settings shared by the single-binary services (MongoDB, Meilisearch, Qdrant).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Extra {
     pub enabled: bool,
     pub version: String,
@@ -161,7 +161,7 @@ pub struct Extra {
 
 /// PostgreSQL runs beside MariaDB/MySQL, not instead of it.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Pg {
     pub enabled: bool,
     pub version: String,
@@ -189,7 +189,7 @@ pub enum DbEngine {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Cache {
     pub enabled: bool,
     pub version: String,
@@ -197,7 +197,7 @@ pub struct Cache {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Mail {
     pub enabled: bool,
     pub version: String,
@@ -206,7 +206,7 @@ pub struct Mail {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Backup {
     pub enabled: bool,
     pub interval_hours: u32,
@@ -214,7 +214,7 @@ pub struct Backup {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
-#[serde(default, deny_unknown_fields)]
+#[serde(default)]
 pub struct Update {
     /// Advanced, not shown in the app: GitHub repository (`owner/repo`) to check for new app
     /// versions. Empty = the official Veranda repository. Only useful for forks.

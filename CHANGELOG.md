@@ -10,6 +10,22 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.12] - 2026-11-06
+
+### Fixed
+- Package downloads could fail with "error decoding response body … stream error" or "peer
+  closed connection": some download servers (static-php.dev's CDN among them) drop the
+  connection part-way through large files. Downloads now use HTTP/1.1 and **resume from the last
+  byte** with Range requests, retrying as long as progress is made, so a PHP install completes
+  even on a flaky link. Version lists get the same retry.
+- Settings written by a newer Veranda no longer stop an older build from starting: unknown keys
+  in `veranda.toml` are ignored instead of rejected.
+- "Trust local CA" installs the system-store copy with readable permissions (0644), which also
+  silences a "Permission denied" warning from the TLS verifier.
+- Wide windows: page content is capped at 1180 px and the version column of package tables no
+  longer stretches, so columns stay next to each other on large screens.
+- `scripts/ui-shot.sh` accepts `SCREEN=WxH` for wide-layout checks.
+
 ## [0.6.11] - 2026-11-06
 
 ### Added

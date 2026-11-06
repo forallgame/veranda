@@ -87,6 +87,8 @@ svg.logo path { fill: currentColor; }
 .main { min-width: 0; padding: 20px 24px 28px; }
 .row, .card, .tile { contain: layout paint; }
 .tab { display: none; } .tab.active { display: block; }
+/* readable line lengths on wide screens; terminal and SFTP keep the full width */
+.tab:not(.tab-terminal):not(.tab-sftp) { max-width: 1180px; }
 .top { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; min-height: 36px; flex-wrap: wrap; }
 .top h1 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: -.01em; }
 .sub { margin: -6px 0 12px; color: var(--muted); font-size: 12.5px; }
@@ -209,7 +211,7 @@ svg.logo path { fill: currentColor; }
 /* versions table */
 .vhead { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 10px; color: var(--muted); font-size: 12.5px; }
 .vtable { display: flex; flex-direction: column; border: 1px solid var(--line); border-radius: var(--r); overflow: hidden; background: var(--surface); box-shadow: var(--shadow); container-type: inline-size; }
-.vrow { display: grid; grid-template-columns: minmax(80px, 1fr) minmax(0, 1.4fr) minmax(96px, auto) minmax(132px, auto); gap: 10px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--line); min-height: 46px; }
+.vrow { display: grid; grid-template-columns: minmax(80px, 150px) minmax(0, 1fr) minmax(96px, auto) minmax(132px, auto); gap: 10px; align-items: center; padding: 8px 14px; border-top: 1px solid var(--line); min-height: 46px; }
 .vrow:first-child { border-top: 0; }
 .vrow.head { background: var(--surface-2); min-height: 34px; font-size: 10.5px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); font-weight: 700; }
 .vrow .v { font-family: var(--mono); font-size: 12.5px; font-weight: 600; }

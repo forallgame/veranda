@@ -226,7 +226,7 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
                 program: "sh".into(),
                 args: vec![
                     "-c".into(),
-                    format!("cp '{ca_s}' /usr/local/share/ca-certificates/veranda-local-ca.crt && update-ca-certificates"),
+                    format!("install -m 0644 '{ca_s}' /usr/local/share/ca-certificates/veranda-local-ca.crt && update-ca-certificates"),
                 ],
                 needs_admin: true,
             });
@@ -234,7 +234,7 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
             v.push(TrustStep {
                 description: "Install into the system store (Fedora/RHEL)".into(),
                 program: "sh".into(),
-                args: vec!["-c".into(), format!("cp '{ca_s}' /etc/pki/ca-trust/source/anchors/veranda-local-ca.crt && update-ca-trust")],
+                args: vec!["-c".into(), format!("install -m 0644 '{ca_s}' /etc/pki/ca-trust/source/anchors/veranda-local-ca.crt && update-ca-trust")],
                 needs_admin: true,
             });
         }

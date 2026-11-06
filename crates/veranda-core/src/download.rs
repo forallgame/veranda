@@ -75,6 +75,9 @@ pub fn client() -> Result<reqwest::Client> {
     Ok(reqwest::Client::builder()
         .user_agent(USER_AGENT)
         .https_only(true)
+        // HTTP/1.1 only: several download CDNs (static-php.dev among them) reset HTTP/2 streams
+        // part-way through large files, and nothing here gains from HTTP/2.
+        .http1_only()
         .connect_timeout(Duration::from_secs(20))
         // No overall deadline: a big archive on a slow link must not fail while it still makes
         // progress. Stalls are caught by the read timeout instead.
@@ -162,6 +165,10 @@ pub fn require_https(url: &str) -> Result<()> {
 }
 
 /// Download `url` into `dest` (final path), verify `checksum`, return the hex SHA-256.
+/// Download, verify and move into place. Transient network failures (stream resets, dropped
+/// connections, timeouts, 5xx) are retried, resuming the partial file with an HTTP `Range`
+/// request when the server allows it, for as long as each attempt makes progress.
+/// Cancellation and checksum mismatches are not retried.
 pub async fn download(
     client: &reqwest::Client,
     layout: &Layout,
@@ -170,32 +177,115 @@ pub async fn download(
     checksum: &Checksum,
     progress: Option<&ProgressFn>,
 ) -> Result<String> {
+    let part = PathBuf::from(format!("{}.part", dest.display()));
+    let size = |p: &Path| std::fs::metadata(p).map(|m| m.len()).unwrap_or(0);
+    let mut last: Option<anyhow::Error> = None;
+    let mut stalls = 0u32;
+    for attempt in 0..12u32 {
+        let before = if attempt == 0 { 0 } else { size(&part) };
+        match download_once(client, layout, url, dest, checksum, progress, attempt > 0).await {
+            Ok(v) => return Ok(v),
+            Err(e) if e.downcast_ref::<Cancelled>().is_none() && is_transient(&e) => {
+                let after = size(&part);
+                stalls = if after > before { 0 } else { stalls + 1 };
+                if stalls >= 3 {
+                    let _ = tokio::fs::remove_file(&part).await;
+                    return Err(e.context("the server keeps dropping the connection"));
+                }
+                tracing::warn!(
+                    "{url}: attempt {} failed after {after} bytes ({e:#}); resuming",
+                    attempt + 1
+                );
+                tokio::time::sleep(Duration::from_millis(700 * (stalls as u64 + 1))).await;
+                last = Some(e);
+            }
+            Err(e) => {
+                let _ = tokio::fs::remove_file(&part).await;
+                return Err(e);
+            }
+        }
+    }
+    let _ = tokio::fs::remove_file(&part).await;
+    Err(last.unwrap_or_else(|| anyhow::anyhow!("{url}: download failed")))
+}
+
+async fn download_once(
+    client: &reqwest::Client,
+    layout: &Layout,
+    url: &str,
+    dest: &Path,
+    checksum: &Checksum,
+    progress: Option<&ProgressFn>,
+    resume: bool,
+) -> Result<String> {
     require_https(url)?;
     if let Some(parent) = dest.parent() {
         tokio::fs::create_dir_all(parent).await?;
     }
     let part = PathBuf::from(format!("{}.part", dest.display()));
 
-    let resp = client
-        .get(url)
-        .send()
-        .await
-        .with_context(|| format!("GET {url}"))?;
+    // Bytes already on disk from a previous attempt; resumed with a Range request when the
+    // server answers 206, otherwise the file starts over.
+    let existing = if resume {
+        tokio::fs::metadata(&part)
+            .await
+            .map(|m| m.len())
+            .unwrap_or(0)
+    } else {
+        0
+    };
+    let mut req = client.get(url);
+    if existing > 0 {
+        req = req.header(reqwest::header::RANGE, format!("bytes={existing}-"));
+    }
+    let resp = req.send().await.with_context(|| format!("GET {url}"))?;
     let resp = resp
         .error_for_status()
         .with_context(|| format!("GET {url}"))?;
-    let total = resp.content_length();
+    let append = existing > 0 && resp.status() == reqwest::StatusCode::PARTIAL_CONTENT;
+    let total = if append {
+        resp.headers()
+            .get(reqwest::header::CONTENT_RANGE)
+            .and_then(|v| v.to_str().ok())
+            .and_then(|v| v.rsplit('/').next())
+            .and_then(|t| t.trim().parse::<u64>().ok())
+    } else {
+        resp.content_length()
+    };
     if let Some(t) = total
         && t > MAX_DOWNLOAD_BYTES
     {
         bail!("{url}: {t} bytes exceeds the download limit");
     }
 
-    let mut file = tokio::fs::File::create(&part).await?;
     let mut sha256 = Sha256::new();
     let mut sha512 = Sha512::new();
     let mut md5 = Md5::new();
     let mut downloaded: u64 = 0;
+    let mut file = if append {
+        // the hashes must cover the bytes already on disk
+        let mut f = tokio::fs::File::open(&part).await?;
+        let mut buf = vec![0u8; 1 << 16];
+        loop {
+            let n = tokio::io::AsyncReadExt::read(&mut f, &mut buf).await?;
+            if n == 0 {
+                break;
+            }
+            sha256.update(&buf[..n]);
+            sha512.update(&buf[..n]);
+            md5.update(&buf[..n]);
+            downloaded += n as u64;
+        }
+        tokio::fs::OpenOptions::new()
+            .append(true)
+            .open(&part)
+            .await?
+    } else {
+        tokio::fs::File::create(&part).await?
+    };
+    if let Some(cb) = progress {
+        cb(Progress { downloaded, total });
+    }
     let mut resp = resp;
     while let Some(chunk) = resp.chunk().await? {
         if cancel_requested() {
