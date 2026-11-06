@@ -10,6 +10,14 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.9] - 2026-11-06
+
+### Fixed
+- Remote: the password / passphrase / one-time-code prompt shows the host in its title and the
+  full question as a subtitle, with a full-width answer box, instead of squeezing
+  "Password for user@host" into a narrow label. The terminal bar keeps its buttons on one line:
+  the target text shrinks with an ellipsis and the snippet picker narrows first.
+
 ## [0.6.8] - 2026-11-06
 
 ### Changed

@@ -426,9 +426,10 @@
       $("#btn-prompt-ok").textContent = p.status === "changed" ? t("rm.trustAnyway") : t("rm.trust");
       $("#btn-prompt-ok").classList.toggle("danger", p.status === "changed");
     } else {
-      $("#prompt-text").textContent = ""; fp.classList.add("hidden");
+      // title: the host; subtitle: the server's/our full sentence; label: just what to type
+      $("#prompt-text").textContent = p.prompt || ""; fp.classList.add("hidden");
       $("#prompt-input-row").classList.remove("hidden");
-      $("#prompt-label").textContent = p.prompt || (p.kind === "passphrase" ? t("rm.passphrase") : t("db.password"));
+      $("#prompt-label").textContent = p.kind === "passphrase" ? t("rm.passphrase") : p.kind === "interactive" ? t("rm.answer") : t("db.password");
       f.elements.value.type = p.echo ? "text" : "password";
       $("#prompt-remember-row").classList.toggle("hidden", !p.can_remember);
       $("#btn-prompt-ok").textContent = "OK"; $("#btn-prompt-ok").classList.remove("danger");
@@ -957,7 +958,7 @@
       const l = await invoke("local_list", { path: null }); out.push(`local_list=${l.entries.length}`);
       const kh = await invoke("remote_known_hosts"); await refresh(); out.push(`known=${kh.length} history=${R.view.store.history.length} ok=${R.view.store.history.filter((h) => h.ok).length}`);
       if (tab === "sftp") { await loadPane("local", ""); }
-      const dialogs = { hostdlg: () => { showTab("hosts"); openHostDialog(hostsOf()[0]); }, fwddlg: () => { showTab("forward"); openForwardDialog(R.view.store.forwards[0]); }, keydlg: () => { showTab("keychain"); openKeyDialog("import"); }, settingsdlg: () => { showTab("terminal"); activateTerminal(tid); openTermSettings(); }, promptdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "hostkey", title: "Example", host: "example.com", port: 22, algorithm: "ssh-ed25519", fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefg", status: "changed" }); showNextPrompt(); } };
+      const dialogs = { hostdlg: () => { showTab("hosts"); openHostDialog(hostsOf()[0]); }, fwddlg: () => { showTab("forward"); openForwardDialog(R.view.store.forwards[0]); }, keydlg: () => { showTab("keychain"); openKeyDialog("import"); }, settingsdlg: () => { showTab("terminal"); activateTerminal(tid); openTermSettings(); }, pwdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "password", title: "Refused box", prompt: "Password for root@127.0.0.1", echo: false, can_remember: true }); showNextPrompt(); }, promptdlg: () => { showTab("terminal"); activateTerminal(tid); R.promptQueue.push({ id: "x", session: tid, kind: "hostkey", title: "Example", host: "example.com", port: 22, algorithm: "ssh-ed25519", fingerprint: "SHA256:AbCdEfGhIjKlMnOpQrStUvWxYz0123456789abcdefg", status: "changed" }); showNextPrompt(); } };
       if (dialogs[tab]) dialogs[tab]();
       else if (tab) { showTab(tab); if (tab === "terminal") activateTerminal(tid); }
     } catch (e) { out.push(`ERROR ${e?.message || e}`); }

@@ -26,6 +26,9 @@ cargo tauri build        # .deb, .rpm and .AppImage in target/release/bundle/
 ```
 Tip for laptops that run hot: use `scripts/build-cool.sh` (one job, lowest priority, pauses the
 compiler above 80°C and resumes below 65°C), e.g. `scripts/build-cool.sh build -p veranda-desktop`.
+Headless UI check on Linux: `scripts/ui-shot.sh <tab> [seconds] [autotest]` runs the debug app on
+Xvfb with a scratch root under `target/ui-root` and writes a screenshot to `target/ui-shots/`
+(needs `xvfb`, `ffmpeg`, `dbus-run-session`); `SIZE=600x480 THEME=light` vary window and theme.
 For release builds and installers prefer the GitHub Actions workflows: they run on GitHub's
 machines, not on your laptop.
 
