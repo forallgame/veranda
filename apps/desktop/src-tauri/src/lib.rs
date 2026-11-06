@@ -771,13 +771,16 @@ async fn ssl_trust(state: State<'_, AppState>) -> CmdResult<Vec<TrustReport>> {
             } else {
                 std::process::Command::new(&step.program)
                     .args(&step.args)
-                    .status()
+                    .stdin(std::process::Stdio::null())
+                    .output()
                     .map_err(anyhow::Error::from)
-                    .and_then(|s| {
-                        if s.success() {
+                    .and_then(|o| {
+                        if o.status.success() {
                             Ok(())
                         } else {
-                            anyhow::bail!("exit {s}")
+                            let text = format!("{}{}", String::from_utf8_lossy(&o.stdout), String::from_utf8_lossy(&o.stderr));
+                            let last = text.lines().rev().find(|l| !l.trim().is_empty()).unwrap_or("").trim().to_string();
+                            anyhow::bail!("{} ({})", if last.is_empty() { format!("exit {}", o.status) } else { last }, o.status)
                         }
                     })
             };
@@ -812,7 +815,13 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
     let app = open_app(&state)?;
     let cfg = &app.config;
     let st = get_state(state.clone())?;
-    let base = st.base_url;
+    // Local tools open over plain http: it is this computer, and https would need the local CA to
+    // be trusted first. Sites keep the scheme from Settings (https when enabled).
+    let base = if cfg.web.http_port == 80 {
+        "http://localhost".to_string()
+    } else {
+        format!("http://localhost:{}", cfg.web.http_port)
+    };
     match what.as_str() {
         "web" => veranda_core::tools::open_url(cfg, &format!("{base}/")),
         "adminer" => veranda_core::tools::open_url(cfg, &format!("{base}/adminer/")),
@@ -866,7 +875,8 @@ fn open_target(state: State<'_, AppState>, what: String) -> CmdResult<()> {
                 "{}://{}{}/",
                 st.scheme,
                 &s[5..],
-                base.rsplit_once(':')
+                st.base_url
+                    .rsplit_once(':')
                     .filter(|(_, p)| p.chars().all(|c| c.is_ascii_digit()))
                     .map(|(_, p)| format!(":{p}"))
                     .unwrap_or_default()

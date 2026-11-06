@@ -167,7 +167,12 @@ folders.
   (usually a port in use, which Overview also reports with an offer to move).
 - **`*.test` does not resolve**: Sites → **Sync** updates the hosts file (needs elevation once).
 - **Browser warns about the certificate**: Settings → **Trust local CA**, then restart the
-  browser.
+  browser. Linux needs `certutil` (`sudo apt install libnss3-tools` or `dnf install nss-tools`)
+  for Chrome, Brave and Firefox. Firefox on Windows/macOS reads system certificates only when
+  `security.enterprise_roots.enabled` is `true` in `about:config`, or import `etc/ssl/ca.crt`
+  by hand. Localhost tools (Adminer, phpMyAdmin) open over plain http and never need this.
+- **"Unknown publisher" / Gatekeeper warnings when installing**: the installers are not code-signed
+  yet; see [SIGNING.md](SIGNING.md).
 - **"Server key changed" when connecting over SSH**: the server was reinstalled, or something is
   intercepting the connection. Confirm with the administrator before trusting the new key.
 - **Password prompt although a password is saved**: the system credential store refused or timed

@@ -116,7 +116,8 @@ The first launch creates a `veranda` folder in your home directory (`~/veranda`,
 `C:\Users\you\veranda`) for projects (`www/`), settings, downloaded runtimes, databases and logs.
 Nothing else on your system is touched. Uninstalling the app leaves that folder for you.
 
-Full walkthrough of every screen: [docs/USAGE.md](docs/USAGE.md).
+Full walkthrough of every screen: [docs/USAGE.md](docs/USAGE.md). Installer warnings on
+Windows/macOS and how code signing removes them: [docs/SIGNING.md](docs/SIGNING.md).
 
 ## First five minutes
 

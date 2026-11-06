@@ -10,6 +10,26 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.8] - 2026-11-06
+
+### Changed
+- "Open" buttons for localhost tools (web root, Adminer, phpMyAdmin) use plain `http://localhost:<port>`:
+  it is this computer, and https would first need the local CA to be trusted. Sites (`*.test`)
+  keep HTTPS when it is enabled in Settings.
+
+### Fixed
+- Trust local CA on Linux: an older entry with Veranda's name in the browser store (for example
+  the CA from before the rename) is replaced instead of making `certutil` fail with "exit status
+  255"; the database is created when missing; every Firefox profile gets the CA too; and the tool's
+  own message is shown when a step fails.
+
+### Added
+- Optional code signing in the release workflow: add the Apple (`APPLE_CERTIFICATE`,
+  `APPLE_CERTIFICATE_PASSWORD`, `APPLE_SIGNING_IDENTITY`, `APPLE_ID`, `APPLE_PASSWORD`,
+  `APPLE_TEAM_ID`) or Windows (`WINDOWS_CERTIFICATE`, `WINDOWS_CERTIFICATE_PASSWORD`) secrets and
+  the installers are signed (and notarized on macOS). See `docs/SIGNING.md` for what to buy and
+  why unsigned builds trigger SmartScreen and Gatekeeper warnings.
+
 ## [0.6.7] - 2026-11-06
 
 ### Fixed

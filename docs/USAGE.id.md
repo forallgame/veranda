@@ -168,6 +168,12 @@ atau `etc/remote/keys`.
   sebabnya (biasanya port terpakai, yang juga dilaporkan Overview dengan tawaran pindah port).
 - **`*.test` tidak dikenali**: Sites → **Sync** memperbarui berkas hosts (butuh elevasi sekali).
 - **Browser memperingatkan sertifikat**: Settings → **Trust local CA**, lalu buka ulang browser.
+  Di Linux perlu `certutil` (`sudo apt install libnss3-tools` atau `dnf install nss-tools`) untuk
+  Chrome, Brave, dan Firefox. Firefox di Windows/macOS membaca sertifikat sistem hanya jika
+  `security.enterprise_roots.enabled` diset `true` di `about:config`, atau impor `etc/ssl/ca.crt`
+  secara manual. Alat localhost (Adminer, phpMyAdmin) dibuka lewat http biasa dan tidak butuh ini.
+- **Peringatan "Unknown publisher" / Gatekeeper saat memasang**: installer belum ditandatangani;
+  lihat [SIGNING.md](SIGNING.md).
 - **"Server key changed" saat SSH**: server dipasang ulang, atau ada yang menyadap koneksi.
   Pastikan ke admin sebelum mempercayai kunci baru.
 - **Diminta kata sandi padahal sudah disimpan**: penyimpanan kredensial sistem menolak atau tidak

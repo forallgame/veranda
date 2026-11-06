@@ -9,6 +9,8 @@ Thumbs.db
 # never commit secrets or runtime data
 /runtime
 *.key
+*.pfx
+*.p12
 secrets/
 
 # codegraph index (local)

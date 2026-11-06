@@ -177,24 +177,48 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
             needs_admin: false,
         });
     } else {
-        // NSS store (Chrome/Chromium/Brave/Firefox on Linux) – per user, no root needed.
-        let nss = dirs::home_dir().unwrap_or_default().join(".pki/nssdb");
-        v.push(TrustStep {
-            description: "Add to the user's NSS database (Chrome, Firefox)".into(),
-            program: "certutil".into(),
-            args: vec![
-                "-d".into(),
-                format!("sql:{}", nss.display()),
-                "-A".into(),
-                "-t".into(),
-                "C,,".into(),
-                "-n".into(),
-                CA_NAME.into(),
-                "-i".into(),
-                ca_s.clone(),
-            ],
-            needs_admin: false,
-        });
+        // NSS stores – per user, no root needed. Chrome/Chromium/Brave share `~/.pki/nssdb`;
+        // every Firefox profile has its own. The database is created when missing and an older
+        // entry with our name (a previous CA) is replaced; certutil comes from libnss3-tools.
+        let home = dirs::home_dir().unwrap_or_default();
+        let mut stores: Vec<(String, std::path::PathBuf)> =
+            vec![("Chrome, Chromium, Brave".into(), home.join(".pki/nssdb"))];
+        for base in [
+            home.join(".mozilla/firefox"),
+            home.join("snap/firefox/common/.mozilla/firefox"),
+            home.join(".var/app/org.mozilla.firefox/.mozilla/firefox"),
+        ] {
+            if let Ok(rd) = std::fs::read_dir(&base) {
+                for e in rd.flatten() {
+                    let p = e.path();
+                    if p.join("cert9.db").is_file() || p.join("prefs.js").is_file() {
+                        let name = p
+                            .file_name()
+                            .map(|n| n.to_string_lossy().into_owned())
+                            .unwrap_or_default();
+                        stores.push((format!("Firefox profile {name}"), p));
+                    }
+                }
+            }
+        }
+        for (label, dir) in stores {
+            let d = format!("sql:{}", dir.display());
+            let (dq, cq, nq) = (sh_quote(&d), sh_quote(&ca_s), sh_quote(CA_NAME));
+            let dirq = sh_quote(&dir.to_string_lossy());
+            v.push(TrustStep {
+                description: format!("Add to the NSS database ({label})"),
+                program: "sh".into(),
+                args: vec![
+                    "-c".into(),
+                    format!(
+                        "command -v certutil >/dev/null || {{ echo 'certutil is missing: install libnss3-tools (Debian/Ubuntu) or nss-tools (Fedora)' >&2; exit 1; }}; \
+                         mkdir -p {dirq}; [ -f {dirq}/cert9.db ] || certutil -d {dq} -N --empty-password; \
+                         certutil -d {dq} -D -n {nq} >/dev/null 2>&1; certutil -d {dq} -A -t 'C,,' -n {nq} -i {cq}"
+                    ),
+                ],
+                needs_admin: false,
+            });
+        }
         // System store (curl, php, wget) – needs root; path depends on the distro family.
         if std::path::Path::new("/usr/local/share/ca-certificates").is_dir() {
             v.push(TrustStep {
@@ -216,6 +240,11 @@ pub fn trust_commands(layout: &Layout) -> Vec<TrustStep> {
         }
     }
     v
+}
+
+/// Single-quote a string for `sh -c`.
+fn sh_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\'', "'\\''"))
 }
 
 #[derive(Debug, Clone)]
