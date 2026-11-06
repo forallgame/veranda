@@ -151,8 +151,12 @@ Setiap koneksi dengan waktu, durasi, dan hasilnya; klik tombol terminal untuk te
 
 ## 8. Pembaruan
 
-Saat dibuka, Veranda memeriksa rilis GitHub proyek ini dan menampilkan spanduk; **Update now**
-mengunduh installer bertanda tangan lalu memulai ulang. Di Settings ini bisa dibuat otomatis.
+Veranda memeriksa rilis GitHub proyek ini 8 detik setelah dibuka dan tiap 6 jam, lalu
+menampilkan spanduk; **Update now** mengunduh installer bertanda tangan dan memulai ulang. Dengan
+**Install updates automatically** aktif, unduhan dan mulai ulang terjadi sendiri: saat opsi itu
+dinyalakan, pada tiap pemeriksaan, dan setelah **Check for updates**. Pembaruan mandiri berjalan
+untuk .deb, .rpm, dan AppImage di Linux, installer NSIS/MSI di Windows, dan .app di macOS;
+spanduk memberi tahu bila sebuah pemasangan tidak bisa memperbarui dirinya (pakai halaman rilis).
 Versi layanan (PHP, MariaDB, dan lainnya) diambil dari server vendor masing-masing di tab
 Versions.
 

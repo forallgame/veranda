@@ -879,7 +879,8 @@ function showUpdate(info) {
 async function checkForUpdate(interactive) {
   try {
     const r = await invoke("update_check");
-    if (r) showUpdate(r); else if (interactive) toast(t("msg.upToDate", { version: state.version }), "ok");
+    if (r) { showUpdate(r); if (state.config.update.auto_install && r.installable) $("#btn-update-install").click(); }
+    else if (interactive) toast(t("msg.upToDate", { version: state.version }), "ok");
   } catch (e) { if (interactive) fail(e); }
 }
 $("#btn-check-update").onclick = () => checkForUpdate(true);

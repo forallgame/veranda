@@ -10,6 +10,14 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.13] - 2026-11-06
+
+### Fixed
+- "Install updates automatically" only acted 8 seconds after launch. It now also runs the moment
+  the option is switched on, after "Check for updates", and every 6 hours while Veranda runs.
+- When the signed update feed cannot be used, the banner says why (the updater's own message)
+  instead of only "this install cannot update itself".
+
 ## [0.6.12] - 2026-11-06
 
 ### Fixed

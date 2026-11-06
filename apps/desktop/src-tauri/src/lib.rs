@@ -464,13 +464,19 @@ fn remove_package(state: State<'_, AppState>, kind: String, version: String) -> 
 
 #[tauri::command]
 fn save_config(handle: AppHandle, state: State<'_, AppState>, config: Config) -> CmdResult<()> {
-    let core = {
+    let (core, auto_on) = {
         let mut guard = state.app.lock().map_err(|_| "state poisoned".to_string())?;
         config.validate().map_err(err)?;
+        let auto_on = config.update.auto_install && !guard.config.update.auto_install;
         guard.config = config;
         guard.save_config().map_err(err)?;
-        guard.clone()
+        (guard.clone(), auto_on)
     };
+    if auto_on {
+        // "Install updates automatically" was just switched on: do a round right away.
+        let h = handle.clone();
+        tauri::async_runtime::spawn(async move { auto_update(h).await });
+    }
     // Ports may have moved: services still bound to the old ones are restarted in the background.
     std::thread::spawn(move || heal_stale(&handle, &core));
     Ok(())
@@ -1116,6 +1122,27 @@ struct UpdateInfo {
     url: String,
 }
 
+/// One update round: check, tell the UI, and install when "Install updates automatically" is on
+/// and this install can update itself.
+async fn auto_update(handle: AppHandle) {
+    let state = handle.state::<AppState>();
+    let Ok(core) = open_app(&state) else { return };
+    match update_check(handle.clone(), state.clone()).await {
+        Ok(Some(info)) => {
+            let auto = core.config.update.auto_install && info.installable;
+            let _ = handle.emit("update-available", info);
+            if auto {
+                let _ = handle.emit("update-auto", ());
+                if let Err(e) = update_install(handle.clone(), state.clone()).await {
+                    let _ = handle.emit("update-error", e);
+                }
+            }
+        }
+        Ok(None) => {}
+        Err(e) => tracing::warn!("update check failed: {e}"),
+    }
+}
+
 fn updater_for(app: &AppHandle, core: &Veranda) -> CmdResult<tauri_plugin_updater::Updater> {
     let repo = core.config.update.repo_or_default();
     if !veranda_core::config::is_repo_slug(repo) {
@@ -1141,21 +1168,26 @@ async fn update_check(
     let core = open_app(&state)?;
     let repo = core.config.update.repo_or_default().to_string();
     let page = format!("https://github.com/{repo}/releases/latest");
-    if let Ok(updater) = updater_for(&handle, &core)
-        && let Ok(found) = updater.check().await
-    {
-        return Ok(found.map(|u| UpdateInfo {
-            version: u.version.clone(),
-            notes: u.body.clone().unwrap_or_default(),
-            date: u.date.map(|d| d.to_string()).unwrap_or_default(),
-            installable: true,
-            url: page.clone(),
-        }));
-    }
+    let why = match updater_for(&handle, &core) {
+        Ok(updater) => match updater.check().await {
+            Ok(found) => {
+                return Ok(found.map(|u| UpdateInfo {
+                    version: u.version.clone(),
+                    notes: u.body.clone().unwrap_or_default(),
+                    date: u.date.map(|d| d.to_string()).unwrap_or_default(),
+                    installable: true,
+                    url: page.clone(),
+                }));
+            }
+            Err(e) => e.to_string(),
+        },
+        Err(e) => e,
+    };
+    tracing::warn!("updater feed unusable ({why}); falling back to the GitHub API");
     match veranda_core::update::check(&repo).await.map_err(err)? {
         Some(r) => Ok(Some(UpdateInfo {
             version: r.version,
-            notes: r.notes,
+            notes: format!("{} (updater: {why})", r.notes.lines().next().unwrap_or("")),
             date: r.published_at,
             installable: false,
             url: r.url,
@@ -1554,24 +1586,22 @@ pub fn run() {
                     }
                 }
             });
-            // Background: update check on start (signed feed, falls back to the GitHub API).
+            // Background: update check on start, then every 6 hours (signed feed, GitHub API
+            // fallback). Installs automatically when Settings say so.
             let handle_u = app.handle().clone();
             tauri::async_runtime::spawn(async move {
                 tokio::time::sleep(std::time::Duration::from_secs(8)).await;
-                let state = handle_u.state::<AppState>();
-                let Ok(core) = open_app(&state) else { return };
-                if !core.config.update.check_on_start {
-                    return;
-                }
-                if let Ok(Some(info)) = update_check(handle_u.clone(), state.clone()).await {
-                    let auto = core.config.update.auto_install && info.installable;
-                    let _ = handle_u.emit("update-available", info);
-                    if auto {
-                        let _ = handle_u.emit("update-auto", ());
-                        if let Err(e) = update_install(handle_u.clone(), state.clone()).await {
-                            let _ = handle_u.emit("update-error", e);
-                        }
+                loop {
+                    let check = {
+                        let state = handle_u.state::<AppState>();
+                        open_app(&state)
+                            .map(|c| c.config.update.check_on_start)
+                            .unwrap_or(false)
+                    };
+                    if check {
+                        auto_update(handle_u.clone()).await;
                     }
+                    tokio::time::sleep(std::time::Duration::from_secs(6 * 3600)).await;
                 }
             });
             // Background: periodic database backups.

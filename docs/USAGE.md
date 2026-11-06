@@ -150,8 +150,12 @@ Every connection with its time, duration and outcome; click the terminal button 
 
 ## 8. Updates
 
-Veranda checks the GitHub releases of this project on start and shows a banner; **Update now**
-downloads the signed installer and restarts. Settings can make this automatic. Service versions
+Veranda checks the GitHub releases of this project 8 seconds after start and every 6 hours, and
+shows a banner; **Update now** downloads the signed installer and restarts. With **Install
+updates automatically** on, the download and restart happen by themselves: right when you switch
+it on, at each check, and after **Check for updates**. Self-update works for .deb, .rpm and
+AppImage on Linux, the NSIS/MSI installers on Windows and the .app on macOS; the banner says so
+when an install cannot update itself (then use the release page). Service versions
 (PHP, MariaDB and the rest) are listed from the vendors' own servers in each Versions tab.
 
 ## 9. Where your data is
