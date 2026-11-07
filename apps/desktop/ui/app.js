@@ -705,6 +705,134 @@ $("#form-migrate").onsubmit = async (ev) => {
   refresh(true);
 };
 
+/* ---------------- move to another computer ---------------- */
+const MOVE_SECTIONS = ["veranda", "projects", "ssh", "git", "vscode", "claude", "folders"];
+const fmtBytes = (n) => n >= 1073741824 ? `${(n / 1073741824).toFixed(2)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.ceil(n / 1024)} KB`;
+const move = { folders: [], plan: null, timer: null, manifest: null, canWinget: false };
+const sectionList = (el, infos, checked) => {
+  el.innerHTML = MOVE_SECTIONS.map((id) => {
+    const info = infos.find((x) => x.id === id);
+    const size = info ? t("move.files", { n: info.files, size: fmtBytes(info.bytes) }) : "—";
+    return `<label class="check"><input type="checkbox" name="sec" value="${id}" ${checked(id, info) ? "checked" : ""} ${info ? "" : "disabled"}><span>${t(`move.sec.${id}`)}<small>${esc(size)}</small></span></label>`;
+  }).join("");
+};
+const moveSummary = (p) => t("move.summary", { pkgs: p.packages.length, repos: p.repos.length, exts: p.vscode_extensions.length, tools: p.tools.length });
+const repLine = (cls, label, items) => items.length ? `<div class="rep ${cls}"><b>${label} (${items.length})</b><ul>${items.map((x) => `<li>${esc(x)}</li>`).join("")}</ul></div>` : "";
+function moveRequest(f) {
+  return { file: f.elements.file.value.trim(), password: f.elements.password.value, sections: $$("input[name=sec]:checked", f).map((i) => i.value), folders: move.folders.slice(), include_heavy: f.elements.heavy.checked };
+}
+function renderMoveFolders() {
+  $("#move-folders").innerHTML = move.folders.map((p, i) => `<div class="fold">${ICONS.folder}<span title="${esc(p)}">${esc(p)}</span><button type="button" class="icon-btn small" data-move-rm="${i}" title="${t("btn.remove")}">${ICONS.x}</button></div>`).join("");
+}
+async function refreshMovePlan() {
+  const f = $("#form-move"); const req = moveRequest(f); req.sections = [];
+  $("#move-summary").textContent = t("move.planning");
+  try {
+    move.plan = await invoke("move_plan", { req });
+    const chosen = new Set($$("input[name=sec]:checked", f).map((i) => i.value));
+    const first = !$("input[name=sec]", f);
+    sectionList($("#move-sections"), move.plan.sections, (id, info) => first ? !!info : chosen.has(id));
+    $("#move-summary").textContent = moveSummary(move.plan) + (move.plan.skipped.length ? ` · ${t("move.leftOut").toLowerCase()}: ${move.plan.skipped.length}` : "");
+  } catch (e) { fail(e); }
+}
+async function openMoveDialog() {
+  const f = $("#form-move"); f.reset(); move.folders = []; renderMoveFolders();
+  $("#move-sections").innerHTML = ""; $("#move-report").classList.add("hidden"); $("#move-progress").classList.add("hidden");
+  const d = new Date(), pad = (n) => String(n).padStart(2, "0");
+  const sep = (state.root || "").includes("\\") ? "\\" : "/";
+  f.elements.file.value = `${state.root || ""}${sep}backups${sep}veranda-move-${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}.veranda-move`;
+  $("#dlg-move").showModal();
+  await refreshMovePlan();
+}
+$("#btn-move-create").onclick = openMoveDialog;
+$("#btn-move-add-folder").onclick = async () => {
+  try {
+    const picked = await window.__TAURI__.dialog.open({ directory: true, multiple: true, title: t("move.addFolder") });
+    const list = Array.isArray(picked) ? picked : picked ? [picked] : [];
+    for (const p of list) { const v = typeof p === "string" ? p : p.path; if (v && !move.folders.includes(v)) move.folders.push(v); }
+    renderMoveFolders(); refreshMovePlan();
+  } catch (e) { toast(t("migrate.noPicker"), "info"); }
+};
+$("#move-folders").addEventListener("click", (ev) => { const b = ev.target.closest("[data-move-rm]"); if (!b) return; move.folders.splice(Number(b.dataset.moveRm), 1); renderMoveFolders(); refreshMovePlan(); });
+$("#form-move").addEventListener("change", (ev) => { if (ev.target.name === "heavy") refreshMovePlan(); });
+$("#btn-move-browse").onclick = async () => {
+  try {
+    const p = await window.__TAURI__.dialog.save({ title: t("move.file"), defaultPath: $("#form-move").elements.file.value, filters: [{ name: "Veranda move bundle", extensions: ["veranda-move"] }] });
+    if (p) $("#form-move").elements.file.value = typeof p === "string" ? p : p.path;
+  } catch (e) { toast(t("migrate.noPicker"), "info"); }
+};
+listen("move-progress", (ev) => { for (const id of ["#move-progress", "#restore-progress"]) { const el = $(id); if (!el.classList.contains("hidden")) $(".txt", el).textContent = ev.payload; } });
+$("#form-move").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  if (f.elements.password.value !== f.elements.confirm.value) { toast(t("rm.pwMismatch"), "bad"); f.elements.confirm.focus(); return; }
+  if (f.elements.password.value.length < 8) { toast(t("move.pwShort"), "bad"); f.elements.password.focus(); return; }
+  const req = moveRequest(f);
+  if (!req.sections.length) { toast(t("move.nothing"), "bad"); return; }
+  const btn = $("#btn-move-run"); btn.disabled = true;
+  const prog = $("#move-progress"); prog.classList.remove("hidden"); $(".txt", prog).textContent = t("move.working");
+  $("#move-report").classList.add("hidden");
+  try {
+    const m = await invoke("move_create", { req });
+    const total = m.sections.reduce((a, s) => a + s.bytes, 0), files = m.sections.reduce((a, s) => a + s.files, 0);
+    $("#move-report").innerHTML = `<div class="rep ok"><b>${esc(t("move.created", { file: req.file }))}</b><ul><li>${esc(t("move.files", { n: files, size: fmtBytes(total) }))}</li><li>${esc(moveSummary(m))}</li></ul></div>`;
+    $("#move-report").classList.remove("hidden");
+    toast(t("move.created", { file: req.file }), "ok");
+  } catch (e) { fail(e); }
+  prog.classList.add("hidden"); btn.disabled = false;
+};
+async function openRestoreDialog() {
+  const f = $("#form-restore"); f.reset(); move.manifest = null;
+  $("#restore-info").classList.add("hidden"); $("#restore-report").classList.add("hidden"); $("#restore-progress").classList.add("hidden");
+  $("#btn-restore-run").disabled = true;
+  try { move.canWinget = await invoke("move_can_winget"); } catch (e) { move.canWinget = false; }
+  $("#restore-winget-row").classList.toggle("hidden", !move.canWinget);
+  $("#dlg-restore").showModal();
+}
+$("#btn-move-restore").onclick = openRestoreDialog;
+$("#btn-restore-browse").onclick = async () => {
+  try {
+    const p = await window.__TAURI__.dialog.open({ multiple: false, title: t("move.bundle"), filters: [{ name: "Veranda move bundle", extensions: ["veranda-move"] }] });
+    if (p) $("#form-restore").elements.file.value = typeof p === "string" ? p : p.path;
+  } catch (e) { toast(t("migrate.noPicker"), "info"); }
+};
+function showManifest(m) {
+  move.manifest = m;
+  $("#restore-from").textContent = t("move.from", { host: m.hostname || "?", os: m.from_os, date: m.created, ver: m.veranda_version });
+  sectionList($("#restore-sections"), m.sections, (id, info) => !!info);
+  $("#restore-summary").textContent = moveSummary(m);
+  $("#restore-info").classList.remove("hidden"); $("#btn-restore-run").disabled = false;
+}
+$("#btn-restore-check").onclick = async () => {
+  const f = $("#form-restore"); const file = f.elements.file.value.trim(), password = f.elements.password.value;
+  if (!file || !password) { toast(t("move.nothing"), "info"); return; }
+  const b = $("#btn-restore-check"); b.disabled = true;
+  try { showManifest(await invoke("move_inspect", { file, password })); } catch (e) { fail(e); }
+  b.disabled = false;
+};
+$("#form-restore").onsubmit = async (ev) => {
+  ev.preventDefault(); const f = ev.target;
+  if (!move.manifest) { $("#btn-restore-check").click(); return; }
+  const sections = $$("input[name=sec]:checked", f).map((i) => i.value);
+  if (!sections.length) { toast(t("move.nothing"), "bad"); return; }
+  const btn = $("#btn-restore-run"); btn.disabled = true; $("#btn-restore-check").disabled = true;
+  const prog = $("#restore-progress"); prog.classList.remove("hidden"); $(".txt", prog).textContent = t("move.working");
+  $("#restore-report").classList.add("hidden");
+  try {
+    const r = await invoke("move_restore", { req: { file: f.elements.file.value.trim(), password: f.elements.password.value, sections } });
+    let html = `<div class="rep ok"><b>${esc(t("move.restored", { n: r.restored, size: fmtBytes(r.bytes) }))}</b>${r.backup_dir ? `<ul><li>${esc(t("move.backupDir", { dir: r.backup_dir }))}</li></ul>` : ""}</div>`;
+    html += repLine("", t("move.skipped"), r.skipped) + repLine("bad", t("move.failed"), r.failed);
+    if (f.elements.finish.checked) {
+      const fin = await invoke("move_finish", { req: { manifest: r.manifest, packages: r.manifest.packages, repos: r.repos_to_clone, extensions: r.manifest.vscode_extensions, tools: f.elements.winget.checked && move.canWinget ? r.tools_missing : [] } });
+      html += repLine("ok", t("move.installed"), fin.installed) + repLine("bad", t("move.failed"), fin.failed);
+    }
+    if (r.tools_missing.length && !(f.elements.winget.checked && move.canWinget)) html += repLine("", t("move.leftOut"), r.tools_missing.map((x) => `${x.label} (winget install --id ${x.winget})`));
+    $("#restore-report").innerHTML = html; $("#restore-report").classList.remove("hidden");
+    toast(t("move.done"), r.failed.length ? "info" : "ok");
+    refresh(true);
+  } catch (e) { fail(e); }
+  prog.classList.add("hidden"); btn.disabled = false; $("#btn-restore-check").disabled = false;
+};
+
 /* ---------------- database ---------------- */
 function renderDatabase() {
   $("#db-host").textContent = `127.0.0.1:${state.config.db.port}`;
@@ -994,6 +1122,8 @@ async function autotest(name) {
     } catch (e) { report(`ERROR ${e?.message || e}`); }
   } else if (name === "projectdlg") { showTab("sites"); $("#btn-new-project").click(); report("open");
   } else if (name === "migratedlg") { showTab("sites"); await openMigrate(); report("open");
+  } else if (name === "movedlg") { showTab("settings"); await openMoveDialog(); await new Promise((r) => setTimeout(r, 1500)); report(`plan=${JSON.stringify(move.plan?.sections.map((x) => `${x.id}:${x.files}`))}`);
+  } else if (name === "restoredlg") { showTab("settings"); await openRestoreDialog(); report(`open card=${!!$("#btn-move-create")}`);
   } else if (name === "svcgroupdlg") { showTab("dashboard"); openGroupSvcDialog({ name: "Web stack", services: ["web", "php", "db"] }); report("open");
   } else if (window.VerandaRemote?.autotest) {
     await window.VerandaRemote.autotest(name, report);

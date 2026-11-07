@@ -1,6 +1,7 @@
 //! Tauri shell around `veranda-core`: commands for the web UI, tray icon, background jobs.
 
 mod remote;
+mod transfer;
 
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
@@ -1785,6 +1786,12 @@ pub fn run() {
             remote::remote_delete_group,
             remote::remote_save_identity,
             remote::remote_delete_identity,
+            transfer::move_plan,
+            transfer::move_create,
+            transfer::move_inspect,
+            transfer::move_restore,
+            transfer::move_finish,
+            transfer::move_can_winget,
             remote::remote_save_snippet,
             remote::snippet_lock_set,
             remote::snippet_unlock,

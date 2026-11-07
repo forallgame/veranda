@@ -10,6 +10,18 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.19] - 2026-11-07
+
+### Added
+- **Move to another computer** (Settings, and `veranda move create|inspect|restore`): one
+  password-protected `.veranda-move` bundle (PBKDF2 + AES-256-GCM, chunked and authenticated)
+  with Veranda settings, sites, local CA, remote hosts/keys/snippets and their keyring
+  passwords, projects, `~/.ssh`, git config and credentials, VS Code settings/keybindings/
+  snippets, Claude Code settings/skills/agents/memory/login, and any extra folders. The bundle
+  lists installed packages, git repositories, VS Code extensions and developer tools; restore
+  puts files back (existing ones go to `backups/move-<date>`), reinstalls the packages, clones
+  missing repositories, installs extensions and, on Windows, missing tools via winget.
+
 ## [0.6.18] - 2026-11-07
 
 ### Changed

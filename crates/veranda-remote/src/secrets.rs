@@ -151,6 +151,45 @@ impl Secrets {
     }
 }
 
+/// Every secret the store refers to, keyed like the credential store, for moving to another
+/// computer. Entries that are missing (never saved, or the OS store refused) are left out.
+pub fn export_all(
+    secrets: &Secrets,
+    store: &crate::store::Store,
+) -> Result<BTreeMap<String, String>> {
+    let mut keys: Vec<String> = vec![];
+    for h in store.hosts.iter().filter(|h| h.has_password) {
+        keys.push(host_password_key(&h.id));
+    }
+    for i in store.identities.iter().filter(|i| i.has_password) {
+        keys.push(identity_password_key(&i.id));
+    }
+    for k in store.keys.iter().filter(|k| k.has_passphrase) {
+        keys.push(key_passphrase_key(&k.id));
+    }
+    let mut out = BTreeMap::new();
+    for k in keys {
+        if let Some(v) = secrets.get(&k)? {
+            out.insert(k, v);
+        }
+    }
+    Ok(out)
+}
+
+/// Store exported secrets on this computer. Returns how many were written.
+pub fn import_all(secrets: &Secrets, map: &BTreeMap<String, String>) -> Result<usize> {
+    let mut n = 0;
+    for (k, v) in map {
+        if !v.is_empty()
+            && (k.starts_with("host:") || k.starts_with("identity:") || k.starts_with("key:"))
+        {
+            secrets.set(k, v)?;
+            n += 1;
+        }
+    }
+    Ok(n)
+}
+
 pub fn host_password_key(id: &str) -> String {
     format!("host:{id}:password")
 }

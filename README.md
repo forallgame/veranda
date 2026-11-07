@@ -49,6 +49,10 @@ only the parts you need; nothing is forced on you and nothing runs that you did 
   terminal tabs, SFTP with drag and drop, port forwarding (local, remote, SOCKS5), snippets,
   keys and identities, known hosts and history. Keys and passwords stay on your computer, in the
   operating system's credential store.
+- **Moves with you.** Settings > Move to another computer packs your setup, projects, SSH and
+  git keys, VS Code and Claude Code settings into one encrypted file; restore it on the new
+  machine (any OS) and Veranda reinstalls the packages, clones your repositories and installs
+  your extensions again.
 - **Linux, Windows and macOS**, dark and light mode.
 
 ## Install

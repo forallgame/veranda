@@ -31,6 +31,7 @@ semver.workspace = true
 regex.workspace = true
 which.workspace = true
 tempfile.workspace = true
+ring.workspace = true
 
 [dev-dependencies]
 tempfile.workspace = true

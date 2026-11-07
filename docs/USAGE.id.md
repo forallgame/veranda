@@ -84,6 +84,28 @@ dan pembaruan. **Trust local CA** memasang otoritas sertifikat Veranda ke penyim
 `https://*.test` tidak memberi peringatan. **Config file** membuka `veranda.toml` untuk pengaturan
 yang tidak ada di formulir.
 
+### Pindah ke komputer lain
+**Buat paket pindahan** mengemas semua yang bersifat pribadi ke satu file `.veranda-move` yang
+dilindungi kata sandi (PBKDF2 + AES-256-GCM): pengaturan Veranda, situs, CA lokal, host remote,
+kunci, snippet beserta kata sandinya; proyek di document root (tanpa `node_modules`, `vendor`,
+`target`, dan sejenisnya kecuali Anda centang "Ikutkan"); `~/.ssh`; konfigurasi dan kredensial
+git; setelan, keybinding, dan snippet VS Code; setelan Claude Code, CLAUDE.md, skill, agent,
+command, plugin, memori proyek, dan login (tidak pernah transkrip sesi atau cache); serta folder
+tambahan yang Anda pilih. Paket juga mencatat paket Veranda yang terpasang, repository git
+(remote dan branch), ekstensi VS Code, dan tools developer yang ada di `PATH`.
+
+Di komputer baru, pasang Veranda, buka Settings, **Pulihkan paket**, pilih file dan kata
+sandi, centang bagian yang diinginkan, lalu tekan Pulihkan. File yang sudah ada dipindahkan dulu
+ke `backups/move-<tanggal>`. Setelah itu Veranda memasang ulang versi paket yang sama (atau yang
+paling dekat untuk platform itu), meng-clone repository yang belum ada, memasang ekstensi VS Code
+bila `code` ada di `PATH`, dan di Windows bisa memasang tools yang hilang lewat `winget`.
+Programnya sendiri tidak pernah ikut: biner Linux tidak bisa jalan di Windows.
+
+Dari terminal juga bisa: `veranda move create <file>` (tambah `--dry-run` untuk melihat ukuran,
+`--folder <path>` untuk folder tambahan, `--only ssh --only git` untuk membatasi), `veranda move
+inspect <file>`, dan `veranda move restore <file>`. Kata sandi diambil dari
+`VERANDA_MOVE_PASSWORD` atau ditanyakan. Kata sandi yang terlupa tidak bisa dipulihkan.
+
 ## 7. Remote (klien SSH)
 
 ### Hosts

@@ -83,6 +83,28 @@ backups and updates. **Trust local CA** installs Veranda's certificate authority
 browser's store so `https://*.test` shows no warning. **Config file** opens `veranda.toml` for
 anything not in the form.
 
+### Move to another computer
+**Create bundle** packs everything personal into one `.veranda-move` file protected by a
+password (PBKDF2 + AES-256-GCM): Veranda settings, sites, the local CA, remote hosts, keys,
+snippets and their passwords; the projects in the document root (without `node_modules`,
+`vendor`, `target` and the like unless you tick "Keep"); `~/.ssh`; git config and credentials;
+VS Code settings, keybindings and snippets; Claude Code settings, CLAUDE.md, skills, agents,
+commands, plugins, project memory and login (never session transcripts or caches); and any
+extra folders you add. The bundle also records the installed Veranda packages, git repositories
+(remote and branch), VS Code extensions and developer tools found on `PATH`.
+
+On the new computer, install Veranda, open Settings, **Restore a bundle**, pick the file and
+the password, tick the parts you want and press Restore. Files that already exist are moved to
+`backups/move-<date>` first. Afterwards Veranda reinstalls the same package versions (or the
+closest available for that platform), clones repositories that are missing, installs the VS
+Code extensions when `code` is on `PATH`, and on Windows can install missing tools with
+`winget`. Programs themselves never travel: a Linux binary does not run on Windows.
+
+The same works from the terminal: `veranda move create <file>` (add `--dry-run` to see sizes,
+`--folder <path>` for extra folders, `--only ssh --only git` to limit), `veranda move inspect
+<file>` and `veranda move restore <file>`. The password comes from `VERANDA_MOVE_PASSWORD` or a
+prompt. There is no recovery for a forgotten password.
+
 ## 7. Remote (SSH client)
 
 ### Hosts

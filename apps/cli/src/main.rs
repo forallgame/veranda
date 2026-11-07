@@ -104,6 +104,45 @@ enum Cmd {
     Update,
     /// Dump all databases now.
     Backup,
+    /// Move your setup to another computer: pack data, keys and settings into one encrypted
+    /// file, or restore such a file here (password from VERANDA_MOVE_PASSWORD or a prompt).
+    Move {
+        #[command(subcommand)]
+        cmd: MoveCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum MoveCmd {
+    /// Write a bundle. Keyring passwords of remote hosts are only exported by the desktop app.
+    Create {
+        /// Output file (`.veranda-move`).
+        file: PathBuf,
+        /// Only these parts: veranda, projects, ssh, git, vscode, claude, folders (repeatable).
+        #[arg(long = "only")]
+        only: Vec<String>,
+        /// Extra folder to include (repeatable).
+        #[arg(long = "folder")]
+        folders: Vec<PathBuf>,
+        /// Keep node_modules, vendor, target and similar folders.
+        #[arg(long)]
+        heavy: bool,
+        /// Show what would be included and stop.
+        #[arg(long)]
+        dry_run: bool,
+    },
+    /// Show what a bundle contains.
+    Inspect { file: PathBuf },
+    /// Unpack a bundle here, then reinstall packages and clone missing repositories.
+    Restore {
+        file: PathBuf,
+        /// Only these parts (see `create --only`).
+        #[arg(long = "only")]
+        only: Vec<String>,
+        /// Do not reinstall packages, clone repositories or install extensions afterwards.
+        #[arg(long)]
+        no_finish: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -759,6 +798,211 @@ async fn run(cli: Cli) -> Result<()> {
             let app = Veranda::open()?;
             let p = veranda_core::backup::run(&app)?;
             println!("backup written to {}", p.display());
+        }
+        Cmd::Move { cmd } => move_cmd(cmd, cli.json).await?,
+    }
+    Ok(())
+}
+
+fn move_password(confirm: bool) -> Result<String> {
+    if let Ok(p) = std::env::var("VERANDA_MOVE_PASSWORD")
+        && !p.is_empty()
+    {
+        return Ok(p);
+    }
+    use std::io::Write;
+    let ask = |label: &str| -> Result<String> {
+        print!("{label}: ");
+        std::io::stdout().flush()?;
+        let mut s = String::new();
+        std::io::stdin().read_line(&mut s)?;
+        Ok(s.trim_end_matches(['\r', '\n']).to_string())
+    };
+    let p = ask("bundle password (typed visibly; or set VERANDA_MOVE_PASSWORD)")?;
+    if confirm && ask("repeat password")? != p {
+        bail!("the passwords do not match");
+    }
+    Ok(p)
+}
+
+fn human(n: u64) -> String {
+    if n >= 1 << 30 {
+        format!("{:.2} GB", n as f64 / (1u64 << 30) as f64)
+    } else if n >= 1 << 20 {
+        format!("{:.1} MB", n as f64 / (1u64 << 20) as f64)
+    } else {
+        format!("{} KB", n.div_ceil(1024))
+    }
+}
+
+async fn move_cmd(cmd: MoveCmd, json: bool) -> Result<()> {
+    use veranda_core::transfer::{self, CreateRequest, Homes, RestoreRequest};
+    let app = Veranda::open()?;
+    let homes = Homes::current(&app.layout)?;
+    let say = |m: String| eprintln!("  {m}");
+    match cmd {
+        MoveCmd::Create {
+            file,
+            only,
+            folders,
+            heavy,
+            dry_run,
+        } => {
+            let mut req = CreateRequest {
+                file: file.clone(),
+                sections: only,
+                folders,
+                include_heavy: heavy,
+                ..Default::default()
+            };
+            let plan = transfer::plan(&homes, &req)?;
+            if json && dry_run {
+                println!("{}", serde_json::to_string_pretty(&plan)?);
+                return Ok(());
+            }
+            println!("will pack:");
+            for s in &plan.sections {
+                println!("  {:<9} {:>6} files  {}", s.id, s.files, human(s.bytes));
+            }
+            println!(
+                "  plus {} package(s), {} repositor{}, {} VS Code extension(s), {} tool(s) to reinstall",
+                plan.packages.len(),
+                plan.repos.len(),
+                if plan.repos.len() == 1 { "y" } else { "ies" },
+                plan.vscode_extensions.len(),
+                plan.tools.len()
+            );
+            for s in &plan.skipped {
+                println!("  left out: {s}");
+            }
+            if dry_run {
+                return Ok(());
+            }
+            req.password = move_password(true)?;
+            let m = transfer::create(&homes, &req, &say)?;
+            println!(
+                "bundle written to {} ({} in {} files); keep the password safe, there is no recovery",
+                file.display(),
+                human(m.total_bytes()),
+                m.sections.iter().map(|s| s.files).sum::<usize>()
+            );
+        }
+        MoveCmd::Inspect { file } => {
+            let m = transfer::inspect(&file, &move_password(false)?)?;
+            if json {
+                println!("{}", serde_json::to_string_pretty(&m)?);
+                return Ok(());
+            }
+            println!(
+                "made {} on {} ({}), Veranda {}",
+                m.created, m.hostname, m.from_os, m.veranda_version
+            );
+            for s in &m.sections {
+                println!("  {:<9} {:>6} files  {}", s.id, s.files, human(s.bytes));
+            }
+            for p in &m.packages {
+                println!("  package  {} {}", p.kind, p.version);
+            }
+            for r in &m.repos {
+                println!(
+                    "  repo     {} ({}{})",
+                    r.path,
+                    r.remote,
+                    if r.included { ", included" } else { "" }
+                );
+            }
+            for e in &m.vscode_extensions {
+                println!("  vscode   {e}");
+            }
+            for t in &m.tools {
+                println!("  tool     {} (winget {})", t.label, t.winget);
+            }
+        }
+        MoveCmd::Restore {
+            file,
+            only,
+            no_finish,
+        } => {
+            let req = RestoreRequest {
+                file,
+                password: move_password(false)?,
+                sections: only,
+            };
+            let rep = transfer::restore(&homes, &req, &say)?;
+            println!("restored {} files ({})", rep.restored, human(rep.bytes));
+            if let Some(b) = &rep.backup_dir {
+                println!("replaced files were moved to {b}");
+            }
+            for s in &rep.skipped {
+                println!("  skipped: {s}");
+            }
+            for f in &rep.failed {
+                println!("  failed: {f}");
+            }
+            let export = app.layout.etc().join("remote").join("secrets-export.json");
+            if export.is_file() {
+                println!(
+                    "note: remote host passwords are in {} - open the desktop app to move them into the credential store",
+                    export.display()
+                );
+            }
+            if no_finish {
+                return Ok(());
+            }
+            let app = Veranda::open()?;
+            let reg = Registry::load(&app.layout)?;
+            let p = Platform::current();
+            let builtin = Manifest::builtin()?;
+            for pk in &rep.manifest.packages {
+                let Ok(kind) = pk.kind.parse::<Kind>() else {
+                    continue;
+                };
+                if reg.find(kind, &pk.version).is_some() {
+                    continue;
+                }
+                let pkg = match builtin
+                    .versions(kind, p)
+                    .into_iter()
+                    .find(|x| x.version == pk.version)
+                    .cloned()
+                {
+                    Some(x) => x,
+                    None => match veranda_core::resolve::versions(kind, p).await {
+                        Ok(v) => match v.into_iter().find(|x| x.version == pk.version) {
+                            Some(x) => x,
+                            None => {
+                                println!(
+                                    "  {} {} is not available for this platform; install another version later",
+                                    kind.display(),
+                                    pk.version
+                                );
+                                continue;
+                            }
+                        },
+                        Err(e) => {
+                            println!("  {} {}: {e}", kind.display(), pk.version);
+                            continue;
+                        }
+                    },
+                };
+                println!("installing {} {}…", kind.display(), pkg.version);
+                if let Err(e) = veranda_core::packages::install(&app.layout, &pkg, None).await {
+                    println!("  failed: {e:#}");
+                }
+            }
+            for f in transfer::clone_repos(&homes, &rep.manifest, &rep.repos_to_clone, &say) {
+                println!("  clone failed: {f}");
+            }
+            for f in transfer::install_vscode_extensions(&rep.manifest.vscode_extensions, &say) {
+                println!("  extension failed: {f}");
+            }
+            if !rep.tools_missing.is_empty() {
+                println!("tools that were on the old computer and are missing here:");
+                for t in &rep.tools_missing {
+                    println!("  {}  (Windows: winget install --id {})", t.label, t.winget);
+                }
+            }
+            let _ = services::prepare_all(&app);
         }
     }
     Ok(())

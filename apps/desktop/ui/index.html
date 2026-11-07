@@ -318,6 +318,14 @@
             <label class="check"><input type="checkbox" name="update.auto_install"><span data-i18n="settings.autoInstall">Install updates automatically</span></label>
           </div>
         </section>
+        <section class="card" id="move-card">
+          <h2 data-i18n="move.title">Move to another computer</h2>
+          <p class="sub" data-i18n="move.hint">Pack your Veranda setup, projects, SSH and git keys, VS Code and Claude Code settings into one password-protected file. On the new computer (Linux, Windows or macOS) restore it with Veranda; packages, repositories and extensions are installed again there.</p>
+          <div class="btn-row">
+            <button type="button" class="btn primary" id="btn-move-create"><i class="ic" data-icon="download"></i><span data-i18n="move.create">Create bundle</span></button>
+            <button type="button" class="btn" id="btn-move-restore"><i class="ic" data-icon="upload"></i><span data-i18n="move.restore">Restore a bundle</span></button>
+          </div>
+        </section>
         <div class="actions-row">
           <button type="button" class="btn" id="btn-check-update" data-i18n="btn.checkUpdate">Check for updates</button>
           <button type="submit" class="btn primary" data-i18n="btn.save">Save</button>
@@ -338,6 +346,52 @@
     <div class="actions-row">
       <button type="button" class="btn" id="btn-project-cancel" data-i18n="btn.cancel">Cancel</button>
       <button type="submit" class="btn primary" data-i18n="btn.create">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-move" class="wide">
+  <form method="dialog" id="form-move">
+    <h2 data-i18n="move.create">Create bundle</h2>
+    <p class="sub" data-i18n="move.createHint">Tick what to take along. Programs are not copied; the bundle remembers which packages, repositories, VS Code extensions and tools you had so they can be installed again.</p>
+    <div class="move-sections" id="move-sections"></div>
+    <div class="move-folders" id="move-folders"></div>
+    <div class="btn-row"><button type="button" class="btn small" id="btn-move-add-folder"><i class="ic" data-icon="folder"></i><span data-i18n="move.addFolder">Add folder</span></button>
+      <label class="check"><input type="checkbox" name="heavy"><span data-i18n="move.heavy">Keep node_modules, vendor, target</span></label></div>
+    <p class="sub mono" id="move-summary"></p>
+    <label><span data-i18n="move.file">Save as</span><input name="file" required spellcheck="false"><button type="button" class="btn small" id="btn-move-browse" data-i18n="btn.browse">Browse</button></label>
+    <div class="two">
+      <label><span data-i18n="db.password">Password</span><input type="password" name="password" minlength="8" autocomplete="new-password" required></label>
+      <label><span data-i18n="rm.confirmPassword">Confirm</span><input type="password" name="confirm" minlength="8" autocomplete="new-password" required></label>
+    </div>
+    <p class="sub" data-i18n="move.noRecovery">There is no recovery: without the password the bundle cannot be opened.</p>
+    <div class="progress hidden" id="move-progress"><svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg><span class="txt"></span></div>
+    <div id="move-report" class="report hidden"></div>
+    <div class="actions-row">
+      <button type="button" class="btn" data-close="dlg-move" data-i18n="btn.close">Close</button>
+      <button type="submit" class="btn primary" id="btn-move-run" data-i18n="move.createNow">Create</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="dlg-restore" class="wide">
+  <form method="dialog" id="form-restore">
+    <h2 data-i18n="move.restore">Restore a bundle</h2>
+    <label><span data-i18n="move.bundle">Bundle</span><input name="file" required spellcheck="false"><button type="button" class="btn small" id="btn-restore-browse" data-i18n="btn.browse">Browse</button></label>
+    <label><span data-i18n="db.password">Password</span><input type="password" name="password" autocomplete="current-password" required><button type="button" class="btn small" id="btn-restore-check" data-i18n="move.check">Open</button></label>
+    <div id="restore-info" class="hidden">
+      <p class="sub" id="restore-from"></p>
+      <div class="move-sections" id="restore-sections"></div>
+      <p class="sub mono" id="restore-summary"></p>
+      <label class="check"><input type="checkbox" name="finish" checked><span data-i18n="move.finish">Afterwards reinstall packages, clone missing repositories and install VS Code extensions</span></label>
+      <label class="check hidden" id="restore-winget-row"><input type="checkbox" name="winget"><span data-i18n="move.winget">Install missing tools with winget</span></label>
+      <p class="sub" data-i18n="move.backupNote">Files that already exist here are moved to backups/move-&lt;date&gt; before being replaced.</p>
+    </div>
+    <div class="progress hidden" id="restore-progress"><svg class="spin" viewBox="0 0 24 24"><path d="M12 2a10 10 0 1 0 10 10h-2.5A7.5 7.5 0 1 1 12 4.5z"/></svg><span class="txt"></span></div>
+    <div id="restore-report" class="report hidden"></div>
+    <div class="actions-row">
+      <button type="button" class="btn" data-close="dlg-restore" data-i18n="btn.close">Close</button>
+      <button type="submit" class="btn primary" id="btn-restore-run" data-i18n="move.restoreNow" disabled>Restore</button>
     </div>
   </form>
 </dialog>

@@ -50,6 +50,10 @@ berjalan tanpa Anda nyalakan.
   terminal, SFTP dengan seret-lepas, port forwarding (local, remote, SOCKS5), snippet, kunci dan
   identitas, known hosts, serta riwayat. Kunci dan kata sandi tetap di komputer Anda, di
   penyimpanan kredensial sistem operasi.
+- **Ikut pindah.** Settings > Pindah ke komputer lain mengemas pengaturan, proyek, kunci SSH
+  dan git, setelan VS Code dan Claude Code ke satu file terenkripsi; pulihkan di komputer baru
+  (OS apa pun) dan Veranda memasang ulang paket, meng-clone repository, dan memasang ekstensi
+  Anda lagi.
 - **Linux, Windows, dan macOS**, mode gelap dan terang.
 
 ## Pemasangan

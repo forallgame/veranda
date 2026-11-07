@@ -199,6 +199,23 @@ fn core_of(app: &AppHandle) -> CmdResult<Veranda> {
     open_app(&app.state::<AppState>())
 }
 
+/// Keyring secrets of the remote store as JSON, for a move bundle.
+pub fn export_secrets(app: &AppHandle) -> anyhow::Result<Vec<u8>> {
+    let core = core_of(app).map_err(anyhow::Error::msg)?;
+    let rs = app.state::<RemoteState>();
+    let store = Store::load(&core.layout)?;
+    let map = secrets::export_all(&rs.secrets(&core), &store)?;
+    Ok(serde_json::to_vec_pretty(&map)?)
+}
+
+/// Put exported secrets into this computer's credential store; returns how many.
+pub fn import_secrets(app: &AppHandle, json: &[u8]) -> anyhow::Result<usize> {
+    let core = core_of(app).map_err(anyhow::Error::msg)?;
+    let rs = app.state::<RemoteState>();
+    let map: std::collections::BTreeMap<String, String> = serde_json::from_slice(json)?;
+    secrets::import_all(&rs.secrets(&core), &map)
+}
+
 /* ---------------- prompts ---------------- */
 
 #[derive(Clone, Deserialize)]

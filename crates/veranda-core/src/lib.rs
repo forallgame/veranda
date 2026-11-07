@@ -23,6 +23,7 @@ pub mod services;
 pub mod sites;
 pub mod tls;
 pub mod tools;
+pub mod transfer;
 pub mod tunnel;
 pub mod update;
 
