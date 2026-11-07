@@ -706,7 +706,7 @@ $("#form-migrate").onsubmit = async (ev) => {
 };
 
 /* ---------------- move to another computer ---------------- */
-const MOVE_SECTIONS = ["veranda", "projects", "ssh", "git", "vscode", "claude", "folders"];
+const MOVE_SECTIONS = ["veranda", "projects", "databases", "ssh", "git", "vscode", "claude", "folders"];
 const fmtBytes = (n) => n >= 1073741824 ? `${(n / 1073741824).toFixed(2)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.ceil(n / 1024)} KB`;
 const move = { folders: [], plan: null, timer: null, manifest: null, canWinget: false };
 const sectionList = (el, infos, checked) => {
@@ -732,7 +732,7 @@ async function refreshMovePlan() {
     const chosen = new Set($$("input[name=sec]:checked", f).map((i) => i.value));
     const first = !$("input[name=sec]", f);
     sectionList($("#move-sections"), move.plan.sections, (id, info) => first ? !!info : chosen.has(id));
-    $("#move-summary").textContent = moveSummary(move.plan) + (move.plan.skipped.length ? ` · ${t("move.leftOut").toLowerCase()}: ${move.plan.skipped.length}` : "");
+    $("#move-summary").textContent = moveSummary(move.plan) + (move.plan.notes.length ? ` · ${move.plan.notes.join(" · ")}` : "") + (move.plan.skipped.length ? ` · ${t("move.leftOut").toLowerCase()}: ${move.plan.skipped.length}` : "");
   } catch (e) { fail(e); }
 }
 async function openMoveDialog() {
@@ -834,10 +834,10 @@ $("#form-restore").onsubmit = async (ev) => {
   $("#restore-report").classList.add("hidden");
   try {
     const r = await invoke("move_restore", { req: { file: f.elements.file.value.trim(), password: f.elements.password.value, sections } });
-    let html = `<div class="rep ok"><b>${esc(t("move.restored", { n: r.restored, size: fmtBytes(r.bytes) }))}</b>${r.backup_dir ? `<ul><li>${esc(t("move.backupDir", { dir: r.backup_dir }))}</li></ul>` : ""}</div>`;
+    let html = `<div class="rep ok"><b>${esc(t("move.restored", { n: r.restored, size: fmtBytes(r.bytes) }))}</b>${r.backup_dir ? `<ul><li>${esc(t("move.backupDir", { n: r.replaced, dir: r.backup_dir }))}</li></ul>` : ""}</div>`;
     html += repLine("", t("move.skipped"), r.skipped) + repLine("bad", t("move.failed"), r.failed);
     if (f.elements.finish.checked) {
-      const fin = await invoke("move_finish", { req: { manifest: r.manifest, packages: r.manifest.packages, repos: r.repos_to_clone, extensions: r.manifest.vscode_extensions, tools: f.elements.winget.checked && move.canWinget ? r.tools_missing : [] } });
+      const fin = await invoke("move_finish", { req: { manifest: r.manifest, packages: r.manifest.packages, repos: r.repos_to_clone, extensions: r.manifest.vscode_extensions, tools: f.elements.winget.checked && move.canWinget ? r.tools_missing : [], database_dumps: r.database_dumps } });
       html += repLine("ok", t("move.installed"), fin.installed) + repLine("bad", t("move.failed"), fin.failed);
     }
     if (r.tools_missing.length && !(f.elements.winget.checked && move.canWinget)) html += repLine("", t("move.leftOut"), r.tools_missing.map((x) => `${x.label} (winget install --id ${x.winget})`));

@@ -96,7 +96,16 @@ folder home dan drive yang terpasang; daftar pilihan Anda diingat untuk paket be
 juga mencatat paket Veranda yang terpasang, repository git (remote dan branch), ekstensi VS
 Code, dan tools developer yang ada di `PATH`. Setelan per proyek (`.vscode/`, `.claude/`,
 `CLAUDE.md`, `.env`) ikut di dalam folder proyeknya, dan memori per proyek Claude Code
-dihubungkan ulang ke path baru folder itu setelah pemulihan.
+dihubungkan ulang ke path baru folder itu setelah pemulihan. **Database** menambahkan dump SQL
+segar dari database MariaDB/MySQL Anda saat server berjalan (kalau tidak, backup terbaru buatan
+Veranda); PostgreSQL belum termasuk.
+
+Pemulihan tidak pernah menghapus apa pun. File yang sudah ada di komputer baru dipindahkan ke
+`backups/move-<tanggal>` sebelum salinan dari paket menggantikannya, dan file yang tidak ada di
+paket tetap seperti semula. Jadi memulihkan ke komputer yang sudah berisi data berarti
+menggabungkan keduanya: file bernama sama diambil dari paket, sisanya dipertahankan. Dump
+database dimuat ke database yang berjalan (dinyalakan bila perlu) oleh langkah penyelesaian, atau
+nanti dengan `veranda db import <file>`; database bernama sama ditimpa oleh dump.
 
 Paket adalah potret sesaat, bukan sinkronisasi: buat yang baru tepat sebelum pindah komputer.
 

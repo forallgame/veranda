@@ -207,6 +207,10 @@ enum DbCmd {
         new: Option<String>,
     },
     Backup,
+    /// Load a plain SQL dump (for example from a move bundle) into the running server.
+    Import {
+        file: PathBuf,
+    },
 }
 
 #[derive(Subcommand)]
@@ -663,6 +667,16 @@ async fn run(cli: Cli) -> Result<()> {
                     let p = veranda_core::backup::run(&app)?;
                     println!("backup written to {}", p.display());
                 }
+                DbCmd::Import { file } => {
+                    let reg = Registry::load(&app.layout)?;
+                    let db = veranda_core::db::DbCtx::from_app(&app, &reg)
+                        .context("database is not installed")?;
+                    if !veranda_core::process::port_accepting(db.port) {
+                        bail!("database is not running");
+                    }
+                    veranda_core::db::import_file(&db, &file)?;
+                    println!("loaded {}", file.display());
+                }
             }
         }
         Cmd::Ssl { cmd } => {
@@ -877,6 +891,9 @@ async fn move_cmd(cmd: MoveCmd, json: bool) -> Result<()> {
             for s in &plan.skipped {
                 println!("  left out: {s}");
             }
+            for n in &plan.notes {
+                println!("  note: {n}");
+            }
             if dry_run {
                 return Ok(());
             }
@@ -946,7 +963,10 @@ async fn move_cmd(cmd: MoveCmd, json: bool) -> Result<()> {
             let rep = transfer::restore(&homes, &req, &say)?;
             println!("restored {} files ({})", rep.restored, human(rep.bytes));
             if let Some(b) = &rep.backup_dir {
-                println!("replaced files were moved to {b}");
+                println!(
+                    "{} existing file(s) replaced; their copies are in {b}",
+                    rep.replaced
+                );
             }
             for s in &rep.skipped {
                 println!("  skipped: {s}");
@@ -1004,6 +1024,13 @@ async fn move_cmd(cmd: MoveCmd, json: bool) -> Result<()> {
                 if let Err(e) = veranda_core::packages::install(&app.layout, &pkg, None).await {
                     println!("  failed: {e:#}");
                 }
+            }
+            let (loaded, failed) = transfer::load_database_dumps(&app, &rep.database_dumps, &say);
+            for l in loaded {
+                println!("  {l}");
+            }
+            for f in failed {
+                println!("  database: {f}");
             }
             for f in transfer::clone_repos(&homes, &rep.manifest, &rep.repos_to_clone, &say) {
                 println!("  clone failed: {f}");

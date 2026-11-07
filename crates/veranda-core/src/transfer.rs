@@ -199,7 +199,14 @@ impl Default for CreateRequest {
 }
 
 pub const SECTIONS: &[&str] = &[
-    "veranda", "projects", "ssh", "git", "vscode", "claude", "folders",
+    "veranda",
+    "projects",
+    "databases",
+    "ssh",
+    "git",
+    "vscode",
+    "claude",
+    "folders",
 ];
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -229,6 +236,10 @@ pub struct Report {
     pub failed: Vec<String>,
     /// Existing files that were moved aside before being replaced.
     pub backup_dir: Option<String>,
+    /// How many existing files were replaced (their copies are in `backup_dir`).
+    pub replaced: usize,
+    /// SQL dumps from the bundle, now under `backups/`, waiting to be loaded into the database.
+    pub database_dumps: Vec<String>,
     pub manifest: Manifest,
     /// Repositories listed in the bundle that are not present after restore.
     pub repos_to_clone: Vec<RepoRef>,
@@ -258,6 +269,8 @@ pub struct Plan {
     pub total_bytes: u64,
     /// Left out on purpose: symlinks, folders inside the Veranda root, missing folders.
     pub skipped: Vec<String>,
+    /// Things worth knowing before creating (for example which database dump is used).
+    pub notes: Vec<String>,
 }
 
 /* ---------------- collecting ---------------- */
@@ -527,6 +540,7 @@ fn folder_name(p: &Path, taken: &[ExtraFolder]) -> String {
 struct Collected {
     items: Vec<Item>,
     skipped: Vec<String>,
+    notes: Vec<String>,
     repos: Vec<RepoRef>,
     sites: Vec<String>,
     folders: Vec<ExtraFolder>,
@@ -537,6 +551,7 @@ fn collect(homes: &Homes, req: &CreateRequest) -> Result<Collected> {
     let cfg = crate::config::Config::load_or_default(&layout)?;
     let mut items = vec![];
     let mut skipped = vec![];
+    let mut notes = vec![];
     let mut repos = vec![];
     let mut sites = vec![];
     let mut folders = vec![];
@@ -594,6 +609,9 @@ fn collect(homes: &Homes, req: &CreateRequest) -> Result<Collected> {
                 });
             }
         }
+    }
+    if wanted(&req.sections, "databases") {
+        database_items(homes, &layout, &cfg, &mut items, &mut notes);
     }
     if wanted(&req.sections, "ssh") {
         walk(
@@ -688,10 +706,78 @@ fn collect(homes: &Homes, req: &CreateRequest) -> Result<Collected> {
     Ok(Collected {
         items,
         skipped,
+        notes,
         repos,
         sites,
         folders,
     })
+}
+
+/// A fresh dump of the user databases when the server is running, otherwise the newest SQL
+/// backup Veranda made earlier (if any).
+fn database_items(
+    homes: &Homes,
+    layout: &Layout,
+    cfg: &crate::config::Config,
+    out: &mut Vec<Item>,
+    notes: &mut Vec<String>,
+) {
+    let app = crate::Veranda {
+        layout: layout.clone(),
+        config: cfg.clone(),
+    };
+    let fresh = crate::packages::Registry::load(layout)
+        .ok()
+        .and_then(|reg| crate::db::DbCtx::from_app(&app, &reg))
+        .filter(|db| crate::process::port_accepting(db.port))
+        .and_then(|db| {
+            let dest = layout.tmp().join("move-databases.sql");
+            match crate::db::dump_user_databases(&db, &dest) {
+                Ok(names) => {
+                    notes.push(if names.is_empty() {
+                        "databases: the server has no user databases".into()
+                    } else {
+                        format!("databases: fresh dump of {}", names.join(", "))
+                    });
+                    Some((db.engine.id().to_string(), dest))
+                }
+                Err(e) => {
+                    notes.push(format!(
+                        "databases: dump failed ({e}); using the newest backup"
+                    ));
+                    None
+                }
+            }
+        });
+    let _ = homes;
+    let (name, source) = match fresh {
+        Some((engine, dest)) => (format!("{engine}-{}.sql", fsutil::timestamp()), dest),
+        None => {
+            let newest = std::fs::read_dir(layout.backups())
+                .ok()
+                .into_iter()
+                .flatten()
+                .filter_map(|e| e.ok())
+                .filter(|e| e.path().extension().is_some_and(|x| x == "sql") && e.path().is_file())
+                .max_by_key(|e| e.metadata().and_then(|m| m.modified()).ok());
+            match newest {
+                Some(e) => {
+                    let n = e.file_name().to_string_lossy().to_string();
+                    if !notes.iter().any(|n| n.starts_with("databases:")) {
+                        notes.push(format!(
+                            "databases: server not running; using the backup {n}"
+                        ));
+                    }
+                    (n, e.path())
+                }
+                None => {
+                    notes.push("databases: server not running and no backup found".into());
+                    return;
+                }
+            }
+        }
+    };
+    push_file("databases", &source, &format!("databases/{name}"), out);
 }
 
 fn section_totals(items: &[Item]) -> Vec<SectionInfo> {
@@ -735,6 +821,7 @@ pub fn plan(homes: &Homes, req: &CreateRequest) -> Result<Plan> {
         sites: c.sites,
         folders: c.folders,
         skipped: c.skipped,
+        notes: c.notes,
     })
 }
 
@@ -1142,8 +1229,8 @@ pub fn create_with(
         bail!("choose where to save the bundle");
     }
     let c = collect(homes, req)?;
-    for s in &c.skipped {
-        tracing::info!("move bundle: left out {s}");
+    for s in c.skipped.iter().chain(c.notes.iter()) {
+        tracing::info!("move bundle: {s}");
     }
     let sections = section_totals(&c.items);
     let manifest = Manifest {
@@ -1309,6 +1396,7 @@ fn destination(homes: &Homes, manifest: &Manifest, entry: &str) -> Option<(&'sta
             Some(("projects", cfg.document_root(&homes.layout()).join(rest)))
         }
         "vscode" => Some(("vscode", homes.config.join("Code").join(rest))),
+        "databases" => Some(("databases", homes.layout().backups().join(rest))),
         "folders" => {
             let name = rest.iter().next()?.to_string_lossy().to_string();
             let inner: PathBuf = rest.iter().skip(1).collect();
@@ -1406,6 +1494,7 @@ pub fn restore(homes: &Homes, req: &RestoreRequest, progress: &dyn Fn(String)) -
                     std::fs::remove_file(&dest)
                 })?;
                 backed_up = true;
+                report.replaced += 1;
             }
             let mut out = std::fs::File::create(&dest)?;
             let n = std::io::copy(&mut entry, &mut out)?;
@@ -1426,7 +1515,12 @@ pub fn restore(homes: &Homes, req: &RestoreRequest, progress: &dyn Fn(String)) -
             Ok(())
         })();
         match res {
-            Ok(()) => report.restored += 1,
+            Ok(()) => {
+                report.restored += 1;
+                if section == "databases" {
+                    report.database_dumps.push(dest.display().to_string());
+                }
+            }
             Err(e) => report.failed.push(format!("{path}: {e}")),
         }
     }
@@ -1470,6 +1564,62 @@ pub fn repo_target(homes: &Homes, manifest: &Manifest, docroot: &Path, repo: &Re
     } else {
         base.join(inner)
     }
+}
+
+/// Load SQL dumps into Veranda's database, starting it first when needed. Returns what was
+/// loaded and what failed (with the file path, so it can be loaded by hand later).
+pub fn load_database_dumps(
+    app: &crate::Veranda,
+    dumps: &[String],
+    progress: &dyn Fn(String),
+) -> (Vec<String>, Vec<String>) {
+    let (mut ok, mut failed) = (vec![], vec![]);
+    let reg = match crate::packages::Registry::load(&app.layout) {
+        Ok(r) => r,
+        Err(e) => return (ok, vec![format!("database: {e}")]),
+    };
+    let Some(db) = crate::db::DbCtx::from_app(app, &reg) else {
+        return (
+            ok,
+            dumps
+                .iter()
+                .map(|d| format!("{d}: install and start the database, then `veranda db import`"))
+                .collect(),
+        );
+    };
+    if !crate::process::port_accepting(db.port) {
+        progress("starting the database…".into());
+        if let Err(e) = crate::services::start(app, crate::services::ServiceId::Db) {
+            return (
+                ok,
+                dumps
+                    .iter()
+                    .map(|d| format!("{d}: database not started: {e}"))
+                    .collect(),
+            );
+        }
+        if !crate::process::wait_for_port(db.port, std::time::Duration::from_secs(40)) {
+            return (
+                ok,
+                dumps
+                    .iter()
+                    .map(|d| {
+                        format!(
+                            "{d}: the database did not come up; load it with `veranda db import`"
+                        )
+                    })
+                    .collect(),
+            );
+        }
+    }
+    for d in dumps {
+        progress(format!("loading {d}…"));
+        match crate::db::import_file(&db, Path::new(d)) {
+            Ok(()) => ok.push(format!("database dump {d}")),
+            Err(e) => failed.push(format!("{d}: {e}")),
+        }
+    }
+    (ok, failed)
 }
 
 /// `git clone` every repository that is still missing. Needs git on `PATH`.
@@ -1631,6 +1781,10 @@ mod tests {
         // an extra folder under the home
         write(&old.home.join("Kerja/notes/todo.txt"), "todo");
         write(
+            &layout.backups().join("mariadb-20261101-000000.sql"),
+            "CREATE DATABASE shop;",
+        );
+        write(
             &old.home.join("Kerja/app/.git/HEAD"),
             "ref: refs/heads/dev\n",
         );
@@ -1690,7 +1844,14 @@ mod tests {
         assert_eq!(
             m.sections.iter().map(|s| s.id.as_str()).collect::<Vec<_>>(),
             vec![
-                "veranda", "projects", "ssh", "git", "vscode", "claude", "folders"
+                "veranda",
+                "projects",
+                "databases",
+                "ssh",
+                "git",
+                "vscode",
+                "claude",
+                "folders"
             ]
         );
         assert_eq!(m.folders[0].home_relative.as_deref(), Some("Kerja/notes"));
@@ -1762,6 +1923,13 @@ mod tests {
         assert!(new.root.join("etc/secrets/db-root.txt").is_file());
         assert!(new.root.join("etc/remote/secrets-export.json").is_file());
         assert!(new.root.join("www/shop/index.php").is_file());
+        assert_eq!(rep.database_dumps.len(), 1);
+        assert!(
+            new.root
+                .join("backups/mariadb-20261101-000000.sql")
+                .is_file()
+        );
+        assert_eq!(rep.replaced, 1, "only the old gitconfig existed");
         assert!(!new.root.join("www/shop/node_modules").exists());
         assert!(new.root.join("www/shop/.git/HEAD").is_file());
         assert!(new.home.join("Kerja/notes/todo.txt").is_file());

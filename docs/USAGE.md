@@ -95,7 +95,16 @@ and mounted drives; the list you pick is remembered for the next bundle). The bu
 records the installed Veranda packages, git repositories (remote and branch), VS Code
 extensions and developer tools found on `PATH`. Per-project settings (`.vscode/`, `.claude/`,
 `CLAUDE.md`, `.env`) travel inside their project folder, and Claude Code's per-project memory
-is re-linked to the folder's new path after restore.
+is re-linked to the folder's new path after restore. **Databases** adds a fresh SQL dump of
+your MariaDB/MySQL databases when the server is running (otherwise the newest backup Veranda
+made); PostgreSQL is not included yet.
+
+Restoring never deletes anything. A file that already exists on the new computer is moved to
+`backups/move-<date>` before the copy from the bundle takes its place, and files the bundle does
+not contain stay as they are. So restoring onto a computer that already has data merges the two:
+same-named files come from the bundle, everything else is kept. Database dumps are loaded into
+the running database (started if needed) by the finish step, or later with
+`veranda db import <file>`; databases with the same name are overwritten by the dump.
 
 A bundle is a snapshot, not a sync: make a fresh one right before you switch computers.
 

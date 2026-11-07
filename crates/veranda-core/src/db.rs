@@ -253,6 +253,86 @@ pub fn list_databases(db: &DbCtx) -> Result<Vec<String>> {
         .collect())
 }
 
+/// Databases that belong to the server itself and must never be dumped into a bundle.
+pub const SYSTEM_DBS: &[&str] = &["information_schema", "performance_schema", "mysql", "sys"];
+
+/// Dump the user databases (never the system ones) into one SQL file with `CREATE DATABASE`
+/// and `USE` statements, so it can be loaded into an empty server. Returns the names.
+pub fn dump_user_databases(db: &DbCtx, dest: &std::path::Path) -> Result<Vec<String>> {
+    let pw = root_password(&db.layout)?.context("root password unknown")?;
+    let names: Vec<String> = list_databases(db)?
+        .into_iter()
+        .filter(|n| !SYSTEM_DBS.contains(&n.as_str()))
+        .collect();
+    if names.is_empty() {
+        std::fs::write(dest, "-- no user databases\n")?;
+        return Ok(names);
+    }
+    let file = std::fs::File::create(dest)?;
+    let mut cmd = Command::new(Binaries::db_dump(&db.pkg, db.engine));
+    cmd.args(db.client_base_args());
+    cmd.args([
+        "--protocol=tcp",
+        "-h",
+        "127.0.0.1",
+        "-P",
+        &db.port.to_string(),
+        "-u",
+        "root",
+        "--single-transaction",
+        "--skip-lock-tables",
+        "--routines",
+        "--events",
+        "--triggers",
+        "--databases",
+    ])
+    .args(&names)
+    .env("MYSQL_PWD", pw)
+    .stdin(Stdio::null())
+    .stdout(Stdio::from(file))
+    .stderr(Stdio::piped());
+    let out = cmd.output()?;
+    if !out.status.success() {
+        let _ = std::fs::remove_file(dest);
+        bail!(
+            "dump failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    fsutil::make_private_file(dest)?;
+    Ok(names)
+}
+
+/// Load a plain SQL file (as written by [`dump_user_databases`] or [`dump_all`]) into the
+/// running server as root.
+pub fn import_file(db: &DbCtx, file: &std::path::Path) -> Result<()> {
+    let pw = root_password(&db.layout)?.context("root password unknown")?;
+    let input = std::fs::File::open(file).with_context(|| format!("opening {}", file.display()))?;
+    let mut cmd = Command::new(Binaries::db_client(&db.pkg, db.engine));
+    cmd.args(db.client_base_args());
+    cmd.args([
+        "--protocol=tcp",
+        "-h",
+        "127.0.0.1",
+        "-P",
+        &db.port.to_string(),
+        "-u",
+        "root",
+    ])
+    .env("MYSQL_PWD", pw)
+    .stdin(Stdio::from(input))
+    .stdout(Stdio::null())
+    .stderr(Stdio::piped());
+    let out = cmd.output().context("running the database client")?;
+    if !out.status.success() {
+        bail!(
+            "import failed: {}",
+            String::from_utf8_lossy(&out.stderr).trim()
+        );
+    }
+    Ok(())
+}
+
 /// Dump every database into `dest` (plain SQL).
 pub fn dump_all(db: &DbCtx, dest: &std::path::Path) -> Result<()> {
     let pw = root_password(&db.layout)?.context("root password unknown")?;

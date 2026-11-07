@@ -141,6 +141,8 @@ pub struct FinishRequest {
     pub repos: Vec<RepoRef>,
     pub extensions: Vec<String>,
     pub tools: Vec<ToolRef>,
+    #[serde(default)]
+    pub database_dumps: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Default)]
@@ -228,6 +230,21 @@ pub async fn move_finish(
                 .failed
                 .push(format!("{} {}: {e}", kind.display(), pkg.version)),
         }
+    }
+    if !req.database_dumps.is_empty() {
+        let app2 = match Veranda::open_at(hm.root.clone()) {
+            Ok(a) => a,
+            Err(_) => app.clone(),
+        };
+        let dumps = req.database_dumps.clone();
+        let h = handle.clone();
+        let r = tauri::async_runtime::spawn_blocking(move || {
+            transfer::load_database_dumps(&app2, &dumps, &|m| emit(&h, m))
+        })
+        .await
+        .map_err(err)?;
+        out.installed.extend(r.0);
+        out.failed.extend(r.1);
     }
     let h = handle.clone();
     let (manifest, repos, exts, tools) = (req.manifest, req.repos, req.extensions, req.tools);

@@ -10,6 +10,20 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.21] - 2026-11-07
+
+### Added
+- Move bundles can carry a **Databases** section: a fresh dump of the user databases when the
+  server runs (else the newest SQL backup). Restore loads it into the database, starting it if
+  needed; `veranda db import <file>` does the same by hand.
+
+### Changed
+- Restore reports how many existing files were replaced (copies in `backups/move-<date>`), and
+  the dialog explains that nothing is deleted.
+
+### Fixed
+- Scrolling inside a dialog no longer scrolls the page behind it.
+
 ## [0.6.20] - 2026-11-07
 
 ### Added
