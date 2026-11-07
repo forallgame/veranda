@@ -25,7 +25,7 @@ env -u WAYLAND_DISPLAY DISPLAY=:99 GDK_BACKEND=x11 timeout 90 dbus-run-session -
   ./target/debug/veranda-desktop > "$log" 2>&1 &
 sleep "$wait"
 shot="$out/${tab//:/_}${auto:+-${auto//:/_}}-${THEME:-dark}${SIZE:+-$SIZE}.png"
-DISPLAY=:99 ffmpeg -loglevel error -y -f x11grab -video_size "$screen" -i :99 -frames:v 1 "$shot"
+DISPLAY=:99 ffmpeg -loglevel error -y -f x11grab -draw_mouse 0 -video_size "$screen" -i :99 -frames:v 1 "$shot"
 pkill -f "target/debug/veranda-desktop" || true; sleep 1
 grep -E "ui-perf|panick|UI error" "$log" | sed 's/^.*ui-perf/ui-perf/' | head -5
 echo "shot: $shot"
