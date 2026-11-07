@@ -10,6 +10,14 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.18] - 2026-11-07
+
+### Changed
+- New look: a warm "porch" palette replaces the blue/purple one. Clay for actions, cream and
+  timber surfaces, leaf green / honey / brick for states, in both light and dark mode. The app
+  icon, tray icon and sidebar logo were recoloured to match (dark timber tile, terracotta roof).
+  Host colour chips, the default terminal cursor/selection and the tray status dots follow suit.
+
 ## [0.6.17] - 2026-11-06
 
 ### Added

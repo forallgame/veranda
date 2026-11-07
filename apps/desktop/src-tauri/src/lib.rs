@@ -1371,9 +1371,9 @@ fn teardown_webview(app: &AppHandle) {
 fn status_dot(running: bool) -> Image<'static> {
     const N: usize = 16;
     let (r, g, b) = if running {
-        (34u8, 197u8, 94u8)
+        (110u8, 170u8, 100u8)
     } else {
-        (239u8, 68u8, 68u8)
+        (200u8, 80u8, 65u8)
     };
     let mut px = vec![0u8; N * N * 4];
     let c = (N as f32 - 1.0) / 2.0;
