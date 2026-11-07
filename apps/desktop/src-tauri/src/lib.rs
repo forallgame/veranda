@@ -1787,6 +1787,7 @@ pub fn run() {
             remote::remote_save_identity,
             remote::remote_delete_identity,
             transfer::move_plan,
+            transfer::move_suggest,
             transfer::move_create,
             transfer::move_inspect,
             transfer::move_restore,

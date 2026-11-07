@@ -10,6 +10,14 @@ installers for Linux, Windows and macOS and attaches them to the GitHub release.
 
 ## [Unreleased]
 
+## [0.6.20] - 2026-11-07
+
+### Added
+- Move to another computer: **Find projects** (and `veranda move suggest`) lists git, Composer
+  and npm folders under the home and mounted drives; the chosen folder list is remembered in
+  `veranda.toml` (`[move] folders`). After restore, Claude Code's per-project memory and
+  `.claude.json` entries are re-linked to the folders' new paths.
+
 ## [0.6.19] - 2026-11-07
 
 ### Added

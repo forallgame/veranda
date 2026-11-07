@@ -131,6 +131,8 @@ enum MoveCmd {
         #[arg(long)]
         dry_run: bool,
     },
+    /// List folders that look like projects (git, Composer, npm), to pass to `create --folder`.
+    Suggest,
     /// Show what a bundle contains.
     Inspect { file: PathBuf },
     /// Unpack a bundle here, then reinstall packages and clone missing repositories.
@@ -886,6 +888,19 @@ async fn move_cmd(cmd: MoveCmd, json: bool) -> Result<()> {
                 human(m.total_bytes()),
                 m.sections.iter().map(|s| s.files).sum::<usize>()
             );
+        }
+        MoveCmd::Suggest => {
+            let list = transfer::suggest_folders(&homes);
+            if json {
+                println!("{}", serde_json::to_string_pretty(&list)?);
+                return Ok(());
+            }
+            for s in &list {
+                println!("{:<9} {}", s.kind, s.path);
+            }
+            if list.is_empty() {
+                println!("no project folders found under {}", homes.home.display());
+            }
         }
         MoveCmd::Inspect { file } => {
             let m = transfer::inspect(&file, &move_password(false)?)?;

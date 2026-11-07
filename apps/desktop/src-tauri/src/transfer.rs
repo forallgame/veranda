@@ -44,6 +44,22 @@ pub async fn move_create(
             Err(e) => emit(&handle, format!("remote secrets not exported: {e}")),
         }
     }
+    // remember the folder list for next time
+    {
+        let mut cfg = app.config.clone();
+        cfg.transfer.folders = req
+            .folders
+            .iter()
+            .map(|p| p.display().to_string())
+            .collect();
+        if cfg.transfer.folders != app.config.transfer.folders {
+            if let Err(e) = cfg.save(&app.layout) {
+                emit(&handle, format!("folder list not remembered: {e}"));
+            } else if let Ok(mut g) = state.app.lock() {
+                g.config = cfg;
+            }
+        }
+    }
     let h = handle.clone();
     tauri::async_runtime::spawn_blocking(move || {
         let progress = |m: String| emit(&h, m);
@@ -51,6 +67,15 @@ pub async fn move_create(
     })
     .await
     .map_err(err)?
+}
+
+/// Folders that look like projects, for the "Find projects" list.
+#[tauri::command]
+pub async fn move_suggest(state: State<'_, AppState>) -> CmdResult<Vec<transfer::Suggestion>> {
+    let app = open_app(&state)?;
+    tauri::async_runtime::spawn_blocking(move || Ok(transfer::suggest_folders(&homes(&app)?)))
+        .await
+        .map_err(err)?
 }
 
 #[tauri::command]

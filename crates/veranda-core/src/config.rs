@@ -23,6 +23,16 @@ pub struct Config {
     pub backup: Backup,
     pub update: Update,
     pub node: Node,
+    /// "Move to another computer": folders picked last time, so the next bundle starts from
+    /// the same list.
+    #[serde(rename = "move")]
+    pub transfer: Transfer,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(default)]
+pub struct Transfer {
+    pub folders: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

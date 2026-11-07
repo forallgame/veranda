@@ -149,6 +149,12 @@ pub struct Manifest {
     pub folders: Vec<ExtraFolder>,
     /// Site names in the document root that were included.
     pub sites: Vec<String>,
+    /// Document root and home on the old computer, so project data keyed by path (Claude Code
+    /// memory, `.claude.json`) can be relinked to the new locations.
+    #[serde(default)]
+    pub docroot: String,
+    #[serde(default)]
+    pub home: String,
 }
 
 impl Manifest {
@@ -918,6 +924,193 @@ fn open_bundle(
 
 /* ---------------- create ---------------- */
 
+/// A folder that looks like a project (git repository, Composer or npm package).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct Suggestion {
+    pub path: String,
+    pub name: String,
+    /// `git`, `composer`, `node` or `project`.
+    pub kind: String,
+}
+
+fn looks_like_project(dir: &Path) -> Option<&'static str> {
+    if dir.join(".git").is_dir() {
+        Some("git")
+    } else if dir.join("composer.json").is_file() {
+        Some("composer")
+    } else if dir.join("package.json").is_file() {
+        Some("node")
+    } else if dir.join(".vscode").is_dir()
+        || dir.join(".claude").is_dir()
+        || dir.join("CLAUDE.md").is_file()
+    {
+        Some("project")
+    } else {
+        None
+    }
+}
+
+fn suggest_in(dir: &Path, depth: u32, skip_root: &Path, out: &mut Vec<Suggestion>) {
+    if out.len() >= 400 {
+        return;
+    }
+    let Ok(rd) = std::fs::read_dir(dir) else {
+        return;
+    };
+    let mut entries: Vec<_> = rd.filter_map(|e| e.ok()).collect();
+    entries.sort_by_key(|e| e.file_name());
+    for e in entries {
+        let p = e.path();
+        let name = e.file_name().to_string_lossy().to_string();
+        if name.starts_with('.') || is_heavy(&name) || !p.is_dir() || p == skip_root {
+            continue;
+        }
+        if std::fs::symlink_metadata(&p)
+            .map(|m| m.file_type().is_symlink())
+            .unwrap_or(true)
+        {
+            continue;
+        }
+        if let Some(kind) = looks_like_project(&p) {
+            out.push(Suggestion {
+                path: p.display().to_string(),
+                name,
+                kind: kind.into(),
+            });
+        } else if depth > 1 {
+            suggest_in(&p, depth - 1, skip_root, out);
+        }
+    }
+}
+
+/// Project folders under the home (three levels deep) and, on Linux, under mounted volumes.
+pub fn suggest_folders(homes: &Homes) -> Vec<Suggestion> {
+    let mut out = vec![];
+    suggest_in(&homes.home, 3, &homes.root, &mut out);
+    #[cfg(target_os = "linux")]
+    {
+        let user = homes
+            .home
+            .file_name()
+            .map(|n| n.to_string_lossy().to_string())
+            .unwrap_or_default();
+        for base in [
+            PathBuf::from("/run/media").join(&user),
+            PathBuf::from("/media").join(&user),
+            PathBuf::from("/mnt"),
+        ] {
+            if let Ok(rd) = std::fs::read_dir(&base) {
+                for v in rd.filter_map(|e| e.ok()) {
+                    if v.path().is_dir() {
+                        suggest_in(&v.path(), 3, &homes.root, &mut out);
+                    }
+                }
+            }
+        }
+    }
+    out
+}
+
+/// Claude Code keeps per-project data under `~/.claude/projects/<slug>` where the slug is the
+/// absolute path with every non-alphanumeric character turned into `-`.
+pub fn claude_slug(path: &str) -> String {
+    path.chars()
+        .map(|c| if c.is_ascii_alphanumeric() { c } else { '-' })
+        .collect()
+}
+
+fn copy_dir(from: &Path, to: &Path) -> Result<()> {
+    std::fs::create_dir_all(to)?;
+    for e in std::fs::read_dir(from)? {
+        let e = e?;
+        let dest = to.join(e.file_name());
+        let ft = e.file_type()?;
+        if ft.is_dir() {
+            copy_dir(&e.path(), &dest)?;
+        } else if ft.is_file() {
+            std::fs::copy(e.path(), dest)?;
+        }
+    }
+    Ok(())
+}
+
+/// Old path -> new path for every project or folder that moved with the bundle.
+fn moved_paths(homes: &Homes, manifest: &Manifest, docroot: &Path) -> Vec<(String, PathBuf)> {
+    let mut v = vec![];
+    if !manifest.docroot.is_empty() {
+        let old_root = manifest.docroot.trim_end_matches(['/', '\\']);
+        for name in &manifest.sites {
+            v.push((format!("{old_root}/{name}"), docroot.join(name)));
+        }
+    }
+    for f in &manifest.folders {
+        let new = match &f.home_relative {
+            Some(r) => homes.home.join(r),
+            None => homes.home.join("Veranda-moved").join(&f.name),
+        };
+        v.push((f.original.clone(), new));
+    }
+    v
+}
+
+/// Make Claude Code find its per-project memory and settings at the new paths: copy
+/// `~/.claude/projects/<old slug>` to the new slug and rename the keys in `~/.claude.json`.
+fn relink_claude(homes: &Homes, manifest: &Manifest, docroot: &Path, report: &mut Report) {
+    let moved = moved_paths(homes, manifest, docroot);
+    if moved.is_empty() {
+        return;
+    }
+    let projects = homes.claude_dir().join("projects");
+    for (old, new) in &moved {
+        let new_s = new.display().to_string();
+        if *old == new_s {
+            continue;
+        }
+        let (from, to) = (
+            projects.join(claude_slug(old)),
+            projects.join(claude_slug(&new_s)),
+        );
+        if from.is_dir()
+            && !to.exists()
+            && let Err(e) = copy_dir(&from, &to)
+        {
+            report
+                .failed
+                .push(format!("Claude Code data for {new_s}: {e}"));
+        }
+    }
+    let cfg = homes.home.join(".claude.json");
+    let Ok(text) = std::fs::read_to_string(&cfg) else {
+        return;
+    };
+    let Ok(mut json) = serde_json::from_str::<serde_json::Value>(&text) else {
+        return;
+    };
+    let mut changed = false;
+    if let Some(map) = json.get_mut("projects").and_then(|p| p.as_object_mut()) {
+        for (old, new) in &moved {
+            let new_s = new.display().to_string();
+            if *old != new_s
+                && !map.contains_key(&new_s)
+                && let Some(v) = map.remove(old)
+            {
+                map.insert(new_s, v);
+                changed = true;
+            }
+        }
+    }
+    if changed {
+        match serde_json::to_vec_pretty(&json) {
+            Ok(bytes) => {
+                if let Err(e) = fsutil::write_private(&cfg, &bytes) {
+                    report.failed.push(format!(".claude.json: {e}"));
+                }
+            }
+            Err(e) => report.failed.push(format!(".claude.json: {e}")),
+        }
+    }
+}
+
 fn host_name() -> String {
     std::env::var("HOSTNAME")
         .or_else(|_| std::env::var("COMPUTERNAME"))
@@ -966,6 +1159,10 @@ pub fn create_with(
         tools: detect_tools(),
         folders: c.folders,
         sites: c.sites,
+        docroot: crate::config::Config::load_or_default(&homes.layout())
+            .map(|c| c.document_root(&homes.layout()).display().to_string())
+            .unwrap_or_default(),
+        home: homes.home.display().to_string(),
     };
 
     let mut salt = vec![0u8; 16];
@@ -1247,6 +1444,9 @@ pub fn restore(homes: &Homes, req: &RestoreRequest, progress: &dyn Fn(String)) -
         }
     }
     report.tools_missing = missing_tools(&manifest.tools);
+    if wanted(&req.sections, "claude") {
+        relink_claude(homes, &manifest, &docroot, &mut report);
+    }
     Ok(report)
 }
 
@@ -1419,7 +1619,6 @@ mod tests {
             &old.home.join(".claude/projects/p1/abc.jsonl"),
             "transcript",
         );
-        write(&old.home.join(".claude.json"), "{\"x\":1}");
         // a site with a git repo and a heavy folder
         let site = layout.www().join("shop");
         write(&site.join("index.php"), "<?php");
@@ -1431,6 +1630,33 @@ mod tests {
         write(&site.join(".git/HEAD"), "ref: refs/heads/main\n");
         // an extra folder under the home
         write(&old.home.join("Kerja/notes/todo.txt"), "todo");
+        write(
+            &old.home.join("Kerja/app/.git/HEAD"),
+            "ref: refs/heads/dev\n",
+        );
+        write(&old.home.join("Kerja/lib/package.json"), "{}");
+        let notes_old = old.home.join("Kerja/notes").display().to_string();
+        write(
+            &old.home
+                .join(".claude/projects")
+                .join(claude_slug(&notes_old))
+                .join("memory/MEMORY.md"),
+            "notes-mem",
+        );
+        write(
+            &old.home.join(".claude.json"),
+            &format!(
+                "{{\"projects\":{{{:?}:{{\"allowedTools\":[]}}}}}}",
+                notes_old
+            ),
+        );
+        let sug = suggest_folders(&old);
+        assert_eq!(
+            sug.iter()
+                .map(|s| (s.name.as_str(), s.kind.as_str()))
+                .collect::<Vec<_>>(),
+            vec![("app", "git"), ("lib", "node")]
+        );
 
         let file = dir.path().join("move.veranda-move");
         let req = CreateRequest {
@@ -1545,6 +1771,27 @@ mod tests {
             "[user]\nname = old\n"
         );
         assert!(rep.repos_to_clone.is_empty(), "working copy was included");
+        // Claude Code project data follows the folder to its new path
+        let notes_new = new.home.join("Kerja/notes").display().to_string();
+        assert_eq!(
+            std::fs::read_to_string(
+                new.home
+                    .join(".claude/projects")
+                    .join(claude_slug(&notes_new))
+                    .join("memory/MEMORY.md")
+            )
+            .unwrap(),
+            "notes-mem"
+        );
+        let cj: serde_json::Value =
+            serde_json::from_str(&std::fs::read_to_string(new.home.join(".claude.json")).unwrap())
+                .unwrap();
+        assert!(cj["projects"].get(&notes_new).is_some(), "{cj}");
+        assert!(cj["projects"].get(&notes_old).is_none());
+        assert_eq!(
+            claude_slug("/home/livren/Kerja/api_mobile v2"),
+            "-home-livren-Kerja-api-mobile-v2"
+        );
         #[cfg(unix)]
         {
             use std::os::unix::fs::PermissionsExt;

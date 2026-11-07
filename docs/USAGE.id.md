@@ -91,8 +91,14 @@ kunci, snippet beserta kata sandinya; proyek di document root (tanpa `node_modul
 `target`, dan sejenisnya kecuali Anda centang "Ikutkan"); `~/.ssh`; konfigurasi dan kredensial
 git; setelan, keybinding, dan snippet VS Code; setelan Claude Code, CLAUDE.md, skill, agent,
 command, plugin, memori proyek, dan login (tidak pernah transkrip sesi atau cache); serta folder
-tambahan yang Anda pilih. Paket juga mencatat paket Veranda yang terpasang, repository git
-(remote dan branch), ekstensi VS Code, dan tools developer yang ada di `PATH`.
+tambahan yang Anda pilih (**Cari proyek** menampilkan semua folder git, Composer, atau npm di
+folder home dan drive yang terpasang; daftar pilihan Anda diingat untuk paket berikutnya). Paket
+juga mencatat paket Veranda yang terpasang, repository git (remote dan branch), ekstensi VS
+Code, dan tools developer yang ada di `PATH`. Setelan per proyek (`.vscode/`, `.claude/`,
+`CLAUDE.md`, `.env`) ikut di dalam folder proyeknya, dan memori per proyek Claude Code
+dihubungkan ulang ke path baru folder itu setelah pemulihan.
+
+Paket adalah potret sesaat, bukan sinkronisasi: buat yang baru tepat sebelum pindah komputer.
 
 Di komputer baru, pasang Veranda, buka Settings, **Pulihkan paket**, pilih file dan kata
 sandi, centang bagian yang diinginkan, lalu tekan Pulihkan. File yang sudah ada dipindahkan dulu
@@ -102,8 +108,8 @@ bila `code` ada di `PATH`, dan di Windows bisa memasang tools yang hilang lewat 
 Programnya sendiri tidak pernah ikut: biner Linux tidak bisa jalan di Windows.
 
 Dari terminal juga bisa: `veranda move create <file>` (tambah `--dry-run` untuk melihat ukuran,
-`--folder <path>` untuk folder tambahan, `--only ssh --only git` untuk membatasi), `veranda move
-inspect <file>`, dan `veranda move restore <file>`. Kata sandi diambil dari
+`--folder <path>` untuk folder tambahan, `--only ssh --only git` untuk membatasi; `veranda move
+suggest` menampilkan folder proyek), `veranda move inspect <file>`, dan `veranda move restore <file>`. Kata sandi diambil dari
 `VERANDA_MOVE_PASSWORD` atau ditanyakan. Kata sandi yang terlupa tidak bisa dipulihkan.
 
 ## 7. Remote (klien SSH)

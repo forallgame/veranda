@@ -736,7 +736,8 @@ async function refreshMovePlan() {
   } catch (e) { fail(e); }
 }
 async function openMoveDialog() {
-  const f = $("#form-move"); f.reset(); move.folders = []; renderMoveFolders();
+  const f = $("#form-move"); f.reset(); move.folders = (state.config?.move?.folders || []).slice(); renderMoveFolders();
+  $("#move-suggest").classList.add("hidden"); $("#move-suggest").innerHTML = "";
   $("#move-sections").innerHTML = ""; $("#move-report").classList.add("hidden"); $("#move-progress").classList.add("hidden");
   const d = new Date(), pad = (n) => String(n).padStart(2, "0");
   const sep = (state.root || "").includes("\\") ? "\\" : "/";
@@ -753,7 +754,21 @@ $("#btn-move-add-folder").onclick = async () => {
     renderMoveFolders(); refreshMovePlan();
   } catch (e) { toast(t("migrate.noPicker"), "info"); }
 };
-$("#move-folders").addEventListener("click", (ev) => { const b = ev.target.closest("[data-move-rm]"); if (!b) return; move.folders.splice(Number(b.dataset.moveRm), 1); renderMoveFolders(); refreshMovePlan(); });
+$("#btn-move-suggest").onclick = async () => {
+  const box = $("#move-suggest"); box.classList.remove("hidden"); box.innerHTML = `<div class="empty small">${t("move.planning")}</div>`;
+  try {
+    const list = await invoke("move_suggest");
+    box.innerHTML = list.length ? list.map((s) => `<label class="check"><input type="checkbox" data-sug="${esc(s.path)}" ${move.folders.includes(s.path) ? "checked" : ""}><span><b>${esc(s.name)}</b><span class="pill">${esc(s.kind)}</span><small title="${esc(s.path)}">${esc(s.path)}</small></span></label>`).join("")
+      : `<div class="empty small">${t("move.noSuggest")}</div>`;
+  } catch (e) { fail(e); box.classList.add("hidden"); }
+};
+$("#move-suggest").addEventListener("change", (ev) => {
+  const i = ev.target.closest("[data-sug]"); if (!i) return;
+  const p = i.dataset.sug;
+  if (i.checked) { if (!move.folders.includes(p)) move.folders.push(p); } else move.folders = move.folders.filter((x) => x !== p);
+  renderMoveFolders(); refreshMovePlan();
+});
+$("#move-folders").addEventListener("click", (ev) => { const b = ev.target.closest("[data-move-rm]"); if (!b) return; const [gone] = move.folders.splice(Number(b.dataset.moveRm), 1); const sug = $(`#move-suggest [data-sug="${CSS.escape(gone)}"]`); if (sug) sug.checked = false; renderMoveFolders(); refreshMovePlan(); });
 $("#form-move").addEventListener("change", (ev) => { if (ev.target.name === "heavy") refreshMovePlan(); });
 $("#btn-move-browse").onclick = async () => {
   try {
@@ -1122,7 +1137,7 @@ async function autotest(name) {
     } catch (e) { report(`ERROR ${e?.message || e}`); }
   } else if (name === "projectdlg") { showTab("sites"); $("#btn-new-project").click(); report("open");
   } else if (name === "migratedlg") { showTab("sites"); await openMigrate(); report("open");
-  } else if (name === "movedlg") { showTab("settings"); await openMoveDialog(); await new Promise((r) => setTimeout(r, 1500)); report(`plan=${JSON.stringify(move.plan?.sections.map((x) => `${x.id}:${x.files}`))}`);
+  } else if (name === "movedlg") { showTab("settings"); await openMoveDialog(); await new Promise((r) => setTimeout(r, 1500)); $("#btn-move-suggest").click(); await new Promise((r) => setTimeout(r, 2500)); report(`plan=${JSON.stringify(move.plan?.sections.map((x) => `${x.id}:${x.files}`))} suggestions=${$$("#move-suggest [data-sug]").length}`);
   } else if (name === "restoredlg") { showTab("settings"); await openRestoreDialog(); report(`open card=${!!$("#btn-move-create")}`);
   } else if (name === "svcgroupdlg") { showTab("dashboard"); openGroupSvcDialog({ name: "Web stack", services: ["web", "php", "db"] }); report("open");
   } else if (window.VerandaRemote?.autotest) {

@@ -400,3 +400,9 @@ input[type=radio]:checked::after { content: ""; width: 8px; height: 8px; border-
 .move-folders { display: flex; flex-direction: column; gap: 4px; margin: 4px 0; }
 .move-folders .fold { display: flex; align-items: center; gap: 8px; font-family: var(--mono); font-size: 12px; padding: 4px 8px; background: var(--surface-2); border-radius: 8px; }
 .move-folders .fold span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.move-suggest { max-height: 180px; overflow: auto; border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px; margin: 6px 0; scrollbar-width: thin; }
+.move-suggest label.check { margin: 3px 0; gap: 8px; }
+.move-suggest label.check > span { width: auto; flex: 1; min-width: 0; display: flex; gap: 8px; align-items: baseline; font-family: var(--mono); font-size: 12px; }
+.move-suggest label.check > span b { font-family: var(--font); font-weight: 600; }
+.move-suggest label.check > span small { color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.move-suggest .empty.small { padding: 10px; border: 0; }

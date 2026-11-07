@@ -90,8 +90,14 @@ snippets and their passwords; the projects in the document root (without `node_m
 `vendor`, `target` and the like unless you tick "Keep"); `~/.ssh`; git config and credentials;
 VS Code settings, keybindings and snippets; Claude Code settings, CLAUDE.md, skills, agents,
 commands, plugins, project memory and login (never session transcripts or caches); and any
-extra folders you add. The bundle also records the installed Veranda packages, git repositories
-(remote and branch), VS Code extensions and developer tools found on `PATH`.
+extra folders you add (**Find projects** lists every git, Composer or npm folder under your home
+and mounted drives; the list you pick is remembered for the next bundle). The bundle also
+records the installed Veranda packages, git repositories (remote and branch), VS Code
+extensions and developer tools found on `PATH`. Per-project settings (`.vscode/`, `.claude/`,
+`CLAUDE.md`, `.env`) travel inside their project folder, and Claude Code's per-project memory
+is re-linked to the folder's new path after restore.
+
+A bundle is a snapshot, not a sync: make a fresh one right before you switch computers.
 
 On the new computer, install Veranda, open Settings, **Restore a bundle**, pick the file and
 the password, tick the parts you want and press Restore. Files that already exist are moved to
@@ -101,7 +107,8 @@ Code extensions when `code` is on `PATH`, and on Windows can install missing too
 `winget`. Programs themselves never travel: a Linux binary does not run on Windows.
 
 The same works from the terminal: `veranda move create <file>` (add `--dry-run` to see sizes,
-`--folder <path>` for extra folders, `--only ssh --only git` to limit), `veranda move inspect
+`--folder <path>` for extra folders, `--only ssh --only git` to limit; `veranda move suggest`
+lists project folders), `veranda move inspect
 <file>` and `veranda move restore <file>`. The password comes from `VERANDA_MOVE_PASSWORD` or a
 prompt. There is no recovery for a forgotten password.
 
